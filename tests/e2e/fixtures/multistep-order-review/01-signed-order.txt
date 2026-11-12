@@ -1,0 +1,18 @@
+FICTIONAL TEST RECORD — not a real transaction
+Signed order H-260828
+
+1. Parties and date
+Harper Studio (customer) and Elm Supply (vendor) signed this order on
+August 28, 2026. The ordered goods are twenty-four chairs.
+
+2. Price and original delivery
+The agreed unit price is $50 per chair: 24 x $50 = $1,200.
+Flat freight is $90. The original total is $1,290.
+No tax, rush charge, or other fee is included in this signed order.
+The original delivery deadline is September 10, 2026.
+
+3. Payment conditions
+A $400 deposit is required before shipment. This order alone does not prove
+that the deposit was paid. The remaining balance is payable after BOTH
+complete delivery and the customer's acceptance of the invoice.
+This record is an order, not evidence of delivery or invoice acceptance.

@@ -1,0 +1,44 @@
+You are a legal citation auditor specializing in statutory law. Review every statute citation in the draft document, first resolving it to a complete Bluebook-format citation, then confirming it is a real provision, then assessing whether it is applicable to the proposition it supports.
+
+You have one input:
+1. DRAFT DOCUMENT — full text.
+
+WORKFLOW:
+1. Scan the DRAFT DOCUMENT and identify EVERY statute citation — including bare section references like "§ 411" or "section 101" that can be resolved to a full statute from context.
+2. For each citation found, resolve it to its complete Bluebook-format citation (e.g., a bare "§ 411" appearing in a copyright context becomes "17 U.S.C. § 411"). Use surrounding context (document subject matter, nearby full citations, title references) to determine the correct code and title.
+3. Consolidate repeated references to the same statute into one record, listing all locations.
+4. For each resolved citation, verify it is a real statute with the cited section/subsection. Then evaluate whether it is applicable to how it is used in the draft.
+
+FOR EACH statute citation found in the draft, return one record with:
+- "citation": the COMPLETE citation in Bluebook format (e.g., "17 U.S.C. § 411", "Cal. Penal Code § 187") — never a bare section number alone
+- "citation_as_drafted": the citation string exactly as it appears in the draft (may be a bare "§ 411" or short form)
+- "location": where the citation appears (e.g., "Section 2, paragraph 3"; multiple locations separated by semicolons)
+- "quotes": an array of every VERBATIM direct-quotation span that the draft attributes to this statute. Include only text inside balanced quotation marks or a clear block quotation, without the quotation marks. Copy the wording exactly, including ellipses and bracketed edits. Use [] when the draft paraphrases the statute or does not quote it.
+- "is_valid": true if the statute and the specific cited section/subsection exist; false if the statute, title, or cited provision does not exist or is incorrectly cited
+- "is_applicable" — three states: true if the statute supports the proposition as used in the draft; false ONLY if it is misapplied/unrelated/contradicted or is_valid is false (an actual error); null if the statute is valid but applicability CANNOT be assessed because the draft cites/lists it with no accompanying proposition or argument (e.g., a bare citation list). null is NOT an error.
+- "reason": non-empty 1-2 sentences when is_valid=false OR is_applicable=false, explaining the specific issue; when is_applicable is null, either "" or a short neutral note (e.g., "Listed without an accompanying proposition; applicability not assessed."); empty string "" when is_valid=true AND is_applicable is true
+
+RULES:
+- Cover ALL statute citations in the draft. Do NOT omit any, including bare section references.
+- Do NOT include statutes not present in the draft.
+- Consolidate multiple occurrences of the same statute into one record; do NOT create duplicate records.
+- Ignore case law reporter citations, regulations, docket numbers, and record cites.
+- If you cannot resolve a bare section number to a specific code from context, set is_valid=false and explain in reason.
+- If is_valid=false, set is_applicable=false as well and explain why the provision is invalid in reason.
+- Treat a claimed quotation that does not appear in the provision as an applicability error and explain the mismatch. Never silently repair the draft's quotation.
+- Extract a quotation even when you believe it is inaccurate. A separate source-text step will decide whether the quotation can be independently verified.
+- If the draft contains NO statute citations, return {{"results": []}}.
+- Return ONLY valid JSON with a top-level "results" array. No markdown fences, no preamble, no extra text.
+
+---
+
+DRAFT DOCUMENT:
+{draft_text}
+
+--- output should be in the following JSON format ---
+{{"results": [
+  {{"citation": "28 U.S.C. § 1331", "citation_as_drafted": "28 U.S.C. § 1331", "location": "Section 1, paragraph 2", "quotes": [], "is_valid": true, "is_applicable": true, "reason": ""}},
+  {{"citation": "17 U.S.C. § 411", "citation_as_drafted": "§ 411", "location": "Section 3, paragraph 1", "quotes": ["no civil action for infringement of the copyright in any United States work shall be instituted until preregistration or registration"], "is_valid": true, "is_applicable": true, "reason": ""}},
+  {{"citation": "17 U.S.C. § 101", "citation_as_drafted": "17 U.S.C. § 101", "location": "Section 4, paragraph 1", "quotes": [], "is_valid": true, "is_applicable": false, "reason": "Section 101 provides definitions only and does not address contributory infringement."}},
+  {{"citation": "99 U.S.C. § 9999", "citation_as_drafted": "§ 9999", "location": "Section 5, paragraph 2", "quotes": [], "is_valid": false, "is_applicable": false, "reason": "Title 99 does not exist in the United States Code."}}
+]}}

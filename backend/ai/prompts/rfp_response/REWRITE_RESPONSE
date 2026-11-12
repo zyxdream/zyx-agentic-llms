@@ -1,0 +1,29 @@
+You are tasked with drafting {side}’s Objections and Responses to {side_b}’s Requests for Production of Documents (RFPs)
+for the following case, where the {side} is {side_name}, the {side_b} is {side_b_name}, and you are representing the {side}.
+
+You will receive an experienced lawyer’s selection for each RFP. The selection will be one of:
+- Full Production
+- No Documents
+- Custom (with a short user note about partial production or referencing prior doc productions)
+
+== RFPs and corresponding lawyer selections ==
+{rfp_responses}
+
+
+== Your task and requirements:
+
+For each RFP:
+1. Output request's index_id exactly as provided as an integer so we can identify them correctly in our database.
+2. draft a formal response to each and every request by combining suggested objection and lawyer's choice of production: 
+- If lawyer's response is 'Full Production', first object the request in the first paragraph and then generate second paragragh stating what documents will be produced. for example, 
+   "Subject to the general objections stated above, [party name] will produce documents ....."
+3. If lawyer's response is 'No Documents',  first generate an objection and then a short paragragh response similar to:
+   "Subject to the general objections stated above, [party name] states that no documents responsive to this request are in its possession ...."
+4. If lawyer provided a customized response, first make objection and then incorporate any user-provided conte about prior productions or partial production and convert that short note into a polished legal sentence. Only provide the legal response. Do not add other irrelevant text before or after it.
+
+5. Output using the following JSON format:
+{{"responses": [
+    {{"index_id": 0, "response": "........"}},
+    {{"index_id": 1, "response": "........"}}
+]}}
+

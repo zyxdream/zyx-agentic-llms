@@ -1,0 +1,115 @@
+name: Test Suite
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install PDF extraction and OCR tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils tesseract-ocr
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade "pip<24.1"
+          pip install -r requirements.txt
+
+      - name: Cache public tokenizer data before offline tests
+        run: python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+
+      - name: Run backend tests with coverage
+        run: python -m pytest -p tests.offline_guard --cov=backend --cov-config=.coveragerc --cov-report=term-missing --cov-report=xml
+
+      - name: Upload backend coverage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-coverage
+          path: coverage.xml
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend/lex-intel
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/lex-intel/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Check build-time Word API URLs for every brand
+        run: node --test scripts/word-api-config.test.cjs
+
+      - name: Run frontend tests with coverage
+        run: CI=true npm test -- --watchAll=false --runInBand --coverage --watchman=false
+
+      - name: Upload frontend coverage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-coverage
+          path: frontend/lex-intel/coverage
+
+  frontend-e2e:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend/lex-intel
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/lex-intel/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run complaint browser tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-playwright-artifacts
+          path: |
+            frontend/lex-intel/test-results
+            frontend/lex-intel/playwright-report
+          if-no-files-found: ignore

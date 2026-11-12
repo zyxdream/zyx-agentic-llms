@@ -1,0 +1,24 @@
+{
+  "base_url": "https://www.ilga.gov/legislation/ILCS/Chapters.asp",
+  "item_url": "https://www.ilga.gov/legislation/ILCS/Chapters.asp",
+
+  "number_pattern": "(\\d+(?:\\.\\d+)*(?:\\/[0-9A-Za-z\\-\\.]+)*(?:\\([a-zA-Z0-9]+\\))*)",
+
+  "code_patterns": [
+    "\\d+\\s+ILCS\\s+",
+    "\\d+\\s+Ill\\. Comp\\. Stat\\.\\s+",
+    "\\d+\\s+Illinois Compiled Statutes\\s+",
+    "\\d+\\s+Illinois Comp\\. Stat\\.\\s+",
+    "\\d+\\s+Ill\\. Comp\\. Stat\\. Ann\\.\\s+",
+    "\\d+\\s+Illinois Comp\\. Stat\\. Ann\\.\\s+",
+
+    "Ill\\. Comp\\. Stat\\. §\\s*",
+    "Ill\\. Comp\\. Stat\\. §§\\s*",
+    "Illinois Compiled Statutes §\\s*",
+    "Illinois Compiled Statutes §§\\s*",
+    "Illinois Comp\\. Stat\\. §\\s*",
+    "Illinois Comp\\. Stat\\. §§\\s*"
+  ]
+}
+
+  

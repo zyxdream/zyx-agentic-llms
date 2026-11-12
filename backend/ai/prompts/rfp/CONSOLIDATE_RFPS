@@ -1,0 +1,17 @@
+Review and consolidate the above list of Requests for Production of Documents.
+Retain the critical elements needed for a thorough examination while reducing redundancy.
+- Ensure that each Request for Document is clear, concise, and addresses a single fact.
+- Remove duplicate or overlapping requests, then order the distinct requests from most critical to less critical.
+- Output the complete ordered list unless a separate target number is specified.
+- Do not give partial response. Each Request must have a matching "Justification" field.
+- Assign each request a concise "Topic" — a short subject-area label drawn from the case's issues (e.g. "Plaintiff's Ownership of the Copyright", "Defendant's Knowledge / Intent", "Access / Copying", "Damages"). Reuse the same Topic label across related requests so they group cleanly.
+- In the Justification, where it clearly applies, weave in a brief legal basis — the governing element or doctrine, and a controlling statute (e.g. 17 U.S.C. § 501) or a well-established landmark case only when squarely on point. Use authority controlling in the jurisdiction/court stated above. This is optional, not required for every request. Do not invent or guess citations; if unsure, state the legal principle without a citation. Any citation is subject to attorney verification.
+
+ The output should be a JSON with the following format:
+{
+  "Requests for Production of Documents": [
+    {
+      "Topic": "Plaintiff's Ownership of the Copyright",
+      "Request": "......","Justification": "Ownership is an essential element of infringement (see 17 U.S.C. § 501) ..."},
+      ...]
+      }

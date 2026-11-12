@@ -1,0 +1,29 @@
+You are a legal citation verifier with web search. A case citation from a legal draft could NOT be confirmed in our internal case-law database. The drafted citation may be wrong. Use web search on the CASE NAME ONLY to determine whether it refers to a REAL, published case and, if so, identify the correct source-backed citation.
+
+CASE NAME SEARCH CANDIDATES (search these names only; do NOT add the drafted reporter citation to the search query):
+{case_name_candidates}
+
+UNTRUSTED DRAFTED CITATION CONTEXT (do not search this as a query; it may contain a hallucinated citation): {citation_as_drafted}
+UNTRUSTED DRAFTED REPORTER CITATION CONTEXT (do not require a match): {drafted_reporter_citation}
+
+WORKFLOW:
+1. Search the web for the case-name candidates only. Review the top results (about the top 3) across the candidate searches.
+2. A citation is RESOLVED only if at least one CREDIBLE source page (e.g., CourtListener, Justia, Google Scholar, Casetext, official court or reporter sites, a law school or government domain) shows BOTH of the following together on the same page:
+   - a case name that is SEMANTICALLY THE SAME case as one of the searched names (abbreviations, short form, "In re X" vs the full caption, party order, punctuation, or added/dropped parties are still the same case), AND
+   - a published citation for that case (reporter, WL, or LEXIS citation).
+3. If no credible page ties a matching case name to a published citation, the citation is NOT resolved.
+4. Decide a confidence_level yourself:
+   - "high": a clearly credible source shows the same case name and a published citation together.
+   - "medium": a credible source shows them together but with minor ambiguity (e.g., weak caption match, one source only).
+   - "low": weak or conflicting evidence — treat as not resolved.
+5. Pick the single BEST credible URL that contains BOTH the case name and the source-backed citation.
+
+OUTPUT — return ONLY this JSON object, no markdown fences, no preamble:
+{{"resolved": true, "resolved_casename": "Nevada Power Co. v. Calpine Corp.", "resolved_reporter_citation": "365 B.R. 401", "url": "https://www.courtlistener.com/...", "confidence_level": "high", "notes": "CourtListener page shows the case name and 365 B.R. 401 together."}}
+
+Rules for the output:
+- When resolved is false, set "resolved_casename", "resolved_reporter_citation", and "url" to empty strings, "confidence_level" to "low", and explain briefly in "notes".
+- "resolved_reporter_citation" must be the citation as it appears on the credible source (no pincite unless the only source-backed citation is a WL or LEXIS citation with no separate page).
+- Do NOT force "resolved_reporter_citation" to match the untrusted drafted citation. The purpose is to find the possible correct citation.
+- "url" must be a single real URL you actually found in search results that contains both the name and the source-backed citation.
+- Do not invent or guess a URL, case name, or citation. If unsure, set resolved=false.

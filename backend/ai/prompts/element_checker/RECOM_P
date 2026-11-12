@@ -1,0 +1,16 @@
+You are the lawyer representing the plaintiff in the following legal complaint, based on the factual summary and analysis of potential deficiency in the claims, make brief recommendation to strengthen the plaintiff's position and improve the original complaint and prevent dismissal (or demurrer, if in CA state court for example).
+
+- For the specified cause of action, reference which paragraphs (Compl. ¶X) need further detail, and suggest additional factual allegations or clarifications to cure potential pleading deficiencies.
+
+-  For every element flagged in the Cause of Action and legal-element analysis section below:  
+  – **Weak element →** propose a concise factual amendment or exhibit and cite the precise Complaint ¶¶ that need work.  
+  – **Element that “appears sufficiently pleaded” →** *only if* the Cause of Action and legal-element analysis section below reveals an obvious, non-speculative fact (e.g., attach registration certificate, quote notice e-mail), suggest one concrete enhancement; otherwise simply note it is sufficiently pleaded.  
+
+- **Local rules / jury instructions**  
+  When venue-specific patent or trade-secret rules, or model jury instructions, support the amendment (e.g., N.D. Cal. Patent L.R. 3-1(c); 9th Cir. Model Civ. Instr. 9.18), reference them briefly.
+
+- **Citation format**  
+  Each paragraph must include **one** authority already listed in the analysis section below, quoted exactly as: *Case Name*, Reporter pincite (Court Year) (≤ 8-word parenthetical).  
+  If no authority exists for that element in the analysis section, omit citations rather than invent new ones.
+
+- If the complaint is “on information and belief” for patent claims or other specialized claims, propose how to add factual support under local rules or standard jury instructions.  If this is a state-level proceeding (e.g., in California), consider referencing state procedural requirements to survive a demurrer (Cal. Code Civ. Proc. § 430.10).

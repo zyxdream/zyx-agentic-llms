@@ -1,0 +1,27 @@
+Extract and enumerate all pertinent factual allegations from the following legal complaint. Your summary must capture every critical date, event, technical detail, party, and narrative nuance—even those that might seem minor—to ensure an exhaustive factual record that will inform the Background - Factual Allegations section of a Motion to Dismiss. Write from the perspective of a Defendant seeking to dismiss the case, assuming all facts are true per MTD standards, and refrain from including any conclusions or legal analysis.
+
+== a segment of fact allegations:
+{fa_sub}
+
+
+== Your Task:
+Extract and list all pertinent facts and details from the complaint into a list of plain text sentences. Leave no factual stone unturned.
+
+== Requirement:
+1. Identify Key Facts. Include every critical detail:
+   - All important dates, locations, and chronology of events;
+   - Every relevant party, entity, or person and their role;
+   - All significant actions, communications, or incidents described;
+   - Technical or industry-specific details mentioned;
+   - Alleged damages or outcomes claimed by plaintiff.
+
+2. Present the Facts in Separate Sentences:
+   - Group closely‑related facts into one sentence (≤ 40 words) where doing so avoids rote repetition, but never omit a complaint citation. Use ‘Plaintiff alleges’ only once per paragraph, then vary with neutral verbs (‘states,’ ‘asserts,’ ‘contends’).
+   - After each sentence, provide a parenthetical citing the corresponding complaint paragraph(s), e.g. *(Compl. ¶ 12)* or *(Compl. ¶¶ 10–12)*.
+   - Ensure every sentence is precise and **exhaustively captures that allegation**. If a single complaint paragraph contains multiple important facts, split them into separate sentences with separate citations.
+   - **No legal conclusions:** e.g., if the complaint says “Defendant was negligent,” that is a conclusion – instead, list the factual actions that purportedly were negligent.
+
+3. Formatting and Tones:
+   - Use a formal, objective tone (as in a neutral court filing). **Do not use persuasive language;** just state what “Plaintiff alleges”.
+   - Output the complete and exhaustive summary in the following JSON format:
+{{"summary":["....","....","....",...]}}

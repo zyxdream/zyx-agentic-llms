@@ -1,0 +1,191 @@
+{
+  "as_of": "2026-11-08",
+  "currency": "USD",
+  "calculation_basis": "Independent integer-dollar arithmetic from explicit literal fixture records, not model output or Excel formula caches.",
+  "invoice_rows": [
+    {
+      "invoice": "000101",
+      "vendor": "Alpha",
+      "quantity": 10,
+      "unit_price": 120,
+      "due_date": "2026-10-15",
+      "invoice_amount": 1200,
+      "posted_payments": 700,
+      "balance": 500,
+      "overdue_balance": 500,
+      "source_invoice_row": 5
+    },
+    {
+      "invoice": "000102",
+      "vendor": "Beta",
+      "quantity": 5,
+      "unit_price": 150,
+      "due_date": "2026-10-20",
+      "invoice_amount": 750,
+      "posted_payments": 750,
+      "balance": 0,
+      "overdue_balance": 0,
+      "source_invoice_row": 6
+    },
+    {
+      "invoice": "000103",
+      "vendor": "Alpha",
+      "quantity": 2,
+      "unit_price": 250,
+      "due_date": "2026-11-01",
+      "invoice_amount": 500,
+      "posted_payments": 200,
+      "balance": 300,
+      "overdue_balance": 300,
+      "source_invoice_row": 7
+    },
+    {
+      "invoice": "000104",
+      "vendor": "Gamma",
+      "quantity": 8,
+      "unit_price": 120,
+      "due_date": "2026-11-20",
+      "invoice_amount": 960,
+      "posted_payments": 0,
+      "balance": 960,
+      "overdue_balance": 0,
+      "source_invoice_row": 8
+    },
+    {
+      "invoice": "000105",
+      "vendor": "Beta",
+      "quantity": 4,
+      "unit_price": 250,
+      "due_date": "2026-10-25",
+      "invoice_amount": 1000,
+      "posted_payments": 0,
+      "balance": 1000,
+      "overdue_balance": 1000,
+      "source_invoice_row": 9
+    },
+    {
+      "invoice": "000106",
+      "vendor": "Gamma",
+      "quantity": 1,
+      "unit_price": 250,
+      "due_date": "2026-11-05",
+      "invoice_amount": 250,
+      "posted_payments": 50,
+      "balance": 200,
+      "overdue_balance": 200,
+      "source_invoice_row": 10
+    }
+  ],
+  "payment_rows": [
+    {
+      "payment_id": "P1",
+      "invoice": "000101",
+      "amount": 400,
+      "status": "posted",
+      "source_csv_row": 1
+    },
+    {
+      "payment_id": "P2",
+      "invoice": "000101",
+      "amount": 300,
+      "status": "posted",
+      "source_csv_row": 2
+    },
+    {
+      "payment_id": "P3",
+      "invoice": "000102",
+      "amount": 750,
+      "status": "posted",
+      "source_csv_row": 3
+    },
+    {
+      "payment_id": "P4",
+      "invoice": "000103",
+      "amount": 200,
+      "status": "posted",
+      "source_csv_row": 4
+    },
+    {
+      "payment_id": "P5",
+      "invoice": "000104",
+      "amount": 100,
+      "status": "pending",
+      "source_csv_row": 5
+    },
+    {
+      "payment_id": "P6",
+      "invoice": "000105",
+      "amount": 1000,
+      "status": "reversed",
+      "source_csv_row": 6
+    },
+    {
+      "payment_id": "P7",
+      "invoice": "000106",
+      "amount": 50,
+      "status": "posted",
+      "source_csv_row": 7
+    },
+    {
+      "payment_id": "P8",
+      "invoice": "009999",
+      "amount": 90,
+      "status": "posted",
+      "source_csv_row": 8
+    }
+  ],
+  "totals": {
+    "invoice_total": 4660,
+    "posted_payment_total": 1790,
+    "matched_posted_payments": 1700,
+    "unmatched_posted_payments": 90,
+    "outstanding_balance": 2960,
+    "overdue_balance": 2000,
+    "overdue_invoice_count": 4,
+    "excluded_pending_payments": 100,
+    "excluded_reversed_payments": 1000
+  },
+  "vendor_outstanding_balances": {
+    "Alpha": 800,
+    "Beta": 1000,
+    "Gamma": 1160
+  },
+  "unmatched_posted_records": [
+    {
+      "payment_id": "P8",
+      "invoice": "009999",
+      "amount": 90,
+      "status": "posted",
+      "source_csv_row": 8
+    }
+  ],
+  "selected_paths": [
+    "invoices.xlsx",
+    "accounting/ledger.csv"
+  ],
+  "excluded_paths": [
+    "marketing/ledger.csv"
+  ],
+  "source_ranges": {
+    "invoices.xlsx": "'Invoice detail'!A5:F10",
+    "accounting/ledger.csv": "A1:D8"
+  },
+  "expected_invoice_ids": [
+    "000101",
+    "000102",
+    "000103",
+    "000104",
+    "000105",
+    "000106"
+  ],
+  "expected_payment_ids": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ]
+}

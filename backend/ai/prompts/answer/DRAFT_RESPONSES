@@ -1,0 +1,76 @@
+We are writing an answer to a litigation complaint, you will be given a list of paragraphs of the original complaint, followed by the lawyer's choice of answer to each paragraph.  Based on these information, write a response for each paragraph.  Do not write any other sections of the answer.  Do not include a title page or a signature block. Use 'Defendant', not defendant's name.
+
+=== Case Inputs
+Expected paragraph numbers:
+{expected_paragraph_numbers}
+
+Expected answer count:
+{expected_answer_count}
+
+complaint paragraphs:
+{paragraphs}
+
+----
+Lawyer's choice of answers to selected paragraphs, first original paragraph will be provided, followed by lawyer's choice of answer type.
+{para_user_responses}
+
+=== Completeness Contract
+You must return exactly one answer object for every expected paragraph number.
+Do not omit any paragraph, even if paragraphs are repetitive, similar, boilerplate, or have the same answer type.
+Do not group paragraphs together.
+Do not summarize multiple paragraphs into one response.
+Do not say "same as above" or use any cross-reference instead of drafting a response.
+Do not return extra paragraph numbers.
+
+=== Requirement for different types of responses:
+0.  Legal-conclusion paragraphs: If a complaint paragraph is mainly a legal conclusion, argument, or prayer for relief (keywords like “violates”, “is liable”, “constitutes”, “entitled to”, etc.), respond similar to: Paragraph # contains legal conclusions to which no response is required.  To the extent a response is required, Defendant denies the allegations in Paragraph #.  where # stands for the paragraph number.
+
+1. If the defendant's choice is Paragraph 1: notEnoughInfo, reply like this:
+ Defendant lacks information and belief as to the allegations contained therein, and, on that basis, denies the allegations in Paragraph 1 of the Complaint.
+
+2. If the defendant's choice is Paragraph 2: custom, Form and polish lawyer's phrase into complete sentence or sentences based on their legal opinions. 
+
+3. If the defendant's choice is Paragraph 3: admit. Carefully examine what is stated in that paragraph, and only admit the specific facts which are simple facts.  Carefully examine the content of the paragraph and only admit specific factual allegations that are unequivocally true.  Do not admit any specific allegation or charge or conclusive claims.  DO NOT admit legal conclusions, conclusive allegations, or characterizations.  ONLY admit discrete, unequivocally true facts (e.g., Plaintiff’s state of incorporation, a publicly-available address). If only part of a paragraph is undeniably true, admit that part and deny the remainder.
+Example for admit:
+In answering Paragraph 3 of the Complaint, Defendant admits that it was Plaintiff’s employer and operated in the County of Contra Costa, California during Plaintiff’s employment. Except as otherwise expressly admitted herein, Defendant denies the remaining
+allegations.
+
+4. If the defendant's choice is Paragraph 4: deny. You may use the following examples, choose the one you think is the best suited for the complaint:
+= Examples when it is pure factual allegations:
+18. In truth, the consumer does not pay for the referral. HomeLight gets a 25%
+referral fee, which is standard in the industry with referrals between licensed real estate brokers.
+Answer:
+Defendant denies the allegations in Paragraph 18 of the Complaint.
+
+= Examples when it contains legal conclusions:
+16. Numerous other falsehoods and misstatements are contained on this website, including the defamatory statements: “HomeLight is a broker-to-broker collusion scheme, where all ‘partner agents’ unlawfully agree to pay massive kickbacks to receive your information by engaging in market allocation, consumer allocation, false advertising, hidden kickbacks, wire fraud, and price-fixing practices. As a consumer, you will always significantly overpay for Realtor commissions subject to hidden kickbacks and pay-to-play steering promoted in this scheme.
+Answer:
+Answering Paragraph 16 of the Complaint, the allegations in this paragraph are
+statements or conclusions of law that require no response under the Federal Rules of Civil
+Procedure. To the extent that a response is required, Defendant denies each and every
+allegation set forth in Paragraph 16.
+--
+19. These defamatory statements are blatantly false and configured to appear as some kind of consumer review or help site,communicating misleading information to consumers and constituting unfair competition. HomeOpenly’s website violates the Federal Trade Commission’s guidelines on “native advertising” as explained in the FTC’s Enforcement Policy Statement on Deceptively Formatted Advertising.
+
+Answer: 
+Paragraph 19 contains legal conclusions to which no response is required. To the extent a response is required, Defendant denies the allegations in Paragraph 19 of the Complaint.
+
+=== Your task:
+For the above case, output response to each and every paragraph according to lawyer's choice, following the requirement listed previously.
+Do not modify paragraph numbers.
+Match paragraph numbers in the complaint with the lawyer's feedback.
+Before returning JSON, silently verify that every expected paragraph number appears exactly once in the Answers array.
+If two paragraphs need identical wording, still return two separate JSON objects.
+====
+Output using the following JSON format:
+{{"Answers":[
+{{"paragraph":"1","response":"..."}},
+{{"paragraph":"2","response":"..."}},
+...]
+}}
+
+
+
+
+
+

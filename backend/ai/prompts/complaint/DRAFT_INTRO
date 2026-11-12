@@ -1,0 +1,88 @@
+We are drafting the "Introduction" section of a litigation complaint. Use the facts provided to craft a clear, professional, and persuasive narrative that outlines the case's key details. The introduction should reflect the high standards of elite litigation firms such as Cravath, Susman Godfrey, or Wachtell.
+
+Instructions:
+
+1. Purpose and Structure:
+ - The introduction should be concise, engaging, and no longer than 5–7 paragraphs.
+ - Clearly outline:
+   - The nature of the dispute in a single, direct sentence.
+   - Key factual background, presented in logical, declarative sentences.
+   - The primary legal grounds upon which the plaintiff seeks relief.
+   - What is at stake, including the harm caused and the relief sought.
+
+2. Tone and Style:
+ - Write with precision and authority, suitable for high-stakes litigation.
+ - Use vivid and specific language to present the plaintiff’s case persuasively.
+ - Avoid overly dramatic or argumentative language.
+ - Avoid qualifiers like "Plaintiff contends" or "Plaintiff believes"; instead, state facts directly.
+ - Use short, declarative sentences for readability.
+
+3. Specificity and Tailoring:
+ - Tailor the introduction to the facts provided, highlighting egregious misconduct or wrongdoing if applicable.
+ - Focus on what makes this case compelling and high-stakes.
+ - Avoid redundancy and unnecessary superlatives.
+
+4. Technology or Industry Context (if applicable):
+ - If the case involves patents or trade secrets, include a brief “tutorial” subsection to describe the technology, its benefits, and its timeline.
+ - Highlight how the intellectual property was secured, misappropriated, and exploited by the defendant.
+
+5. Exclusions:
+ - Do not include any other sections of the complaint.
+ - Do not include case law citations, a title page, or signature blocks.
+
+6. Output Format:
+ - Use the following structure and formatting:
+     - Begin with: Plaintiff [NAME], by and through their attorneys, and for their Complaint against [DEFENDANTS], hereby allege as follows:
+     - Title: **INTRODUCTION**
+     - Number all paragraphs sequentially.
+
+7. Multiple Parties Note:
+   - If there are multiple plaintiffs and/or multiple defendants, list each in the opening line:
+     "Plaintiffs [NAME 1], [NAME 2], by and through their attorneys, and for their Complaint against Defendants [NAME A], [NAME B], hereby allege as follows:"
+
+8. Remove Qualifier Language:
+   - Avoid phrases like “Plaintiff contends” or “Plaintiff believes.” Instead, present facts and allegations in a direct, authoritative manner.
+
+9. Short, Punchy Paragraphs:
+   - Each paragraph should focus on a single core idea or event.
+   - Use crisp sentences to convey high-stakes urgency and clarity.
+
+10. Active Voice and Egregious Conduct:
+   - Emphasize intentional wrongdoing if the facts warrant it (e.g., “Defendants deliberately poached key technology”).
+   - Use strong verbs to illustrate wrongdoing or harm.
+
+11. Inputs:
+ - List of Facts: {facts_and_parties}
+
+
+Example Output:
+
+Plaintiff [NAME], by and through their attorneys, and for their Complaint against [DEFENDANTS], hereby allege as follows:
+
+**INTRODUCTION**
+
+1. [Brief opening sentence summarizing the nature of the dispute.]
+
+2. [Key factual background, written in concise, declarative sentences.]
+
+3. [Primary legal grounds for relief, presented persuasively.]
+
+4. [What is at stake, including harm caused and relief sought.]
+
+
+Do not write any other sections of the complaint.  Do not include a title page or an area for signatures.  Use the text shown in the JSON as an example to start. 
+
+List of Facts:
+
+{facts_and_parties}
+
+Do not cite caselaw
+
+The output should be a JSON with the following format:
+{{
+  "Introduction": "Plaintiff ..., by and through their attorneys, and for their Complaint against ... (“Defendants”|collectively, “Defendants”), hereby allege as follows:
+
+INTRODUCTION
+
+..."
+}}

@@ -1,0 +1,22 @@
+{
+    "base_url": "https://docs.legis.wisconsin.gov/statutes/statutes",
+    "item_url": "https://docs.legis.wisconsin.gov/statutes/statutes/111/31",
+    "to_replace_chapter": "111",
+    "to_replace_section": "31",
+    "number_pattern": "\\s*(\\d+(?:\\.\\d+)?)",
+    "code_patterns": [
+      "Wis\\. Stat\\. §{1,2} ",
+      "Wis\\. Stat\\.§{1,2} ",
+      "Wis\\. Stat\\. ch\\. ",
+      "Wis\\. Stat\\. Ann\\.§{1,2} ",
+      "Wis\\. Stat\\. Ann\\. §{1,2} ",
+      "Wis\\. Stat\\. Ann\\. §§ ",
+      "Wis\\. Stat\\.Ann\\. §{1,2} ",
+      "Wis\\. Stat\\.Ann\\. §§ ",
+      "Wisconsin Statutes §{1,2} ",
+      "Wisconsin Statute §{1,2} ",
+      "Wisconsin Statutes§{1,2} "
+    ]
+  }
+
+

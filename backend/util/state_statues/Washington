@@ -1,0 +1,14 @@
+{
+    "base_url": "https://app.leg.wa.gov/RCW/default.aspx",
+    "item_url": "https://app.leg.wa.gov/RCW/default.aspx?cite=79A.25.030",
+    "to_replace_cite": "79A.25.030",
+    "number_pattern": "(\\d+[A-Za-z]?(?:\\.\\d+){1,2})",
+    "code_patterns": [
+      "RCW\\s*§{0,2}\\s*",
+      "R\\.C\\.W\\.\\s*§{0,2}\\s*",
+      "Wash\\. Rev\\. Code\\s*§{0,2}\\s*",
+      "Wash\\. Rev\\. Code Ann\\.\\s*§{0,2}\\s*",
+      "Washington Revised Code\\s*§{0,2}\\s*"
+    ]
+  }
+

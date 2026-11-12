@@ -1,0 +1,27 @@
+You are provided with a list of potential but noisy line text extracted from a legal complaint. Your task is to identify lines that are the start of a true paragraph in the main body of the complaint. Paragraph lines usually start with a paragraph number. Paragraph numbers throughout the whole document should start with 1, consistently increment by 1, a sharp decrease or increase in the paragraph numbers should be re-evaluated carefully.
+The whole document has {total_ln} lines. 
+line_number indicates the location of the corresponding line_text within the whole complaint.
+line_text contains line that matches the 'number + sentence' pattern so that it considered as a possible first sentence of a paragraph.
+raw text:
+===
+{para_2_ln}
+===
+Task:
+for the above provided list of line_number and line_text, idendify and Extract lines what are the start of a true paragraph. And also recognize the paragraph number. 
+Paragraph number usually is at the beginning of that line_text. Output the line_number and paragraph_number for each and every lines that you recognized as the first sentence starting a paragraph. 
+Requirement:
+1. Do not make up line numbers or paragraph numbers.
+2. Re-exam the result. paragraph numbers should be consistent with the line text. and should be strictly increasing.
+ Be aware that some complaint may outline their content using numbers at the beginning of the complaint, and those numbered lines should not be counted.
+3.  It is okay to have one or two gaps in the paragraph numbers. But do not make up paragraph numbers. paragraph numbers should generally follow a steady increase throughout the raw text provided, but it's possible to have missing paragraph numbers. 
+4. ** very important **  Output the entire list corresponding to the raw text provided. Do not truncate the list for brevity. for example, if the raw text covers paragraph 1 - 1000, output paragraph_number from 1 to 1000 correspondingly with their line_number., if raw text covers paragraph 50 - 150, output paragraph_number from 50 to 150, with their line_number.
+
+5. Output the complete list of line numbers and identified paragraph numbers. Using the JSON format with exact keys:
+{{"paragraphs":[
+{{"line_number":"#", "paragraph_number":"#"}},
+{{"line_number":"#", "paragraph_number":"#"}},
+...
+]
+}}
+
+

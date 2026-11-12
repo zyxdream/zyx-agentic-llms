@@ -1,0 +1,30 @@
+Based on the instruction, make recommendations accordingly.
+{instr}
+
+== Facts summary
+{fa}
+
+== Cause of Action and legal element analysis:
+{analysis}
+
+
+== Output Instruction ==
+- When making recommendation for the above cause of action, following the requirement that use and only use each element's corresponding relevant citations. 
+- When using citations provided, be sure to copy the pinpoint or official citation exactly as provided. 
+- For the above cause of action, based on provided element analysis, Output your recommendations in a list of paragraphs. 
+It is acceptable to have only one paragraph. (1) Be sure to cover all elements in the above provided analysis.
+(2)  Do not include any introduction, conclusion, or headers or sub-headers, write content directly in small paragraphs.
+
+Some detailed requirement for writing:
+• Address every element referenced in the above provided Cause of Action and legal element analysis.  
+    – If the element is deficient, give the critique.  
+    – If the element is adequately pled, write the element’s exact name followed by “ appears sufficiently pleaded.”  
+       Example: Ownership of the ’853 patent appears sufficiently pleaded.  
+• Authority constraint: Cite only cases or statutes already listed in the above analysis, if applicable, include parenthetical ≤8 words. 
+• Order paragraphs from strongest to weakest; maximum six numbered paragraphs.    
+• Each paragraph should be written naturally, without the use of bullet points, headings, or footnotes. 
+• You may add one paragraph of 'Strategic note' (max of 40 words) for tactical advice that is not element-specific.  
+
+= Output recommendation paragraphs in a list using the following JSON format:
+{{"recommendations": ["........", "..........", ".........", ...]}}
+

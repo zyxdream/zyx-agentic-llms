@@ -1,0 +1,30 @@
+You are preparing an argument section for a Motion to Dismiss focused on **specific claim(s) and dismissal ground(s)**. 
+For this section of argument, you need to focus on the following claims and legal grounds for dismissal:
+
+== Targeted claims and legal grounds:
+{batch_coa_ground}
+
+== Task ==
+
+Identify **all factual allegations from the complaint that relate to these claim(s) and that support the argument for dismissal**. These may include:
+  - Facts that illustrate a missing element or **deficiency** (e.g., the complaint fails to allege a required fact, or an allegation is notably weak or contradicted);
+  - Facts that the defense can cite to show an implausibility, inconsistency, or other flaw in the claim;
+  - Any admissions or clarifications in the complaint that limit the claim.
+
+Essentially, list those facts (or lack of facts) which the defendant will use in arguing the claim should be dismissed.
+
+== Requirements ==
+
+- **Specificity:** Quote or paraphrase the relevant allegation briefly and cite it. If the “fact” is actually an omission (something the complaint never alleges), describe that omission as a fact (e.g., “Plaintiff does not allege that the contract was ever signed (Compl. ¶¶ 20–30 omit this detail)”).
+- **Clarity:** Each item should read as a factual statement or observation drawn from the complaint, **directly tied to an element or theory** in {batch_coa_ground}. For example, if a ground is “no false statement pled,” include the fact that “The complaint quotes statements X and Y, but provides no data or explanation as to why they are false (Compl. ¶ 15, 18).”
+- Do NOT include legal argument or new information—only use the complaint’s content.
+
+
+== facts:
+{facts}
+
+== Your task: 
+Output all relevant facts that have potential legal deficeiency in terms of the above claims and legal grounds. 
+Output using the following JSON format, 
+{{"Relevant Facts":[".... (Compl. ¶248)..", "......", "......."]}}
+

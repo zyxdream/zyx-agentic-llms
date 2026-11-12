@@ -1,0 +1,309 @@
+{
+  "base_url": "https://www.nysenate.gov/legislation/laws",
+  "item_url": "https://www.nysenate.gov/legislation/laws/BSC/110",
+  "to_replace_num": "110",
+  "to_replace_sec": "BSC",
+  "number_pattern": "(\\d+(?:\\.\\d+)?)(?=\\b|\\s|\\(|-|–)",
+  "code_patterns": {
+    "N\\.Y\\. Alcoholic Beverage Control Law §{1,2} ": "ABC",
+    "N\\.Y\\. Alco\\. Bev\\. Cont\\. Law §{1,2} ": "ABC",
+    "N\\.Y\\. A\\.B\\.C\\. Law §{1,2} ": "ABC",
+
+    "N\\.Y\\. Abandoned Property Law §{1,2} ": "ABP",
+    "N\\.Y\\. Aband\\. Prop\\. Law §{1,2} ": "ABP",
+
+    "N\\.Y\\. Arts and Cultural Affairs Law §{1,2} ": "ACA",
+    "N\\.Y\\. Arts & Cult\\. Aff\\. Law §{1,2} ": "ACA",
+    "N\\.Y\\. Arts & Cultural Aff\\. Law §{1,2} ": "ACA",
+
+    "N\\.Y\\. Alternative County Government Law §{1,2} ": "ACG",
+    "N\\.Y\\. Alt\\. Cnty\\. Gov't Law §{1,2} ": "ACG",
+
+    "N\\.Y\\. Agriculture & Markets Law §{1,2} ": "AGM",
+    "N\\.Y\\. Agric\\. & Mkts\\. Law §{1,2} ": "AGM",
+
+    "N\\.Y\\. Banking Law §{1,2} ": "BNK",
+    "N\\.Y\\. Bank\\. Law §{1,2} ": "BNK",
+
+    "N\\.Y\\. Business Corporation Law §{1,2} ": "BSC",
+    "N\\.Y\\. Bus\\. Corp\\. Law §{1,2} ": "BSC",
+    "N\\.Y\\. B\\.C\\.L\\. §{1,2} ": "BSC",
+
+    "N\\.Y\\. Benevolent Orders Law §{1,2} ": "BVO",
+    "N\\.Y\\. Benev\\. Orders Law §{1,2} ": "BVO",
+
+    "N\\.Y\\. Canal Law §{1,2} ": "CAL",
+
+    "N\\.Y\\. Cannabis Law §{1,2} ": "CAN",
+
+    "N\\.Y\\. Cooperative Corporations Law §{1,2} ": "CCO",
+    "N\\.Y\\. Coop\\. Corp\\. Law §{1,2} ": "CCO",
+
+    "N\\.Y\\. County Law §{1,2} ": "CNT",
+
+    "N\\.Y\\. Economic Development Law §{1,2} ": "COM",
+    "N\\.Y\\. Econ\\. Dev\\. Law §{1,2} ": "COM",
+
+    "N\\.Y\\. Correction Law §{1,2} ": "COR",
+    "N\\.Y\\. Corr\\. Law §{1,2} ": "COR",
+
+    "N\\.Y\\. Criminal Procedure Law §{1,2} ": "CPL",
+    "N\\.Y\\. Crim\\. Proc\\. Law §{1,2} ": "CPL",
+    "N\\.Y\\. C\\.P\\.L\\. §{1,2} ": "CPL",
+
+    "N\\.Y\\. Civil Practice Law & Rules §{1,2} ": "CVP",
+    "N\\.Y\\. Civ\\. Prac\\. L\\. & R\\. §{1,2} ": "CVP",
+    "N\\.Y\\. C\\.P\\.L\\.R\\. §{1,2} ": "CVP",
+    "N\\.Y\\. CPLR §{1,2} ": "CVP",
+    "N\\.Y\\. C\\.P\\.L\\.R\\. ": "CVP",
+    "C\\.P\\.L\\.R\\. ": "CVP",
+    "N\\.Y\\. CPLR ": "CVP",
+    "CPLR ": "CVP",
+    "N\\.Y\\. Civ\\. Prac\\. Law & Rules §{1,2} ": "CVP",
+
+    "N\\.Y\\. Civil Rights Law §{1,2} ": "CVR",
+    "N\\.Y\\. Civ\\. Rights Law §{1,2} ": "CVR",
+
+    "N\\.Y\\. Civil Service Law §{1,2} ": "CVS",
+    "N\\.Y\\. Civ\\. Serv\\. Law §{1,2} ": "CVS",
+
+    "N\\.Y\\. Debtor & Creditor Law §{1,2} ": "DCD",
+    "N\\.Y\\. Debt\\. & Cred\\. Law §{1,2} ": "DCD",
+
+    "N\\.Y\\. Domestic Relations Law §{1,2} ": "DOM",
+    "N\\.Y\\. Dom\\. Rel\\. Law §{1,2} ": "DOM",
+
+    "N\\.Y\\. Education Law §{1,2} ": "EDN",
+    "N\\.Y\\. Educ\\. Law §{1,2} ": "EDN",
+
+    "N\\.Y\\. Eminent Domain Procedure Law §{1,2} ": "EDP",
+    "N\\.Y\\. Eminent Domain Proc\\. Law §{1,2} ": "EDP",
+    "N\\.Y\\. E\\.D\\.P\\.L\\. §{1,2} ": "EDP",
+
+    "N\\.Y\\. Elder Law §{1,2} ": "ELD",
+
+    "N\\.Y\\. Election Law §{1,2} ": "ELN",
+    "N\\.Y\\. Elec\\. Law §{1,2} ": "ELN",
+
+    "N\\.Y\\. Employers' Liability Law §{1,2} ": "EML",
+    "N\\.Y\\. Emp\\. Liab\\. Law §{1,2} ": "EML",
+
+    "N\\.Y\\. Energy Law §{1,2} ": "ENG",
+
+    "N\\.Y\\. Environmental Conservation Law §{1,2} ": "ENV",
+    "N\\.Y\\. Envtl\\. Conserv\\. Law §{1,2} ": "ENV",
+    "N\\.Y\\. E\\.C\\.L\\. §{1,2} ": "ENV",
+
+    "N\\.Y\\. Estates, Powers & Trusts Law §{1,2} ": "EPT",
+    "N\\.Y\\. Est\\. Powers & Trusts Law §{1,2} ": "EPT",
+    "N\\.Y\\. E\\.P\\.T\\.L\\. §{1,2} ": "EPT",
+
+    "N\\.Y\\. Executive Law §{1,2} ": "EXC",
+    "N\\.Y\\. Exec\\. Law §{1,2} ": "EXC",
+
+    "N\\.Y\\. Financial Services Law §{1,2} ": "FIS",
+    "N\\.Y\\. Fin\\. Servs\\. Law §{1,2} ": "FIS",
+
+    "N\\.Y\\. General Associations Law §{1,2} ": "GAS",
+    "N\\.Y\\. Gen\\. Ass'ns Law §{1,2} ": "GAS",
+
+    "N\\.Y\\. General Business Law §{1,2} ": "GBS",
+    "N\\.Y\\. Gen\\. Bus\\. Law §{1,2} ": "GBS",
+    "N\\.Y\\. G\\.B\\.L\\. §{1,2} ": "GBS",
+
+    "N\\.Y\\. General Construction Law §{1,2} ": "GCN",
+    "N\\.Y\\. Gen\\. Constr\\. Law §{1,2} ": "GCN",
+    "N\\.Y\\. G\\.C\\.L\\. §{1,2} ": "GCN",
+
+    "N\\.Y\\. General City Law §{1,2} ": "GCT",
+    "N\\.Y\\. Gen\\. City Law §{1,2} ": "GCT",
+
+    "N\\.Y\\. General Municipal Law §{1,2} ": "GMU",
+    "N\\.Y\\. Gen\\. Mun\\. Law §{1,2} ": "GMU",
+    "N\\.Y\\. G\\.M\\.L\\. §{1,2} ": "GMU",
+
+    "N\\.Y\\. General Obligations Law §{1,2} ": "GOB",
+    "N\\.Y\\. Gen\\. Oblig\\. Law §{1,2} ": "GOB",
+    "N\\.Y\\. G\\.O\\.L\\. §{1,2} ": "GOB",
+
+    "N\\.Y\\. Highway Law §{1,2} ": "HAY",
+    "N\\.Y\\. High\\. Law §{1,2} ": "HAY",
+
+    "N\\.Y\\. Indian Law §{1,2} ": "IND",
+
+    "N\\.Y\\. Insurance Law §{1,2} ": "ISC",
+    "N\\.Y\\. Ins\\. Law §{1,2} ": "ISC",
+
+    "N\\.Y\\. Judiciary Law §{1,2} ": "JUD",
+    "N\\.Y\\. Jud\\. Law §{1,2} ": "JUD",
+
+    "N\\.Y\\. Labor Law §{1,2} ": "LAB",
+    "N\\.Y\\. Lab\\. Law §{1,2} ": "LAB",
+
+    "N\\.Y\\. Legislative Law §{1,2} ": "LEG",
+    "N\\.Y\\. Legis\\. Law §{1,2} ": "LEG",
+
+    "N\\.Y\\. Local Finance Law §{1,2} ": "LFN",
+    "N\\.Y\\. Loc\\. Fin\\. Law §{1,2} ": "LFN",
+
+    "N\\.Y\\. Lien Law §{1,2} ": "LIE",
+    "N\\.Y\\. Lien Law §{1,2} ": "LIE",
+
+    "N\\.Y\\. Limited Liability Company Law §{1,2} ": "LLC",
+    "N\\.Y\\. Ltd\\. Liab\\. Co\\. Law §{1,2} ": "LLC",
+    "N\\.Y\\. LLCL §{1,2} ": "LLC",
+
+    "N\\.Y\\. Multiple Dwelling Law §{1,2} ": "MDW",
+    "N\\.Y\\. Mult\\. Dwell\\. Law §{1,2} ": "MDW",
+
+    "N\\.Y\\. Municipal Housing Authorities Law §{1,2} ": "MHA",
+    "N\\.Y\\. Mun\\. Hous\\. Auth\\. Law §{1,2} ": "MHA",
+
+    "N\\.Y\\. Municipal Home Rule Law §{1,2} ": "MHR",
+    "N\\.Y\\. Mun\\. Home Rule Law §{1,2} ": "MHR",
+
+    "N\\.Y\\. Mental Hygiene Law §{1,2} ": "MHY",
+    "N\\.Y\\. Ment\\. Hyg\\. Law §{1,2} ": "MHY",
+    "N\\.Y\\. M\\.H\\.L\\. §{1,2} ": "MHY",
+
+    "N\\.Y\\. Military Law §{1,2} ": "MIL",
+    "N\\.Y\\. Mil\\. Law §{1,2} ": "MIL",
+
+    "N\\.Y\\. Multiple Residence Law §{1,2} ": "MRE",
+    "N\\.Y\\. Mult\\. Resid\\. Law §{1,2} ": "MRE",
+
+    "N\\.Y\\. Navigation Law §{1,2} ": "NAV",
+    "N\\.Y\\. Navig\\. Law §{1,2} ": "NAV",
+
+    "N\\.Y\\. Not-for-Profit Corporation Law §{1,2} ": "NPC",
+    "N\\.Y\\. Not-For-Profit Corp\\. Law §{1,2} ": "NPC",
+    "N\\.Y\\. N\\.P\\.C\\.L\\. §{1,2} ": "NPC",
+
+    "N\\.Y\\. Parks, Recreation and Historic Preservation Law §{1,2} ": "PAR",
+    "N\\.Y\\. Parks, Rec\\. & Hist\\. Preserv\\. Law §{1,2} ": "PAR",
+    "N\\.Y\\. P\\.R\\.H\\.P\\.L\\. §{1,2} ": "PAR",
+
+    "N\\.Y\\. Public Authorities Law §{1,2} ": "PBA",
+    "N\\.Y\\. Pub\\. Auth\\. Law §{1,2} ": "PBA",
+    "N\\.Y\\. P\\.A\\.L\\. §{1,2} ": "PBA",
+
+    "N\\.Y\\. Public Buildings Law §{1,2} ": "PBB",
+    "N\\.Y\\. Pub\\. Bldgs\\. Law §{1,2} ": "PBB",
+
+    "N\\.Y\\. Public Housing Law §{1,2} ": "PBG",
+    "N\\.Y\\. Pub\\. Hous\\. Law §{1,2} ": "PBG",
+
+    "N\\.Y\\. Public Health Law §{1,2} ": "PBH",
+    "N\\.Y\\. Pub\\. Health Law §{1,2} ": "PBH",
+    "N\\.Y\\. P\\.H\\.L\\. §{1,2} ": "PBH",
+
+    "N\\.Y\\. Public Lands Law §{1,2} ": "PBL",
+    "N\\.Y\\. Pub\\. Lands Law §{1,2} ": "PBL",
+
+    "N\\.Y\\. Public Officers Law §{1,2} ": "PBO",
+    "N\\.Y\\. Pub\\. Off\\. Law §{1,2} ": "PBO",
+    "N\\.Y\\. P\\.O\\.L\\. §{1,2} ": "PBO",
+
+    "N\\.Y\\. Public Service Law §{1,2} ": "PBS",
+    "N\\.Y\\. Pub\\. Serv\\. Law §{1,2} ": "PBS",
+
+    "N\\.Y\\. Penal Law §{1,2} ": "PEN",
+    "N\\.Y\\. P\\.L\\. §{1,2} ": "PEN",
+
+    "N\\.Y\\. Personal Property Law §{1,2} ": "PEP",
+    "N\\.Y\\. Pers\\. Prop\\. Law §{1,2} ": "PEP",
+
+    "N\\.Y\\. Racing, Pari-Mutuel Wagering and Breeding Law §{1,2} ": "PML",
+    "N\\.Y\\. Racing, Pari-Mutuel Wagering & Breeding Law §{1,2} ": "PML",
+    "N\\.Y\\. Rac\\. Pari-Mutuel Wagering & Breeding Law §{1,2} ": "PML",
+
+    "N\\.Y\\. New York State Printing and Public Documents Law §{1,2} ": "PPD",
+    "N\\.Y\\. Printing & Pub\\. Docs\\. Law §{1,2} ": "PPD",
+
+    "N\\.Y\\. Partnership Law §{1,2} ": "PTR",
+    "N\\.Y\\. P'ship Law §{1,2} ": "PTR",
+
+    "N\\.Y\\. Private Housing Finance Law §{1,2} ": "PVH",
+    "N\\.Y\\. Priv\\. Hous\\. Fin\\. Law §{1,2} ": "PVH",
+
+    "N\\.Y\\. Rapid Transit Law §{1,2} ": "RAT",
+
+    "N\\.Y\\. Religious Corporations Law §{1,2} ": "RCO",
+    "N\\.Y\\. Relig\\. Corp\\. Law §{1,2} ": "RCO",
+
+    "N\\.Y\\. Rural Electric Cooperative Law §{1,2} ": "REL",
+    "N\\.Y\\. Rural Elec\\. Coop\\. Law §{1,2} ": "REL",
+
+    "N\\.Y\\. Real Property Actions & Proceedings Law §{1,2} ": "RPA",
+    "N\\.Y\\. Real Prop\\. Acts\\. & Proc\\. Law §{1,2} ": "RPA",
+    "N\\.Y\\. R\\.P\\.A\\.P\\.L\\. §{1,2} ": "RPA",
+
+    "N\\.Y\\. Real Property Law §{1,2} ": "RPP",
+    "N\\.Y\\. Real Prop\\. Law §{1,2} ": "RPP",
+    "N\\.Y\\. R\\.P\\.L\\. §{1,2} ": "RPP",
+
+    "N\\.Y\\. Real Property Tax Law §{1,2} ": "RPT",
+    "N\\.Y\\. Real Prop\\. Tax Law §{1,2} ": "RPT",
+    "N\\.Y\\. R\\.P\\.T\\.L\\. §{1,2} ": "RPT",
+
+    "N\\.Y\\. Railroad Law §{1,2} ": "RRD",
+    "N\\.Y\\. R\\.R\\. Law §{1,2} ": "RRD",
+
+    "N\\.Y\\. Retirement & Social Security Law §{1,2} ": "RSS",
+    "N\\.Y\\. Retir\\. & Soc\\. Sec\\. Law §{1,2} ": "RSS",
+    "N\\.Y\\. R\\.S\\.S\\.L\\. §{1,2} ": "RSS",
+
+    "N\\.Y\\. State Administrative Procedure Act §{1,2} ": "SAP",
+    "N\\.Y\\. S\\.A\\.P\\.A\\. §{1,2} ": "SAP",
+
+    "N\\.Y\\. Second Class Cities Law §{1,2} ": "SCC",
+    "N\\.Y\\. 2d Class Cities Law §{1,2} ": "SCC",
+
+    "N\\.Y\\. Statute of Local Governments §{1,2} ": "SLG",
+    "N\\.Y\\. Stat\\. Local Gov'ts §{1,2} ": "SLG",
+
+    "N\\.Y\\. Social Services Law §{1,2} ": "SOS",
+    "N\\.Y\\. Soc\\. Servs\\. Law §{1,2} ": "SOS",
+
+    "N\\.Y\\. State Finance Law §{1,2} ": "STF",
+    "N\\.Y\\. State Fin\\. Law §{1,2} ": "STF",
+
+    "N\\.Y\\. State Law §{1,2} ": "STL",
+
+    "N\\.Y\\. State Technology Law §{1,2} ": "STT",
+    "N\\.Y\\. State Tech\\. Law §{1,2} ": "STT",
+
+    "N\\.Y\\. Soil & Water Conservation Districts Law §{1,2} ": "SWC",
+    "N\\.Y\\. Soil & Water Conserv\\. Dist\\. Law §{1,2} ": "SWC",
+
+    "N\\.Y\\. Tax Law §{1,2} ": "TAX",
+
+    "N\\.Y\\. Transportation Corporations Law §{1,2} ": "TCP",
+    "N\\.Y\\. Transp\\. Corp\\. Law §{1,2} ": "TCP",
+
+    "N\\.Y\\. Transportation Law §{1,2} ": "TRA",
+
+    "N\\.Y\\. Town Law §{1,2} ": "TWN",
+
+    "N\\.Y\\. Uniform Commercial Code §{1,2} ": "UCC",
+    "N\\.Y\\. U\\.C\\.C\\. §{1,2} ": "UCC",
+
+    "N\\.Y\\. Vehicle & Traffic Law §{1,2} ": "VAT",
+    "N\\.Y\\. Veh\\. & Traf\\. Law §{1,2} ": "VAT",
+    "N\\.Y\\. V\\.T\\.L\\. §{1,2} ": "VAT",
+
+    "N\\.Y\\. Volunteer Ambulance Workers' Benefit Law §{1,2} ": "VAW",
+    "N\\.Y\\. Vol\\. Ambulance Workers' Benefit Law §{1,2} ": "VAW",
+
+    "N\\.Y\\. Veterans' Services Law §{1,2} ": "VET",
+    "N\\.Y\\. Veterans Servs\\. Law §{1,2} ": "VET",
+
+    "N\\.Y\\. Village Law §{1,2} ": "VIL",
+
+    "N\\.Y\\. Volunteer Firefighters' Benefit Law §{1,2} ": "VOL",
+    "N\\.Y\\. Vol\\. Firefighters' Benefit Law §{1,2} ": "VOL",
+
+    "N\\.Y\\. Workers' Compensation Law §{1,2} ": "WKC",
+    "N\\.Y\\. Workers' Comp\\. Law §{1,2} ": "WKC"
+  }
+}

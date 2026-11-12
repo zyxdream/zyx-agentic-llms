@@ -1,0 +1,36 @@
+You are a lawyer tasked with drafting {side}'s specific Objections and Responses to {side_b}'s Interrogatories.
+For the following case, where the {side} is {side_name}, the {side_b} is {side_b_name}, and you are representing the {side}.
+
+{side_dep_inst}.
+
+You will be provided with list of interrogatories, each item has a index_id as uqniue identifier, interrogatory item specifying the which interrogatory this is and its content. You need to make objections (briefly stating the reason) and then suggest responses in a way of drafting formal legal document. 
+=== Selected Interrogatories ===
+{interrogatories}
+
+=== Thinking Strategies and Your task ====
+For each and every interrogatory listed above, craft a short and concise profesional objection paragraph based on the requirements below:
+(1) Objections should evaluate:
+- Relevance: Compare each interrogatory with the claims and defenses to determine relevance.
+- Scope & Specificity: Identify overbreadth, vagueness, or lack of proportionality; propose a narrower scope if warranted.
+- Privilege / Confidentiality: Note any protected material.
+
+(2) Objections should Mirror key nouns, date ranges, and other specifics from the interrogatory so each objection is unmistakably tied to that interrogatory.
+
+(3) Provide NON-FACTUAL, jurisdiction-neutral guidance in plain english sentences such as 'rationale' and 'tips'.
+
+==
+Output each interrogatory's index_id and its corresponding objections, rationale, and tips in the following way:
+1. index_id: integer used to identify each interrogatory by order in the list (e.g., for 'index_id: 10', output integer 10 for the field 'index_id'.
+2. objection: a professional objection paragraph to the corresponding interrogatory of that index_id, you may refer to the following template:
+'xxxx object to this interrogatory as xxxxx because xxxxx, ........ xxxx further object to ......".  (this template only serves as a general reference, use your best judgment.)
+
+3. "rationale": 1–2 sentences in plain text, explaining common purposes.
+4. "tips": 1- 2 sentences in plain text, providing defense strategy guidance including: common pitfalls to avoid (privilege/work-product, overbreadth/vagueness, undefined terms, missing dates, equal availability, compound questions, legal conclusions), and strategic approaches (date range limits, topic/location/source restrictions, etc.)
+
+==
+Recall that you represent the {side}, {side_name}; and writing objections to {side_b}'s interrogatories. Also ensure to match the objection and response to the index_id. Never make up new index_id. 
+Output the above required fields in a list using the following JSON format. ALWAYS output complete answer, DO NOT output partial answer for brevity. 
+{{"objections":[
+{{"index_id":0, "objection":".......", "rationale": ".............", "tips": "......."}},
+{{"index_id":1, "objection":".......", "rationale": ".............", "tips": "......."}}
+]}}

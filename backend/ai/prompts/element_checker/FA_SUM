@@ -1,0 +1,42 @@
+Extract the key facts from the following legal complaint that are relevant to the legal claims or defenses.
+
+== a segment of the complaint:
+{fa_sub}
+
+== Your Task:
+Extract key facts and information as stated in the complaint into a list of plain text.
+If the above complaint contains claims and prayer for relief, only focus on and extract the factual information.
+
+== Requirement:
+1. Identify Key Facts: Focus on:
+    - Critical dates. and Relevant locations and settings.
+    - Parties involved.
+    - Major events or actions.
+    - Important details in the events or facts.
+
+2. Present the Facts:
+   - List the facts in concise sentences. Do not include conclusion.
+   - Immediately follow each fact with a parenthetical citing the specific paragraph number(s) from the complaint, formatted as "(Compl. ¶12)" or "(Compl. ¶10–12)".
+   - Maintain clarity and brevity in each sentence while ensuring completeness.
+   - Exclude any legal conclusions or arguments; deliver facts only.
+
+3. Formatting and Tones:
+   - Write in a formal, professional tone and in a manner akin to a legal memorandum.
+   - If there is little context, or no paragraph number is recognizable, you may return empty list as values.
+
+    - **Patent-specific facts** (if the case is a patent case):
+        • Patent numbers, titles, filing dates (if absent, flag “filing date not in complaint”).  
+        • Inventor overlaps, assignee history, corporate relationships between assignees.  
+        • Whether the complaint claims the patents are **SEP/FRAND** or references standards bodies (e.g., Alliance for Open Media).  
+        • Any assertion that marking (35 U.S.C. § 287) was or was not complied with.  
+        • Asserted claims and accused products, even if those details appear only inside individual Counts.
+
+    - **Procedural facts**  
+        • Date the complaint was **filed** and **served** (if stated).  
+        • Identification of local rules that govern pleading burdens (e.g., E.D. Tex. Local Patent R. CV-5, P.R. 3-1).
+
+4. Extract factual information for the above complaint using the following JSON format, output them in a list of plain text, no markdown:
+
+{{"summary":["....","....","....",...]}}
+
+

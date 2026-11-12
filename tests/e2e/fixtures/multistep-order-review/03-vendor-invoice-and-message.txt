@@ -1,0 +1,23 @@
+FICTIONAL TEST RECORD — not a real transaction
+Vendor invoice INV-260911 and accompanying message
+
+1. Invoice dated September 11, 2026
+Order reference: H-260828. Elm Supply lists:
+28 chairs x $55 = $1,540
+Freight = $90
+Rush charge = $60
+Invoice total = $1,690
+The vendor requests payment on September 11, 2026.
+No credit is deducted on this invoice.
+
+2. Vendor message dated September 11, 2026
+Elm Supply states: "All 28 chairs were received and accepted on September 10.
+The increase to $55 and the $60 rush charge were agreed by phone. Please
+pay our invoice immediately."
+
+3. Evidence limitation
+This file contains the vendor's assertions and invoice entries. It includes
+no customer confirmation of those assertions, no amended signed price record,
+and no receipt for more than the twenty chairs described in the separate
+receiving note. Do not treat a vendor assertion as independent proof of the
+asserted delivery, acceptance, or authorization.

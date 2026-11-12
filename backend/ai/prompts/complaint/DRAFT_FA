@@ -1,0 +1,115 @@
+We are drafting the Factual Allegations section of a litigation complaint. You will be given a list of facts for the case. Write a clear, concise, and persuasive narrative designed to impress experienced litigators at top law firms, regardless of case type (e.g., antitrust, intellectual property, employment, personal injury). Follow these specific instructions:
+
+---
+
+1. Tone and Writing Style**
+- Adopt a polished, authoritative tone expected in high-stakes litigation. Avoid informal, flowery, or overly dramatic phrasing.
+- Use short, impactful sentences to enhance readability and focus. Ensure each sentence delivers a clear, specific point.
+- Assert facts confidently and without qualifiers (e.g., avoid “Plaintiff contends” or “Plaintiff believes”).
+- Emphasize egregious or deliberate misconduct with sharp and direct language (e.g., “calculated theft,” “blatant disregard,” or “willful misappropriation”).  If the facts do not suggest particularly egregious behavior, retain a neutral but firm tone. 
+- Tailor the tone to the nature of the case:
+  - Personal injury: Highlight emotional stakes and human suffering.
+  - Antitrust: Emphasize market manipulation and competitive harm.
+  - Intellectual property: Underscore innovation, theft, and economic damage.
+  - Contract disputes: Highlight breached obligations and emphasize the contractual language supporting the plaintiff’s claims (e.g., “Defendants knowingly failed to deliver under Section 5.1 of the Agreement.”).
+  - Securities fraud: Stress deceit, market impact, and investor harm (e.g., “Defendants’ fraudulent misstatements caused widespread investor losses and distorted the market.”).
+  - Employment cases. Focus on violations of rights and workplace harm (e.g., “Defendants systematically discriminated against Plaintiff, undermining career advancement and causing emotional distress.”).
+---
+
+2. Optional Subheadings: Use when the case is complex. Group related content under broader headings and allow for multiple paragraphs under each subheading, Do not give subheading to single paragraph.
+- use third level heading ### as indicator at the beginning (only) of subheading line
+- Use compelling, dynamic subheadings to structure the narrative and frame the key issues persuasively.
+- Subheadings should:
+  - Reflect critical events, themes, or misconduct (e.g., “Gawker’s Blatant Solicitation of Stolen Content” or “Levandowski’s Calculated Theft of Waymo’s Secrets”).
+  - Align with the case type and provide a strategic roadmap for the narrative.
+  - Be concise and engaging, avoiding generic phrasing (e.g., replace “Defendants’ Actions” with “How Defendants Weaponized Stolen IP”).
+- If you use a subheading, include at least three short paragraphs under that subheading. If there are fewer than three paragraphs’ worth of material, consolidate the content into a different subheading or the main narrative.  
+---
+
+3. Transitions: Seamless and Logical Flow
+- Add brief, connecting transition sentences between sections to ensure a seamless narrative flow. Transitions should:
+  - Explicitly link the misconduct to the resulting harm.
+  - Build momentum by driving the reader toward the key allegations.
+  - Example: “Gawker’s escalation of its infringement not only amplified the harm to Plaintiff but also demonstrated its disregard for copyright protections.”
+
+---
+
+
+4. Fact-Driven and Comprehensive
+- Incorporate all user-provided facts, ensuring no critical detail is omitted. Synthesize overlapping facts into cohesive groupings to avoid redundancy.
+- Maintain active voice throughout (e.g., “Defendant downloaded trade secrets” rather than “Trade secrets were downloaded”).
+- Tailor the organization to the complexity of the case:
+  - Chronological structure for simpler, linear narratives (e.g., personal injury, breach of contract).
+  - Thematic structure for complex, multifaceted cases (e.g., antitrust, intellectual property).
+- Avoid generic descriptions; focus on specificity to make the narrative vivid and impactful.
+  - Example: Instead of “Gawker posted a link to the screenplay,” write “Gawker published a hyperlink titled ‘146 pages of pure Tarantino. Enjoy!’ directing readers to an illegal download.”
+
+---
+
+
+5. High-Stakes Framing
+
+- Clearly articulate the stakes and harm caused by the defendants’ actions, emphasizing:
+  - Economic harm (e.g., “Plaintiff lost millions in potential revenue and exclusive control of the work’s release”).
+  - Reputational harm (e.g., “Defendants’ actions jeopardized Plaintiff’s reputation as an acclaimed creator, undermining his future projects”).
+  - Broader industry impact (e.g., “This case underscores the urgent need for robust protections against the exploitation of copyrighted works in the digital age”).
+- Tie the harm to the broader consequences for fairness, innovation, or justice in the relevant industry.
+
+---
+
+
+6. Highlight Egregious Misconduct
+
+- Where facts suggest deliberate or egregious wrongdoing, emphasize:
+  - Timing: Highlight suspicious alignments between events (e.g., theft coinciding with key competitive developments).
+  - Intent: Use language that underscores calculated or willful misconduct (e.g., “deliberately solicited,” “knowingly disseminated”).
+  - Magnitude: Stress the scale of harm caused by the actions (e.g., “enabled widespread unauthorized distribution to thousands of users”).
+
+---
+
+
+7. Compliance and Focus
+
+- Ensure compliance with local court rules and the professional style expected in litigation complaints.
+- Avoid legal conclusions or commentary; focus solely on presenting the facts persuasively.
+- Do not draft other sections of the complaint (e.g., causes of action or prayer for relief).
+
+---
+
+
+8. Output Requirements
+- Begin with plain text "FACTUAL ALLEGATIONS" as the first line. Do not use markdowns around it.
+
+- Write in short, focused paragraphs, ensuring each paragraph addresses one key fact or closely related facts.
+- Do not add paragraph numbers or ordered-list markers. The application adds paragraph numbering when generating the document. Preserve numbers within the factual content, including dates, amounts, and patent numbers.
+- **Do not create single-paragraph sections under a subheading.** If there is only one paragraph, incorporate it into the nearest relevant section to maintain flow.
+- Ensure the final narrative is polished, complete, and persuasive, suitable for review by top-tier litigators.
+- Ensure compliance with local rules. Do not write any other sections of the complaint.  
+- Do not cite caselaw
+
+9. Multiple Parties Note:
+   - If multiple plaintiffs or defendants are involved, group factual allegations by party or event, ensuring each paragraph clearly states which plaintiff(s) or defendant(s) the facts concern.
+   - Use subheadings to distinguish factual allegations for different parties if needed (e.g., "### Facts Concerning Plaintiff ABC" or "### Conduct by Defendant 123").
+   - Avoid lumping all parties together unless the same facts truly apply to everyone equally.
+   - Where relevant, clarify which specific plaintiff(s) suffered each harm or which defendant(s) took each alleged action.
+   - Keep paragraphs short and focused, but ensure the roles of multiple parties are unambiguous.
+   - Maintain a cohesive narrative flow by using transitions (see instruction #3) that link each party’s conduct to the overall storyline.
+
+10. Eliminate Qualifier Phrases:
+   - Refrain from using “Plaintiff contends” or “Plaintiff believes.” State allegations directly (e.g., “Defendants stole trade secrets”).
+
+11. Short, Authoritative Paragraphs:
+   - Keep paragraphs tight, generally 2–3 sentences. Break up run-on sentences for a more forceful presentation.
+   - Maintain active voice (e.g., “Defendant downloaded proprietary files,” not “Proprietary files were downloaded”).
+
+12. Highlight Willful or Egregious Conduct:
+   - Where facts show deliberate wrongdoing, emphasize timing, intent, or scale (e.g., “knowingly accessed,” “deliberately orchestrated”).
+   - This approach underscores high-stakes litigation style.
+
+{facts_and_parties}
+
+
+The output should be a JSON with the following format:
+{{
+  "Factual Allegations": "...."
+}}

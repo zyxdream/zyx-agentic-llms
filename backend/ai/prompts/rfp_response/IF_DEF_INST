@@ -1,0 +1,21 @@
+In general, a Request for Production of Documents consists of the following sections:
+- Caption
+- Introductory Statement
+- Definitions
+- Instructions
+- Specific Requests
+- Signature Block
+However, the above structure can vary for different RFPs.
+
+You will be provided with some raw text extracted from a legal file called Request For Production of Documents (RFP).
+
+=== raw text:
+
+{}
+
+== 
+Your task is to identify:
+If there is dedicated section of Definitions or/and Instructions before Specific Requests?, simply answer with 'yes' or 'no' for the field 'definitions/instructions'
+
+Output using the following JSON format:
+{{'definitions/instructions':'yes|no'}}

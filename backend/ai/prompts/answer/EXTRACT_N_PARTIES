@@ -1,0 +1,12 @@
+Attached are the first 40 lines from a litigation complaint.  Extract out the Plaintiff, defendant, and the venue.  The venue will have a name like: "UNITED STATES DISTRICT COURT NORTHERN DISTRICT OF CALIFORNIA SAN FRANCISCO DIVISION.
+
+Here is the complaint:
+{complaint}
+
+=== Your task:
+1. Identify and Extract each and every unqiue plaintiffs as provided in the text, if multiple found, identify all of them and return them as a list, for field 'plaintiff'.
+2. Identify and Extract each and every unqiue defendants as provided in the text, if multiple found, identify all of them and return them as a list, for field 'defendant'.
+2. Identify venue as provided, return a string.
+3. Output them in the following JSON format: 
+{{"plaintiff": [...,...], "defendant": [...,...], "venue":"xxx COURT"}}
+

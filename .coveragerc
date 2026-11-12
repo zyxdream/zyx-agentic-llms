@@ -1,0 +1,23 @@
+[run]
+branch = True
+source =
+    backend
+omit =
+    backend/app.py
+    backend/scripts/*
+    backend/ai/grok_demo.py
+    migrations/*
+    tests/*
+
+[report]
+show_missing = True
+skip_covered = False
+omit =
+    backend/app.py
+    backend/scripts/*
+    backend/ai/grok_demo.py
+    migrations/*
+    tests/*
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:

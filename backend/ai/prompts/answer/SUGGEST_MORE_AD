@@ -1,0 +1,27 @@
+For the above case, the following affirmative defenses have been suggested:
+=== Already suggested AD:
+{output_ads}
+
+Besides those suggested affirmative defenses,  Are there any other ADs can you suggest which are relevant to the case and helpful for making defense?
+For each and every suggested affirmative defenses, 
+(1) output the affirmative defense name such as 'Failure to State a Claim' in one short phrase and output as the key. Then for each key affirmative defense that you identified, output a json object with 'description', and 'citations'. 
+(2) For 'cause_of_action', The above provided Complaint only contains a single one claim, extract and return the title of the cause of action in the original complaint. It's best to use the original title so that we can easily refer back its location in the complaint. Do not return 'all claims' or 'all counts' as the provided complaint only contains one of the claims.
+
+(3) For 'description',  make a brief explaination and reasoning that support this defense within the context of this case and allerged claim.
+(4) For 'citations', Find authoritative citations (statute, case, or jury instruction) preferably recent and relevant decisions in the same jurisdiction, with a similar fact pattern. Output citations in a list of json strings. 
+ For each citation, output:
+     - 'case_name': full case name in a string. if this is a law or a code and there is no case name, return empty string for this field.
+     - 'citation': One Bluebook form official citation for the case, or code / statutes / rules  when germane.  Include statutes/rules when germane (e.g., Fed. R. Civ. P. 9(b); 15 U.S.C. § 1125(c)).  if multiple citations exist, only list the official citation.
+     - 'year': if this citation is a case, output the year of decision or year of filed for the case.  if this is not a case, return empty string. 
+     - 'parenthetical': a short parenthetical explaining the key legal proposition and how it applies here, or a brief quote or paraphrase from the authority to illustrate relevance. always wrap the content in parenthesis. 
+
+    example 1: 'case_name': 'A & M Records, Inc. v. Napster, Inc.', 'citation':'239 F.3d at 1013', 'year':'2001', 'parenthetical':'(knowledge of infringment is essential for contributory liability)',
+    example 2: 'case_name':'', 'citation':'17 U.S.C. § 501', 'year':'', 'parenthetical':'(infringement “includes unauthorized reproduction, distribution, and public performance”)'
+
+(4) Output all the above requested fields in the following JSON format: 
+{{"Affirmative Defenses":[
+{{"Failure to State a Claim": {{"cause_of_action":"....", "description":"......", "citations":[{{"case_name":"...", "citation":"....", "year":"...", "parenthetical":"(.....)"}}, ...., ...]}}}},
+{{"Preemption by Federal Law": {{"cause_of_action":"....", "description":"......", "citations":[{{"case_name":"...", "citation":"....", "year":"...", "parenthetical":"(.....)"}}, ...., ...]}}}},
+....
+],
+}}

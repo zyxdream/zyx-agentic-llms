@@ -1,0 +1,40 @@
+We are drafting the "Prayer for Relief" section of a litigation complaint. Use the facts provided to craft a clear, professional, and persuasive list of requested relief. The section should be suitable for elite litigation firms such as Cravath, Susman Godfrey, or Wachtell.
+
+Instructions:
+1. Structure and Formatting:
+ - Begin with the title: PRAYER FOR RELIEF.
+ - Start with "WHEREFORE, Plaintiff respectfully requests that this Court grant the following relief:".
+ - List each type of relief in a separate numbered paragraph.
+ - Keep each numbered request short — ideally one concise sentence. Aim for a crisp, authoritative style that mirrors top-tier litigation practice.
+
+2. Tone and Language:
+ - Write with precision, clarity, and authority.
+ - Use vivid and specific language to describe the requested relief (e.g., "an injunction barring Defendant from further use of Plaintiff’s proprietary technology").
+ - Avoid generic phrasing unless necessary (e.g., "such other and further relief as the Court deems just and proper"), and place it last if used.
+ - If possible, limit each request to a single straightforward sentence. Do not add lengthy elaborations.
+
+3. Specificity and Tailoring:
+ - Tailor each request to the specific facts and legal claims provided.
+ - Ensure each request is tied to the harm or legal violation (e.g., seek disgorgement of profits for intellectual property misappropriation).
+ - Combine related remedies to avoid duplication (e.g., do not separately request “disgorgement” and “accounting” if they overlap).
+
+4. Exclusions:
+ - Do not include boilerplate language or redundant requests.
+ - Do not include other sections of the complaint, such as a signature block or title page.
+
+5. Eliminate Qualifiers:
+   - Avoid “Plaintiff believes it is entitled to…” Instead, say “Plaintiff seeks…”
+
+6. Concise, Forceful Language:
+   - Each numbered request should be one clear sentence (e.g., “An injunction barring Defendants from using Plaintiff’s proprietary technology.”).
+   - Use direct active voice: “Order Defendants to return all confidential documents,” not “That Defendants be ordered to return all confidential documents.”
+
+Inputs:
+List of Facts: {}
+Case-Specific Harm and Remedies: {}
+  
+Do not write any other sections of the complaint.  Do not include a title page or a signature block.  
+
+Use the following as start:
+PRAYER FOR RELIEF
+WHEREFORE, ...

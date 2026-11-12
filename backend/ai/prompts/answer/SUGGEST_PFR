@@ -1,0 +1,8 @@
+We are writing an answer to a litigation complaint, you will be given a summary of the complaint. Suggest a few prayers for relief.  Do not write the prayer for relief section or any other section, just suggest some ideas. Do not number the suggestions.
+
+example output:
+Request pre-judgment and post-judgment interest on any damages awarded in the litigation.
+Seek any other relief deemed fair and equitable by the court in its discretion.
+
+Complaint Summary: 
+

@@ -1,0 +1,126 @@
+We are writing an answer to a litigation complaint, you will be given the text of the complaint.  Based on the allegations, suggest several Affirmative Defenses that are relevant and legally applicable to the case and claim.  Be overinclusive and suggest all plausible affirmative defenses.  Consider both common affirmative defenses and any specific defenses that may uniquely apply to the allegations.  **Provide a brief explanation (1–2 sentences) for each defense and include exactly one authoritative citation (statute, case, or jury instruction) in Bluebook format. Where citing a case, choose a recent and relevant decision in the same jurisdiction (preferably with a similar fact pattern), if feasible. Add a concise parenthetical summarizing the defense’s elements or prongs. Do not fabricate authority. Keep the explanation concise.**
+
+Example 1. Failure to State a Claim: This defense argues that even if all the allegations in the complaint are true, the plaintiff has not presented a legal theory that entitles them to a legal remedy. This can be a powerful defense if elements of the plaintiff's claims are not met.  **(See Fed. R. Civ. P. 12(b)(6) (requiring a plausible claim for relief))**
+
+Example 2. Laches: This defense could claim that Digital Envoy unreasonably delayed in bringing the claim, to the detriment of Google. The concept of laches is based on the principle that equity aids the vigilant and not those who slumber on their rights.  **(See Danjaq LLC v. Sony Corp., 263 F.3d 942, 952 (9th Cir. 2001) (requiring unreasonable delay plus prejudice))**
+
+===
+Complaint:
+{complaint_summary}
+
+=== Your task and requirement:
+Based on the provided complaint information and the alleged claims charged in the above context, suggest several unique Affirmative Defenses that are relevant and applicable to the case and the alleged claim in the above context.
+Below is a non-exhaustive list of frequently used ADs, organized by category. Think of these as templates you then customize:
+Start with Rule 8(c) (or the state analogue). Then add **all claim-specific defenses** you deem plausible.
+
+Statute of Limitations
+Statute of Frauds
+Preemption
+Sovereign or Governmental Immunity
+Arbitration Agreement
+
+Contributory
+Comparative Negligence
+Assumption of Risk
+Failure to Mitigate Damages
+
+Failure of Consideration
+Impossibility
+Impracticability
+Accord and Satisfaction
+Release
+Waiver
+Laches
+Unclean Hands
+
+Equitable Estoppel
+Lack of Personal Jurisdiction
+Improper Venue
+Insufficient Process or Service of Process
+Failure to State a Claim
+
+Lack of Standing
+Failure to Join Indispensable Party
+Non-Infringement of Patent ’___
+Invalidity of Patent ’___     
+No Trade-Secret Misappropriation
+License
+No Unfair Competition
+Injunctive Relief Unavailable
+No / Speculative Damages
+Mootness
+
+Res Judicata
+Collateral Estoppel
+Payment
+Recoupment
+Setoff
+Qualified Immunity
+Charitable Immunity
+Workers' Compensation Exclusivity
+Truth
+Absolute Privilege
+Qualified Privilege
+Fair Use
+First-Sale Doctrine
+Trademark Abandonment
+Patent Exhaustion
+Patent Misuse
+Mistake
+Duress
+Undue Influence
+Frustration of Purpose
+Statutory Capacity Defenses
+Equitable Lien
+Unconscionability
+Failure to Exhaust Administrative Remedies
+Statutory Immunity
+Forum Non Conveniens
+Forum Selection Clause Defense
+Improper Joinder or Misjoinder
+Lack of Subject-Matter Jurisdiction
+Good Faith Settlement
+Immunity under the Eleventh Amendment
+Bankruptcy Discharge
+Public Authority Immunity
+Regulatory Compliance Defense
+Reservation of Right to Amend
+Reservation of Any Other Defense
+
+**Special rules for IP / complex-litigation matters**:
+• *Arbitration Agreement* first (when a contract is referenced).  
+• *Patent-by-Patent Handling* – for *each* asserted patent number, output one “Non-Infringement of Patent ’___” **and** one “Invalidity of Patent ’___”.  
+• Always test for *No Trade-Secret Misappropriation* when the complaint alleges trade-secret theft.  
+• Close with “Reservation of Right to Amend” / “Reservation of Any Other Defense”.  
+• Keep every description under 2 sentences and include only **one** citation.
+
+====
+Output all affirmative defenses from the above list that apply to this case, Use them exactly as provided. Do not make variations.
+The provided context contains one cause of action. Return its supplied ID as 'coa_id' and its original title as 'coa_title', not 'all claims' or 'all counts'.
+For each and every suggested affirmative defense:
+(1) Put the defense name, such as 'Failure to State a Claim', in the 'name' field. Do not use defense names as JSON keys.
+(2) For 'description', provide a 1–2-sentence explanation of why that defense attaches, tied to specific claims and facts (including numbers or dates) in the complaint.
+(3) For 'supporting_facts', list complaint paragraph or source-line references when available; otherwise return an empty list.
+(4) For 'citations', provide exactly one reliable authoritative citation (statute, case, or jury instruction) when available, preferably a recent and relevant decision in the same jurisdiction with a similar fact pattern. Return it as a one-item list of objects with the fields below. If no reliable authority is available, return an empty list rather than fabricate one.
+For each citation, output with the following fields:
+    - 'case_name': full case name in a string. if this is a law or a code and there is no case name, return empty string for this field.
+    - 'citation': If this is a case, use One Bluebook form official citation for the case, It should include (court year) or (year) in parentheses.  If this item is code / statutes / rules  when germane.  Include statutes/rules when germane (e.g., Fed. R. Civ. P. 9(b); 15 U.S.C. § 1125(c)).
+    Here are some general rules about Bluebook formatted citations:
+    a. Full case citation format **without pincite**: Case Name, Volume Reporter Page (Court Year).
+    b. Omit the court name only if the reporter uniquely identifies the court, e.g.: 
+    U.S. (U.S. Supreme Court) → use (Year) only. Year is the year of decision.
+    State official reporters for the state's highest court (e.g., Cal. 4th, N.Y.3d) → use (Year) only.
+    Otherwise, include court and year in parentheses. Year is the year of decision.
+    - 'parenthetical': a short parenthetical explaining the key legal proposition and how it applies here, or a brief quote or paraphrase from the authority to illustrate relevance. always wrap the content in parenthesis. 
+
+    example 1: "case_name": "Bell Atlantic Corp. v. Twombly", "citation": "550 U.S. 544 (2007)", "parenthetical": "(holding that a complaint must plead sufficient factual matter to state a claim that is plausible on its face, rejecting mere conclusory allegations as insufficient.)"
+    example 2: "case_name": "A&M Records, Inc. v. Napster, Inc.", "citation": "239 F.3d 1004 (9th Cir. 2001)", "parenthetical": "(explaining that secondary copyright liability requires underlying direct infringement and that constructive knowledge of infringing acts may satisfy scienter.)"
+    example 3: "case_name": "", "citation": "17 U.S.C. § 501", "parenthetical": "(infringement “includes unauthorized reproduction, distribution, and public performance”)"
+    
+
+Output all the above requested fields in this JSON format, using exactly these keys:
+{{"coa_id": {coa_id_json}, "coa_title": {coa_title_json}, "affirmative_defenses": [
+  {{"name": "Failure to State a Claim", "description": "..[Count 1].....", "supporting_facts": [], "citations": [{{"case_name": "...", "citation": "....", "parenthetical": "(.....)"}}]}},
+  {{"name": "Preemption by Federal Law", "description": "......", "supporting_facts": [], "citations": [{{"case_name": "...", "citation": "....", "parenthetical": "(.....)"}}]}}
+]}}
+If no defenses apply, return the same 'coa_id' and 'coa_title' with 'affirmative_defenses' as an empty list.

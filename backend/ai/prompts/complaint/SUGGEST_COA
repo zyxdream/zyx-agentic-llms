@@ -1,0 +1,85 @@
+We are writing a litigation complaint, and you will be given a list of facts for the case and a choice of Venue. Based on the provided facts and applicable law, suggest as many plausible Causes of Action that the plaintiff could assert. For each cause of action, suggest the applicable laws, statutes, regulations, or legal principles that could support or govern this cause of action.
+
+== Case Inputs
+Choice of venue: {venue}
+
+List of Facts:
+
+{facts_and_parties}
+
+==
+== Instructions and Requirements:
+Ensure all causes of action align with the provided facts and demonstrate strong legal reasoning.
+1. Relevance and Tailoring:
+   - Each suggested cause of action must directly tie to the provided facts.
+   - For each cause of action, briefly incorporate the required legal elements into the explanation, directly tying them to the facts provided. Limit each rationale to 1-2 sentences for conciseness.
+   - Avoid listing the legal elements verbatim from case law or statutes; instead, include a short parenthetical that enumerates the elements (e.g., “(Elements: (1) X, (2) Y, (3) Z)”) or references them in a concise manner.
+   - Ensure clarity and conciseness in the explanation, avoiding unnecessary repetition.
+
+2. Legal Authority and Support:
+   - For each cause of action, provide exactly **one** authoritative citation (i.e., a statute, a single case in Bluebook format, or a jury instruction), followed by a brief parenthetical stating the required elements or rule.
+   - When possible, choose a recent or seminal authority from the relevant jurisdiction—especially if it has a fact pattern comparable to the scenario — but do **not** fabricate case names or citations.
+
+3. Avoidance of Errors:
+   - Do not fabricate case names, citations, or statutes.
+   - If the facts are insufficient to support a cause of action, do not include it as a suggestion.
+
+4. Specificity for Patent Cases:
+   - If the facts involve multiple patents, suggest separate causes of action for each specific patent. Ensure each cause of action is tailored to the facts and highlights how the specific right is implicated.
+
+5. Multiple Parties Note:
+   - If multiple plaintiffs exist, suggest relief that matches each plaintiff’s potential harm or cause of action.
+   - For instance, if only Plaintiff ABC has a trade secret claim, propose an injunction relevant to ABC’s trade secrets.
+   - If certain damages or injunctions apply only to certain defendants, clarify that in the suggestion (e.g., "An injunction prohibiting Defendant 123 from further use of Plaintiff ABC’s confidential data").
+   - Keep each suggestion concise, enforceable, and aligned with the distinct roles of each party.
+
+6. Strong, Concise Descriptions:
+   - Avoid “Plaintiff contends” or “Plaintiff believes.” Write in an authoritative style, linking each claim to the relevant facts.
+   - Use short sentences to highlight the key elements (e.g., “Defendant stole proprietary algorithms,” “Defendant sold infringing products.”).
+
+Examples:
+title of Cause of Action: [1–2 sentence factual explanation linking the facts to the COA] 
+citations: Case/Statute/Jury Instruction in Bluebook format (concise parenthetical enumerating elements)
+
+Here is an example:
+Breach of Contract: In order to create an account a user abide by the TOS, the defendant created an account then breached the terms by using unauthorized means to collect data. 
+citations: Cal. Civ. Code § 1632 (requiring existence of contract, performance, breach, and damages)
+
+California Penal Code § 502: Defendant's access and use of Meta's computers was without permission because the defendant accessed the computers after notice revoking access.  
+citations: Cal. Penal Code § 502 (defining unauthorized computer access elements)
+
+== End of examples
+
+Given the above specific venue, legal issue and factual scenario, and also refer to the above requirements, identify:
+1. Relevant and plausible causes of action.
+2. For each cause of action, suggest the applicable laws, statutes, regulations, or legal principles that could support or govern this cause of action. Where multiple laws apply, distinguish between federal, state, or local provisions, if relevant.
+3. Rules and guidance to follow when you output the above supporting legal references:
+- Find authoritative citations (statute, case, or jury instruction) preferably recent and relevant decisions in the same jurisdiction, with a similar fact pattern. Output citations in a list of json strings. 
+- For each law or case, output:
+     - 'case_name': Case name in a string compliance with Bluebook standard format and abbreviation. if this is a law or a code and there is no case name, return empty string for this field.
+     - 'citation': If this is a case, use One Bluebook form official citation for the case, It should include (court year) or (year) only.  If this item is code / statutes / rules  when germane.  Include statutes/rules when germane (e.g., Fed. R. Civ. P. 9(b); 15 U.S.C. § 1125(c)).
+     Here are some general rules about Bluebook formatted citations:
+     a. Full case citation format **without pincite**: Case Name, Volume Reporter Page (Court Year).
+     b. Omit the court name only if the reporter uniquely identifies the court, e.g.: 
+     U.S. (U.S. Supreme Court) → use (Year) only. Year is the year of decision.
+     State official reporters for the state's highest court (e.g., Cal. 4th, N.Y.3d) → use (Year) only.
+     Otherwise, include court and year in parentheses. Year is the year of decision.
+     - 'parenthetical': a short parenthetical explaining the key legal proposition and how it applies here, or a brief quote or paraphrase from the authority to illustrate relevance. always wrap the content in parenthesis. 
+
+    example 1: "case_name": "Bell Atlantic Corp. v. Twombly", "citation": "550 U.S. 544 (2007)", "parenthetical": "(holding that a complaint must plead sufficient factual matter to state a claim that is plausible on its face, rejecting mere conclusory allegations as insufficient.)"
+    example 2: "case_name": "A&M Records, Inc. v. Napster, Inc.", "citation": "239 F.3d 1004 (9th Cir. 2001)", "parenthetical": "(explaining that secondary copyright liability requires underlying direct infringement and that constructive knowledge of infringing acts may satisfy scienter.)"
+    example 3: "case_name": "", "citation": "17 U.S.C. § 501", "parenthetical": "(infringement “includes unauthorized reproduction, distribution, and public performance”)"
+
+The output should be a JSON with the following format. Each cause has a fixed
+"name" field; do not use the cause name as a JSON key:
+{{"Suggested Causes of Action": [
+    {{"name": "Breach of Contract",
+      "description": "In order to create an account a user by abide by the TOS, the defendant created an account then breached the terms by using unauthorized means to collect data.",
+      "citations": [{{"case_name": "...", "citation": "....", "parenthetical": "(.....)"}}]
+    }},
+    {{"name": "California Penal Code § 502",
+      "description": "Defendant's access and use of Meta's computers was without permission because the defendant accessed the computers after correspondence was sent to the Defendant revoking access.",
+      "citations": [{{"case_name": "...", "citation": "....", "parenthetical": "(.....)"}}]
+    }}
+  ]
+}}

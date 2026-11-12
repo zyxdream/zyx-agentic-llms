@@ -1,0 +1,19 @@
+FICTIONAL TEST RECORD — not a real transaction
+Signed amendment to order H-260828
+
+1. Agreement and date
+Harper Studio and Elm Supply signed this amendment on September 3, 2026.
+It adds four chairs to the original twenty-four, making twenty-eight chairs.
+
+2. Price and delivery changes
+The unit price remains $50. Flat freight remains $90 for the whole order,
+not $90 per delivery. No rush charge is authorized by this amendment.
+The amended total is 28 x $50 + $90 = $1,490.
+Twenty chairs are due September 10, 2026. The remaining eight chairs are
+due September 17, 2026. This replaces the original single delivery deadline.
+
+3. Unchanged payment conditions
+The original $400 deposit requirement and payment conditions remain unchanged:
+the balance is payable after BOTH complete delivery and customer acceptance
+of the invoice. Signing this amendment does not acknowledge delivery,
+payment, or acceptance of any invoice.

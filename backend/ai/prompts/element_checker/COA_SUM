@@ -1,0 +1,26 @@
+The following is part of a cause of action in a legal complaint.
+==
+{coa}
+
+== Your task in general is to identify the exact name or title of the above cause of action, and then summarize the above claim.
+Requirements:
+
+1. for field 'cause of action":  'Identify the original lines (usually the headers) that specify the exact name or title of the above cause of action, output the exact original context (usually a few words or a sentence) as 'cause of action'. 
+- Use the exact legal terminology provided in the complaint. it should be a few words or a sentence from the original context to specify the cause of action.
+- If the heading at the start of this cause contains an explicit designation (such as COUNT II, CLAIM 3, or SECOND CAUSE OF ACTION), include that designation exactly as written at the start of 'cause of action', followed by the original title. If they appear on separate lines, include their original words in source order in one line, separated by a space. Preserve the source punctuation; do not add punctuation that is not present in the heading. Do not omit, change, infer, or invent a designation; if none appears in the heading, do not add one.
+- If an immediately following heading line identifies the parties against whom the claim is asserted (for example, (Against All Defendants)), include that line after the title in the same single-line 'cause of action' value, exactly as written. Do not add such a line if absent, and do not include numbered allegations.
+
+2. for field 'description': Summarize the provided essential information related to the above identified claim in a list of strings or very paragraphs as ‘description’: 
+   - Write in concise, plain language, directly stating the key facts, violations, and harm without attributing actions to the plaintiff (e.g., avoid phrases like "Waymo alleges" or "Waymo seeks").
+   - Highlight the claim’s legal basis, the most critical factual allegations, and the resulting harm or violations.
+   - Emphasize the remedies warranted (e.g., damages, injunctions) without directly linking them to the plaintiff's perspective.
+   For example:
+       - Instead of "Waymo seeks damages," write "Damages are necessary to address the competitive harm caused by misappropriation."
+       - Instead of "Waymo alleges Defendants infringed," write "Defendants infringed the patent by replicating the design."
+   - Reference supporting paragraphs from the complaint in the format "(Compl. ¶12)".
+   - Use formal, declarative language to present the facts and outcomes objectively.
+   - Draft in a clear manner suitable for inclusion in a legal memorandum.
+
+4. Output 'cause of action' and 'description' based on the above requirements in the following JSON format:
+{{"cause of action":"...", "description":["...", "..."]}}
+

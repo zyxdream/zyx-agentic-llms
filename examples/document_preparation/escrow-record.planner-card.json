@@ -1,0 +1,33 @@
+{
+  "file_id": "<document-id>",
+  "filename": "escrow-record.txt",
+  "relative_path": null,
+  "scope": "current_prompt_attachment",
+  "current_prompt_attachment": true,
+  "artifact_id": "<published-artifact-id>",
+  "preparation_version": "luna-source-records-v2",
+  "metadata_status": "ready",
+  "headline": "Escrow Record: Delivery Timing, Release Objection Terms, and Separate Breach Allegation",
+  "document_kind": "Escrow record and administrative correspondence excerpts",
+  "preview": "The supplied record identifies North Company and South Company and states that delivery is due at the end of a Relevant Period, defined as ending March 15, 2031. It does not say what must be delivered, to whom, or by what method. A separate term states an escrow release amount of $77,777 and requires a release objection within forty-five days, while preserving a fraud objection afterward. The text does not identify the event that starts the forty-five-day period, who must submit an objection, or how objections are handled. A further section reports that South Company alleges breach by North Company, but says the correspondence does not report a judicial finding of breach. This allegation is not an adjudicated finding. Repeated administrative-background text is described as adding no operative terms.",
+  "key_points": [
+    {
+      "text": "North Company and South Company are identified as parties; delivery is due at the end of a Relevant Period ending March 15, 2031. The delivery item, recipient, and method are unspecified.",
+      "block_ids": [
+        "b000002",
+        "b001204"
+      ]
+    },
+    {
+      "text": "The stated escrow release amount is $77,777. A release objection is due within forty-five days, with a fraud-objection exception afterward; the triggering event and responsible party are not identified.",
+      "block_ids": [
+        "b000403"
+      ]
+    }
+  ],
+  "parties": [],
+  "dates": [],
+  "topics": [],
+  "coverage_warning": null,
+  "coverage_accepted": false
+}

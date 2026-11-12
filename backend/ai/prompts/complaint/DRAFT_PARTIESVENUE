@@ -1,0 +1,49 @@
+We are writing a litigation complaint. You will be given a list of facts for the case.  Based on these facts write the Parties section and the Jurisdiction/Venue section of the complaint.  Use confident, declarative language.  Include relevant facts that establish jurisdiction and venue, and comply with local court rules.  Do not write any other sections of the complaint.  Do not include a title page or a signature block.  Write the sections in paragraphs, do not show list. 
+
+Each party (Plaintiff and Defendant) must be described in separate paragraphs in the Parties section.  Ensure the Plaintiff and Defendant descriptions are detailed and specific to the context of the case, highlighting their roles, business operations, and relevance to the litigation.  For businesses, emphasize their activities, place of incorporation, and operations. For individuals, include their roles and locations pertinent to the case.  Do not combine Plaintiff and Defendant into a single paragraph under any circumstances.
+
+Multiple Parties Clarification:
+   - Each plaintiff and each defendant must appear in a separate paragraph within the "Parties" section. If there are multiple plaintiffs or multiple defendants, do not combine them into a single paragraph.
+   - For instance, if there are two plaintiffs, create two separate paragraphs:
+       "Plaintiff ABC is a Delaware corporation..."
+       "Plaintiff XYZ is a Texas corporation..."
+   - Similarly, each defendant is detailed in its own paragraph. 
+   - In the "Jurisdiction" section, explicitly link each defendant to this court’s jurisdictional basis. If the facts differ for each defendant, state those differences (e.g., principal place of business, location of misconduct).
+   - In the "Venue" section, clarify how each defendant’s acts or location tie into the chosen venue, if relevant.
+   - If certain plaintiffs reside or operate in different states, ensure that is stated clearly to support jurisdiction/venue if applicable.
+   - Keep the tone factual and neutral, focusing solely on jurisdictional/venue facts.
+
+Enhance Formal Tone:
+   - Omit qualifier words (e.g., “Plaintiff contends”); simply state the facts supporting jurisdiction and venue.
+   - Keep paragraphs short but thorough, ensuring each party’s link to the forum is crystal clear.
+
+Active Voice:
+   - Use direct language (e.g., “Defendant conducts substantial business in this district,” not “Substantial business is conducted by Defendant in this district”).
+
+No Argumentation:
+   - Refrain from asserting claims or wrongdoing here; focus strictly on establishing factual and legal bases for jurisdiction/venue.
+
+Facts:
+{facts_and_parties}
+
+Plaintiff Address: {plaintiff_address} 
+
+Defendant Address: {defendant_address} 
+
+Desired Venue: {venue}
+
+== Your task:
+Based on the above information, draft the following sections of the complaint, Do not use headers or sub-headers in your drafted content, only using plain text through sell-connected paragraphs.
+(1) output parties in field "Parties", include at least 2 paragraphs, one for the plaintiffs, and one for the defendants.
+(2) output jurisdiction in field 'Jurisdiction',  in one paragraph. 
+(3) output venue in field 'Venue', in one paragraph.  
+(4) Writing requirement and strategies: 
+- Do not use headers or sub-headers in your drafted content, only write in well-connected paragraphs. Do not add introduction or conclusion to any of the above sections. 
+- for jurisdiction and venue, Clearly establish why the court has jurisdiction to hear the case (e.g., cite federal statutes or state jurisdictional laws).  Explicitly link the court’s jurisdiction to factual events or conduct relevant to the case, such as where the misconduct occurred, where the parties conduct business, or where critical actions giving rise to the claims took place.
+Ensure the complaint identifies facts or events that link the defendant to the court's jurisdiction (e.g., where the defendant resides, conducts business, or committed the alleged act).
+- Write in a neutral tone, avoiding argumentative or advocacy-like language, while using confident, polished phrasing to assert jurisdiction and venue without appearing overly formal or dry.  
+- Focus only on factual and legal bases for jurisdiction and venue; do not include allegations or commentary about the underlying claims.
+
+The output should be a JSON with the following format:
+{{"Parties": ["...(plaintiff paragraph)...", "...(defendant paragraph)...."],"Jurisdiction": "....","Venue":"...."}}
+

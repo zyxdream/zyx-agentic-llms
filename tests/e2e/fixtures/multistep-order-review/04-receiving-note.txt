@@ -1,0 +1,19 @@
+FICTIONAL TEST RECORD — not a real transaction
+Harper Studio receiving note for order H-260828
+
+1. Physical receipt on September 10, 2026
+The receiving clerk signed for twenty chairs physically received that day.
+Two of those twenty chairs have damaged seats; the other eighteen had no
+damage recorded at receipt. The two damaged chairs are INCLUDED in the twenty,
+not two additional chairs and not an additional delivery.
+
+2. Limit of acknowledgment
+The clerk's signature acknowledges physical receipt only. It is not quality
+acceptance, acceptance of the invoice, or acknowledgment of full performance.
+No replacement delivery or resolution of the damage is recorded here.
+
+3. Remaining goods and reporting date
+No receipt for the remaining eight chairs is included in the supplied records
+as of September 12, 2026. Their amended deadline is September 17, 2026.
+This absence does not establish that they were delivered, lost, or refused.
+It also does not establish that their September 17 deadline has been missed.

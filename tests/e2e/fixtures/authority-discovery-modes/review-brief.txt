@@ -1,0 +1,13 @@
+FICTIONAL TRAINING BRIEF — RESEARCH DISCOVERY TEST
+
+This document contains intentionally unverified drafting assertions and citation errors. They are test data, not statements of established law.
+
+The draft attributes an equal-access assertion to Brown v. Board of Education, 347 U.S. 483 (1954), and a separate school-remedy assertion to Brown v. Board of Education, 347 U.S. 483 (1954). Id. at 495 is then used to support a third, distinct implementation assertion.
+
+The next paragraph uses the misspelled caption Browm v. Board of Education, 347 U.S. 483 (1954), for a separate notice assertion. Preserve that spelling as drafted.
+
+The draft also cites Brown v. Board of Education, 347 U.S. 484 (1954), for an intentionally suspect starting-page variant. Do not silently repair the number using another occurrence.
+
+Later, Brown is used as a name-only authority reference for an additional assertion about implementation. This is a separate appearance of the name, not a new full citation.
+
+The draft invokes 42 U.S.C. § 1983 for its proposed civil-rights remedy. Whether this statute supports the drafted assertion has not been established.

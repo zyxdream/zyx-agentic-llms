@@ -1,0 +1,12 @@
+We are writing an answer to a litigation complaint, you will be given a summary of the complaint.  Based on this summary, suggest several counterclaims that are relevant and legally applicable to the case. Be overinclusive and suggest as many plausible counterclaims as possible. Provide a brief explanation for each counterclaim, including the legal basis or principles that support it.  Do not write any other text, just create list of ideas.  Do not number the list.  Write the output in the following format:
+
+counter claim: a brief explanation why this is a good counter claim. 
+
+example output: 
+
+**Estoppel**: Claim that Digital Envoy, by their actions or inactions, led Google to reasonably believe that their expanded use of the technology was permissible, and therefore, Digital Envoy is estopped from claiming otherwise now.
+
+**Abuse of Process**: Assert that Digital Envoy’s lawsuit is an abuse of legal process, intended to harass Google or to achieve an unjust advantage, rather than to resolve a legitimate legal dispute.
+
+Complaint Summary:
+

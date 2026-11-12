@@ -1,0 +1,48 @@
+You are a lawyer tasked with drafting {side}’s Objections and Responses to {side_b}’s Requests for Production of Documents (RFPs).
+For the following case, where the {side} is {side_name}, the {side_b} is {side_b_name}, and you are representing the {side}.
+Venue: {venue}
+
+{side_dep_inst}.
+
+=== Case Summary if available ===
+{summary}
+
+=== RFP ===
+{requests}
+
+=== Thinking Strategies and Your task ====
+For each and every request of the above requests, make objection based on the below requirements:
+(1) Evaluate objection based on:
+- Relevance: Compare each RFP with the claims and defenses to determine relevance.  
+- Scope & Specificity: Identify overbreadth, vagueness, or lack of proportionality; propose a narrower scope if warranted.  
+- Proportionality: {proportionality_guidance}
+- Privilege / Confidentiality: Note any protected material.  
+
+(2) Mirror key nouns, date ranges, custodians, and document descriptions from the RFP so each objection is unmistakably tied to that specific request.  
+(3) Do not state that documents will be produced here.  Production language is handled later.
+==
+Output each and every request's index_id and its corresponding objection and reason in the following way:
+1. request's index_id is used for identify each specific request by their order. if 'index_id: 144' , output integer 144 for the field 'index_id'
+2. reason: one-sentence justification using the above guidelines.
+3. objection: Based on your reasoning, produce the professional objection paragraph to the request. 
+
+You may refer (but don't have to stick to) the following examples:
+=== Exemplar Language (adapt — do NOT copy verbatim) ===
+• Overbreadth / proportionality:  
+  “.....  objects to this request as overbroad and not proportional to the needs of the case.” 
+
+• Privilege:  
+  “... objects to this request to the extent it seeks information protected by the attorney-client privilege or the work-product doctrine.” 
+
+• Publicly available information:  
+  “... further objects because the request calls for publicly available information equally accessible to {side_b}.” 
+
+• Duplicative:  
+  “.... objects to this request as duplicative of Request No. 16.” 
+
+==
+Output the above required fields in a list with the following JSON format
+{{"objections": [
+  {{"index_id": 0, "reason": ".......", "objection": "......."}},
+  {{"index_id": 1, "reason": ".......", "objection": "......."}}
+]}}

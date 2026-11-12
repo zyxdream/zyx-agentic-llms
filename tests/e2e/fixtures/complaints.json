@@ -1,0 +1,70 @@
+[
+  {
+    "slug": "northern-california",
+    "venue": "NORTHERN DISTRICT OF CALIFORNIA",
+    "plaintiff": "Acme Analytics, Inc.",
+    "defendant": "Example Data Corp.",
+    "attorneys_contact_info": "E2E Counsel\n1 Test Street\nSan Francisco, CA 94105\n555-0100",
+    "factual_allegations_input": "Example Data Corp. used Acme Analytics software after the parties signed a written license agreement.",
+    "llm": {
+      "factual_allegations": "FACTUAL ALLEGATIONS\nAcme Analytics delivered the licensed software to Example Data Corp. under a written agreement.\nExample Data Corp. used the software beyond the license scope and did not pay the agreed fees.",
+      "suggested_prayers": ["Compensatory damages", "Injunctive relief"],
+      "introduction": "This action arises from Example Data Corp.'s unauthorized use of Acme Analytics software.",
+      "causes_of_action_suggestions": [
+        {
+          "Breach of Contract": {
+            "description": "Example Data Corp. breached the written software license agreement.",
+            "citations": []
+          }
+        }
+      ],
+      "parties": [
+        "Acme Analytics, Inc. is a California corporation.",
+        "Example Data Corp. is a corporation that entered the license agreement."
+      ],
+      "jurisdiction": "This Court has jurisdiction over this federal dispute.",
+      "venue": "Venue is proper in this district because the agreement was performed here."
+    },
+    "causes_of_action": [
+      "FIRST CAUSE OF ACTION",
+      "(BREACH OF CONTRACT)",
+      "Example Data Corp. breached the written license agreement by exceeding the permitted use.",
+      "Acme Analytics performed its obligations and suffered damages as a result."
+    ],
+    "prayer_for_relief": "WHEREFORE, Acme Analytics requests compensatory damages and injunctive relief."
+  },
+  {
+    "slug": "new-york",
+    "venue": "SOUTHERN DISTRICT OF NEW YORK",
+    "plaintiff": "Hudson Research LLC",
+    "defendant": "Metro Systems, Inc.",
+    "attorneys_contact_info": "E2E Counsel\n1 Test Street\nNew York, NY 10001\n555-0100",
+    "factual_allegations_input": "Metro Systems failed to deliver the data services promised in a written agreement with Hudson Research.",
+    "llm": {
+      "factual_allegations": "FACTUAL ALLEGATIONS\nHudson Research entered a written data-services agreement with Metro Systems.\nMetro Systems failed to deliver the promised data and retained Hudson Research's advance payment.",
+      "suggested_prayers": ["Contract damages", "Restitution"],
+      "introduction": "This action concerns Metro Systems' failure to provide contracted data services.",
+      "causes_of_action_suggestions": [
+        {
+          "Breach of Contract": {
+            "description": "Metro Systems breached the written data-services agreement.",
+            "citations": []
+          }
+        }
+      ],
+      "parties": [
+        "Hudson Research LLC is a New York limited liability company.",
+        "Metro Systems, Inc. is a corporation doing business in New York."
+      ],
+      "jurisdiction": "This Court has jurisdiction over the parties and subject matter.",
+      "venue": "Venue is proper in this district because material events occurred in New York."
+    },
+    "causes_of_action": [
+      "FIRST CAUSE OF ACTION",
+      "(BREACH OF CONTRACT)",
+      "Metro Systems breached the written data-services agreement by failing to deliver the promised data.",
+      "Hudson Research suffered damages and is entitled to recover its advance payment."
+    ],
+    "prayer_for_relief": "WHEREFORE, Hudson Research requests contract damages and restitution."
+  }
+]

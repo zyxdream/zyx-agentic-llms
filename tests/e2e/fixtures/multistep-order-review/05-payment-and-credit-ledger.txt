@@ -1,0 +1,21 @@
+FICTIONAL TEST RECORD — not a real transaction
+Harper Studio ledger extract for order H-260828
+Reporting cutoff: September 12, 2026
+
+1. Confirmed payment
+August 30, 2026: $400 deposit paid to Elm Supply; bank clearance confirmed.
+No other payment is recorded in this supplied extract through the cutoff.
+The extract is not proof that no other transaction could exist elsewhere.
+
+2. Requested conditional credit
+September 11, 2026: Harper requested a flat $140 credit concerning the two
+damaged chairs. Status as of the cutoff: REQUESTED, NOT APPROVED.
+Elm Supply has not issued a credit memo in the supplied records. No $140
+credit has been posted, applied, or refunded in this ledger.
+The request does not change the agreed unit price or prove a refund is owed.
+
+3. Reconciliation note
+Any illustration deducting the requested $140 must be labeled conditional
+on later approval; it is not the currently supported balance calculation.
+The ledger does not establish complete delivery or invoice acceptance, so
+it does not establish that a remaining balance is currently payable.

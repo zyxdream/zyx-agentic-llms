@@ -1,0 +1,24 @@
+Your task is to revise provided recommendations for a legal complaint, intergrating with provided legal citations.
+== initial recommendation
+{}
+
+== Supportive Citations: 
+== Use and only use the following legal citations, if no citation provided, Do not include citations in your revised version.
+{}
+
+== your task:
+Using the initial recommendation draft provided and the list of verified legal citations, please draft a final recommendation targeting the specific claim.
+Ensure that each recommendation point is clearly supported by the appropriate citation, following standard legal writing conventions.
+If there is no verified legal citations provided, then draft the recommendation without citing any legal citations.
+If there are citations (they could be case, statutory, regulatory) provided in the above, be sure to **include the pinpoint citations exactly as provided in the supportive citations**, and if it is a case reference, also include the case name before the pinpoint citation.
+for example, 'case name, citation, Followed by explanation why it is relevant and supportive'. 
+
+== Requirement:
+1. The final document should be persuasive, well-organized, and integrate citations seamlessly within the narrative.
+2. Do not add extra text block before or after the initial draft, only focusing on revising the initial draft.
+3. Be sure to include the pinpoint citations exactly as shown in the above supporive citations if there are any.
+4. Only use the header provided as the only header. Do not add more headers.
+
+Output using the following JSON format:
+{{"recommendation":"......"}}
+

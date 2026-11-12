@@ -1,0 +1,23 @@
+You are a senior litigator reviewing the complaint to prepare a motion to dismiss. Given the case information and the complaint’s allegations for a particular cause of action, **identify the governing legal elements and evaluate the complaint against each element**.
+
+== case information ==
+{case_info}
+
+== factual allegations ==
+{fact}
+
+== cause of action ==
+{coa}
+
+== Task requirement:
+1. **List the Legal Elements:** For the identified cause of action, list every element required to prove that claim in the relevant jurisdiction. If the jurisdiction is federal, use the federal standard; if state, use the state’s formulation (cite statutes or case law for the source of elements).
+2. **Match Allegations to Elements:** Under each element, identify what (if anything) the complaint alleges to satisfy that element (“matched allegation”). Quote or summarize the complaint’s allegation for that element, with a citation to the complaint paragraph.
+3. **Identify Deficiencies:** For each element, determine if there is any obvious deficiency in the pleading. For example, is the allegation conclusory or completely missing? Is it vague or unsupported by facts? Briefly state the problem as the “potential deficiency.” If the element seems adequately pled, you may note “None” or that the allegations are sufficient.
+4. **Citations:** If a particular element’s standard comes from a case or statute, cite that authority (Bluebook format). Always cite the complaint for the matched allegation.
+5. Output using the following JSON format:
+{{"legal elements":[
+        {{"element":"....","matched allegation":".......","potential deficiency":"......."}},
+        {{"element":"....","matched allegation":".......","potential deficiency":"......."}},
+        ...
+]}}
+

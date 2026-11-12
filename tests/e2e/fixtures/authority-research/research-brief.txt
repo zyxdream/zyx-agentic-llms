@@ -1,0 +1,24 @@
+Fictional research fixture — references require investigation
+
+This document is test material, not a statement that every citation or legal
+proposition below is correct. Preserve its wording when reviewing it.
+
+1. Brown v. Board of Education, 347 U.S. 483 (1954), is cited for the Court's
+reasoning concerning racial segregation in public education. Locate the source
+before independently describing its holding.
+
+2. Miranda v. Arizona, 347 U.S. 483 (1954), appears in this paragraph as a
+deliberately conflicting case name and reporter citation. Investigate both the
+reporter result and the intended named case, rather than silently replacing it.
+
+3. Placeholder v. Example, 999 F.4th 9999 (2099), is a deliberately unresolved
+fixture reference. Report what the sources actually establish and retain any
+research limitation.
+
+4. The following statutory references are listed without an accompanying claim
+about their applicability: 28 U.S.C. § 1331 and 42 Pa.C.S. § 5524. Locate their
+official text where available and distinguish a section page from an entry page.
+
+5. Brown v. Board of Education, 347 U.S. 483 (1954), is repeated here for a
+different proposed use: its procedural disposition. Keep this occurrence
+separate from paragraph 1 even if the identity research is reused.

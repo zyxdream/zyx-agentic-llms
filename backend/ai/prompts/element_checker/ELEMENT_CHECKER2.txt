@@ -1,0 +1,62 @@
+Evaluate each and every legal element of the following cause of action within the factual context of a legal complaint. Focus on whether the Complaint provides sufficient factual detail to support each element.
+
+== Facts summaries:
+{fa}
+
+== Cause of action:
+{coa}
+
+== Legal Elements:
+{elements}
+
+=== Your task:
+1. Evaluate every listed legal element. Return all elements in the exact original order provided above. Do not omit any element, do not combine elements, and do not rename any element.
+2. For each element, always output the following fields first, in this order:
+   - `"element"`: the element name exactly as provided.
+   - `"element_id"`: the corresponding `element_id` exactly as provided, as an integer.
+   - `"status"`: set to exactly one of:
+   - `"Met"`
+   - `"Not Met"`
+3. After outputting `"element"`, `"element_id"`, and `"status"`, populate the remaining fields based on `"status"`.
+4. If an element is `"Met"`:
+   - Output `"complaint_references"` identifying the supporting complaint paragraph citation(s) from the provided fact summaries.
+   - Use citation format exactly like:
+     - `Compl. ¶ 12` for a single paragraph
+     - `Compl. ¶¶ 12-15` for multiple paragraphs
+     - `Am. Compl. ¶ 12` or `Am. Compl. ¶¶ 12-15` if the provided facts summaries indicate the amended complaint
+   - Use only paragraph references that are actually supported by the provided fact summaries. Do not invent paragraph numbers.
+   - If you cannot identify specific supporting complaint paragraph references, do not mark the element as `"Met"`.
+   - Set `"weakness"` to an empty string.
+   - Set `"defense"` to an empty string.
+   - Set `"citations"` to an empty list.
+5. If an element is `"Not Met"`:
+   - Set `"complaint_references"` to an empty string.
+   - Output `"weakness"`: summarize the deficiency in a deeper, strategic manner in a few sentences. Reference specific complaint paragraphs where allegations are vague, conclusory, contradictory, or missing when possible. Do not include legal citations in this field. If the jurisdiction has patent-specific local rules that relax pleading detail (for example, E.D. Tex. P.R. 3-1), explicitly note whether those rules cure or undermine the perceived deficiency.
+   - Output `"defense"`: provide a concrete strategic angle or focus of challenge in a few sentences. Do not include legal citations in this field.
+   - Output `"citations"`: in a list, provide all legal authorities and cases, preferably recent controlling authority from the same jurisdiction and with similar fact patterns, that:
+     (1) support your analysis of the above `"weakness"` and `"defense"`.
+     (2) {citations_recom_instr}
+   - Each citation is a JSON object with the following fields:
+     - `"case_name"`: full case name in a string. If this is a law or code and there is no case name, return an empty string.
+     - `"citation"`: if this is a case, use one Bluebook-form official citation and include `(court year)` or `(year)` only. If this item is a code, statute, or rule, include the relevant citation when germane (for example, `Fed. R. Civ. P. 9(b)` or `15 U.S.C. § 1125(c)`).
+     - `"parenthetical"`: a short parenthetical explaining the key legal proposition and how it applies here, or a brief quote or paraphrase illustrating relevance. Always wrap the content in parentheses.
+6. Apply the following citation rules:
+   - Full case citation format without pincite: `Case Name, Volume Reporter Page (Court Year)`.
+   - Omit the court name only if the reporter uniquely identifies the court, for example:
+     - `U.S.` -> use `(Year)` only.
+     - State official reporters for the state's highest court -> use `(Year)` only.
+   - Otherwise, include court and year in parentheses.
+7. Return valid JSON only. Do not output markdown. Do not add commentary outside the JSON.
+
+Example citation objects:
+- `{{"case_name": "Bell Atlantic Corp. v. Twombly", "citation": "550 U.S. 544 (2007)", "parenthetical": "(holding that a complaint must plead sufficient factual matter to state a claim that is plausible on its face, rejecting mere conclusory allegations as insufficient.)"}}`
+- `{{"case_name": "A&M Records, Inc. v. Napster, Inc.", "citation": "239 F.3d 1004 (9th Cir. 2001)", "parenthetical": "(explaining that secondary copyright liability requires underlying direct infringement and that constructive knowledge of infringing acts may satisfy scienter.)"}}`
+- `{{"case_name": "", "citation": "17 U.S.C. § 501", "parenthetical": "(infringement includes unauthorized reproduction, distribution, and public performance.)"}}`
+
+8. Output the requested items using the following JSON format. Within each object, preserve the field order exactly as shown below:
+
+{{"element_analysis":[
+{{"element":".......", "element_id":1, "status":"Met", "complaint_references":"Compl. ¶ 12", "weakness":"", "defense":"", "citations":[]}},
+{{"element":".......", "element_id":2, "status":"Not Met", "complaint_references":"", "weakness":"...", "defense":"...", "citations":[{{"case_name":"...", "citation":"....", "parenthetical":"(.....)"}}, {{"case_name":"...", "citation":"....", "parenthetical":"(.....)"}}]}},
+...]
+}}

@@ -1,0 +1,6 @@
+
+The output should be a JSON with the following format:
+{
+    "section headings": "HEADING A    (LINE NUMBER); HEADING B   (LINE NUMBER); HEADING C   (LINE NUMBER);...",
+    "first heading of next section": "HEADING C     (LINE NUMBER)"
+}

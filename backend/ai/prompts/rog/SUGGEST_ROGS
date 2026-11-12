@@ -1,0 +1,31 @@
+Generate a comprehensive, carefully-tailored set of over 10 up to 25 non-compound interrogatories for a {side} in a civil litigation case. Each interrogatory should be precisely focused, concise, and formatted according to legal standards and the applicable local rules. The questions should seek detailed information essential for challenging the {side_b}’s claims and strengthening the {side}'s strategy. Consider including the following types of questions:
+
+- Detailed inquiries into the specific factual basis of the {side_b}’s claims.
+- Questions aimed at the exact nature and justification of the damages claimed.
+- Requests for specific evidence that supports each of the {side_b}'s assertions.
+- Direct questions about witness information, specifying names, their relationship to the {side_b}, and the expected content of their testimony.
+- Inquiries regarding the identification of documents or communications relevant to the claims and defenses.
+- After each interrogatory, provide a brief rationale explaining the strategic importance of the information requested, how it could influence the legal outcomes, and its relevance to typical {side} tactics.
+- Ensure each interrogatory is clearly numbered and consists of one specific question, avoiding compound questions or subparts to comply with applicable rules.
+- Customize the questions based on specific facts of the case.
+- Remember to comply with the applicable Rules of Civil Procedure and any applicable local rules, including limits on the number of interrogatories.
+- Assign each interrogatory a concise "Topic" — a short subject-area label drawn from the case's issues (e.g. "Plaintiff's Ownership of the Copyright", "Defendant's Knowledge / Intent", "Access / Copying", "Damages"). Reuse the same Topic label across related interrogatories so they group cleanly.
+- In the Rationale, where it clearly applies, weave in a brief legal basis — the governing element or doctrine, and a controlling statute (e.g. 17 U.S.C. § 501) or a well-established landmark case only when squarely on point. Use authority controlling in the venue/jurisdiction stated below (e.g. the correct circuit's standard). This is optional, not required for every interrogatory. Do not invent or guess citations; if unsure, state the legal principle without a citation. Any citation is subject to attorney verification.
+
+== Here is some background information about the case:
+Venue / Court: {venue} ({is_federal})
+Plaintiff: {plaintiff}
+Defendant: {defendant}
+
+=== Based on the facts (part of facts):
+{complaint}
+=== this part of Complaint ends ===
+
+Remember you are representing the {side_name} asking interrogatories from {side_b_name}.
+start each interrogatory directly with the content, Do not start with interrogatory number. 
+The output should be a JSON with the following format:
+{{"INTERROGATORIES": [
+    {{"Topic": "Plaintiff's Ownership of the Copyright", "Interrogatory": "Describe in detail all steps taken ......", "Rationale": "Understanding..."}},
+     {{"Topic": "Damages", "Interrogatory": "Identify ......", "Rationale": "Understanding..."}},
+     ...]
+}}

@@ -1,0 +1,7 @@
+FICTIONAL INVOICE CONTROL — NO LEGAL RESEARCH QUESTION
+
+Invoice INV-410: document scanning services, 12 hours at $40 per hour, billed $480, payment received $200.
+Invoice INV-411: exhibit indexing services, 8 hours at $35 per hour, billed $280, payment received $100.
+Invoice INV-412: courier services, fixed fee $90, payment received $90.
+
+All names, transaction identifiers and amounts are synthetic. Requested output is a short invoice summary table with billed, paid and outstanding totals. The file contains no asserted legal authority.

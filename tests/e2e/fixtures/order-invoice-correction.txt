@@ -1,0 +1,17 @@
+Synthetic order and invoice record
+
+1. Agreed order
+The agreed order is for twelve chairs at $20 each, for a total of $240.
+The agreed delivery deadline is June 10.
+
+2. Invoice discrepancy
+The invoice lists twelve chairs at $20 each but states a total of $260.
+It also lists June 12 as the delivery date, contrary to the agreed order.
+The invoice total and delivery date are disputed. No tax or delivery fee is
+listed that would explain the difference between $240 and $260.
+
+3. Status and limitations
+The supplied record does not establish that the invoice was accepted as correct.
+It does not establish that any payment was made or that delivery occurred.
+The invoice entries do not establish an agreed change to the order total or
+delivery deadline. No resolution of the dispute is recorded here.

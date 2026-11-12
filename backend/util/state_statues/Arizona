@@ -1,0 +1,14 @@
+{
+    "base_url": "https://www.azleg.gov/arstitle/",
+    "item_url": "https://www.azleg.gov/viewdocument/?docName=https://www.azleg.gov/ars/28/00622-01.htm",
+    "to_replace_sec": "28",
+    "to_replace_num": "00622-01",
+    "number_pattern": "(\\d{1,2}-\\d+(?:\\.\\d+)*)",
+    "code_patterns": [
+      "Ariz\\. Rev\\. Stat\\. Ann\\. §{1,2} ",
+      "Ariz\\. Rev\\. Stat\\. Ann\\.§{1,2} ",
+      "A\\.R\\.S\\. §{1,2} ",
+      "A\\.R\\.S\\.§{1,2} "
+    ]
+  }
+  

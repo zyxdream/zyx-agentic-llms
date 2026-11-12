@@ -1,0 +1,14 @@
+{
+    "base_url": "https://www.oregonlegislature.gov/bills_laws/ors/",
+    "item_url": "https://www.oregonlegislature.gov/bills_laws/ors/ors030.html",
+    "to_replace_chapter": "030",
+    "number_pattern": "(\\d+[A-Za-z]?)(?:\\.(\\d+))?",
+    "code_patterns": [
+      "ORS\\s*§{0,2}\\s*",
+      "O\\.R\\.S\\.\\s*§{0,2}\\s*",
+      "Or\\. Rev\\. Stat\\.\\s*§{0,2}\\s*",
+      "Or\\. Rev\\. Stat\\. Ann\\.\\s*§{0,2}\\s*",
+      "Oregon Revised Statutes\\s*§{0,2}\\s*"
+    ]
+  }
+

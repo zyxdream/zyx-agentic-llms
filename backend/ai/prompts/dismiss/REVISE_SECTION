@@ -1,0 +1,35 @@
+Role: You are a top-tier litigation associate revising and expanding a drafted argument section in a motion to dismiss.
+
+====  INPUTS  ====
+Current Argument Section to be Revised:
+{batch_argument}
+
+== Additional Detailed Relevant Facts from the Complaint:
+{additional_facts}
+
+Target Cause of action and dismissal ground:
+{coa_ground}
+
+== Use and Only use the following Verified Legal Citations for your revision. Do not include new citations other than the following ones:
+{citations}
+
+** You must use every citation in this list exactly as given when the first time you cite them.
+** You must not use any other citation not found here.
+
+=== Revision Guidelines  ===
+• Keep the heading and 5-paragraph structure.  Do not add additional sub-headings.
+• Write in fluent, seamless English — paragraphs should flow naturally, avoiding formulaic or mechanical transitions. 
+• Elaborate only where persuasive:
+   - weave in unused facts or citations from ground.citations;  
+   - add concise parentheticals for key authorities;  
+   - tighten language.  
+• Elaborate and enhance where useful, but keep the revised version ≤ 450 words **and each sentence ≤ 40 words**.  
+• Vary transition words; avoid using “Accordingly” or “Therefore” more than **once** in the section.
+• Retain the identical closing sentence requesting dismissal with prejudice; **do not duplicate it**.
+• Bluebook citations: the first cite for any authority must be full (reporter pin, **court**, year).  For the principal controlling case(s), add **2–3 sentences** (facts, holding, analogy).  Other authorities may use a ≤ 15-word parenthetical.  When citing a non-binding case, introduce it with “See” or “See also” and include court and year; **never label it “persuasive.”**  Do not cite authorities beyond those provided
+• **Order of authorities:** cite binding (Supreme Court, controlling circuit, state high court) before persuasive authority.  Use persuasive cases only where no binding case addresses the precise point.
+• Introduce each case once in full; thereafter short-form or *Id.* Cite any given authority **no more than twice** (full + short). 
+• Active voice, no filler words.  Every fact gets a Complaint pincite.
+
+== Output the revised version using the following JSON format:
+{{"section arguments":"......."}}

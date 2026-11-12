@@ -1,0 +1,136 @@
+{
+  "base_url": "https://leginfo.legislature.ca.gov/faces/codes.xhtml",
+  "item_url": "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=101.6.&lawCode=BPC",
+  "to_replace_num": "101.6.",
+  "to_replace_sec": "BPC",
+  "number_pattern": "(\\d+(?:\\.\\d+){0,1})",
+  "code_patterns": {
+    "California Business and Professions Code §{1,2} ": "BPC",
+    "California Business and Professions Code Section ": "BPC",
+    "California Business & Professions Code §{1,2} ": "BPC",
+    "Cal\\. Bus\\. & Prof\\. Code §{1,2} ": "BPC",
+
+    "California Civil Code §{1,2} ": "CIV",
+    "California Civil Code Section ": "CIV",
+    "Cal\\. Civ\\. Code §{1,2} ": "CIV",
+
+    "California Code of Civil Procedure §{1,2} ": "CCP",
+    "California Code of Civil Procedure Section ": "CCP",
+    "Cal\\. Code Civ\\. Proc\\. §{1,2} ": "CCP",
+
+    "California Commercial Code §{1,2} ": "COM",
+    "California Commercial Code Section ": "COM",
+    "Cal\\. Com\\. Code §{1,2} ": "COM",
+
+    "California Corporations Code §{1,2} ": "CORP",
+    "California Corporations Code Section ": "CORP",
+    "Cal\\. Corp\\. Code §{1,2} ": "CORP",
+
+    "California Education Code §{1,2} ": "EDC",
+    "California Education Code Section ": "EDC",
+    "Cal\\. Educ\\. Code §{1,2} ": "EDC",
+
+    "California Elections Code §{1,2} ": "ELEC",
+    "Cal\\. Elec\\. Code §{1,2} ": "ELEC",
+
+    "California Evidence Code §{1,2} ": "EVID",
+    "California Evidence Code Section ": "EVID",
+    "Cal\\. Evid\\. Code §{1,2} ": "EVID",
+
+    "California Family Code §{1,2} ": "FAM",
+    "California Family Code Section ": "FAM",
+    "Cal\\. Fam\\. Code §{1,2} ": "FAM",
+
+    "California Financial Code §{1,2} ": "FIN",
+    "California Financial Code Section ": "FIN",
+    "Cal\\. Fin\\. Code §{1,2} ": "FIN",
+
+    "California Fish and Game Code §{1,2} ": "FGC",
+    "California Fish and Game Code Section ": "FGC",
+    "California Fish & Game Code §{1,2} ": "FGC",
+    "Cal\\. Fish & G\\. Code §{1,2} ": "FGC",
+
+    "California Food and Agricultural Code §{1,2} ": "FAC",
+    "California Food and Agricultural Code Section ": "FAC",
+    "California Food & Agricultural Code §{1,2} ": "FAC",
+    "Cal\\. Food & Agric\\. Code §{1,2} ": "FAC",
+
+    "California Government Code §{1,2} ": "GOV",
+    "California Government Code Section ": "GOV",
+    "Cal\\. Gov’t Code §{1,2} ": "GOV",
+
+    "California Harbors and Navigation Code §{1,2} ": "HNC",
+    "California Harbors and Navigation Code Section ": "HNC",
+    "California Harbors & Navigation Code §{1,2} ": "HNC",
+    "Cal\\. Harb\\. & Nav\\. Code §{1,2} ": "HNC",
+
+    "California Health and Safety Code §{1,2} ": "HSC",
+    "California Health and Safety Code Section ": "HSC",
+    "California Health & Safety Code §{1,2} ": "HSC",
+    "Cal\\. Health & Safety Code §{1,2} ": "HSC",
+
+    "California Insurance Code §{1,2} ": "INS",
+    "California Insurance Code Section ": "INS",
+    "Cal\\. Ins\\. Code §{1,2} ": "INS",
+
+    "California Labor Code §{1,2} ": "LAB",
+    "California Labor Code Section ": "LAB",
+    "Cal\\. Lab\\. Code §{1,2} ": "LAB",
+    "Cal\\. Labor Code §{1,2} ": "LAB",
+
+    "California Military and Veterans Code §{1,2} ": "MVC",
+    "California Military and Veterans Code Section ": "MVC",
+    "California Military & Veterans Code §{1,2} ": "MVC",
+    "Cal\\. Mil\\. & Vet\\. Code §{1,2} ": "MVC",
+
+    "California Penal Code §{1,2} ": "PEN",
+    "California Penal Code Section ": "PEN",
+    "Cal\\. Penal Code §{1,2} ": "PEN",
+
+    "California Probate Code §{1,2} ": "PROB",
+    "California Probate Code Section ": "PROB",
+    "Cal\\. Prob\\. Code §{1,2} ": "PROB",
+
+    "California Public Contract Code §{1,2} ": "PCC",
+    "California Public Contract Code Section ": "PCC",
+    "Cal\\. Pub\\. Cont\\. Code §{1,2} ": "PCC",
+
+    "California Public Resources Code §{1,2} ": "PRC",
+    "California Public Resources Code Section ": "PRC",
+    "Cal\\. Pub\\. Res\\. Code §{1,2} ": "PRC",
+    "Cal\\. Pub\\. Resources Code §{1,2} ": "PRC",
+
+    "California Public Utilities Code §{1,2} ": "PUC",
+    "California Public Utilities Code Section ": "PUC",
+    "Cal\\. Pub\\. Util\\. Code §{1,2} ": "PUC",
+
+    "California Revenue and Taxation Code §{1,2} ": "RTC",
+    "California Revenue and Taxation Code Section ": "RTC",
+    "California Revenue & Taxation Code §{1,2} ": "RTC",
+    "Cal\\. Rev\\. & Tax\\. Code §{1,2} ": "RTC",
+    "Cal\\. Rev\\. & Tax Code §{1,2} ": "RTC",
+
+    "California Streets and Highways Code §{1,2} ": "SHC",
+    "California Streets and Highways Code Section ": "SHC",
+    "California Streets & Highways Code §{1,2} ": "SHC",
+    "Cal\\. Sts\\. & High\\. Code §{1,2} ": "SHC",
+
+    "California Unemployment Insurance Code §{1,2} ": "UIC",
+    "California Unemployment Insurance Code Section ": "UIC",
+    "Cal\\. Unemp\\. Ins\\. Code §{1,2} ": "UIC",
+
+    "California Vehicle Code §{1,2} ": "VEH",
+    "California Vehicle Code Section ": "VEH",
+    "Cal\\. Veh\\. Code §{1,2} ": "VEH",
+
+    "California Water Code §{1,2} ": "WAT",
+    "California Water Code Section ": "WAT",
+    "Cal\\. Water Code §{1,2} ": "WAT",
+    "Cal\\. Wat\\. Code §{1,2} ": "WAT",
+
+    "California Welfare and Institutions Code §{1,2} ": "WIC",
+    "California Welfare and Institutions Code Section ": "WIC",
+    "California Welfare & Institutions Code §{1,2} ": "WIC",
+    "Cal\\. Welf\\. & Inst\\. Code §{1,2} ": "WIC"
+  }
+}

@@ -1,0 +1,20 @@
+The above text is a list of lines that are either in bold font or all capitalized, which make them candidates for headings or sub-headings in a legal document.
+the numbers in the parenthesis are their corresponding line number, and the following line is also provided as additional information.
+
+==Your task:
+is to identify and extract all meaningful headings and sub-headings that come **before the Cause of Action** section. 
+
+Requirement:
+1. Consider the semantic meaning of the headings and its position and length between headings, the above headings are raw and noisy.
+2. Return the lines with the corresponding line number exactly as they were sent. If a heading spans two lines only return the first line.
+3. If not sure, return empty string. Do not make up new headings and line numbers, use exactly what have been provided to you.
+4. If multiple sub-headings found for this big section, return all of them.
+5. Following lines are only there for more contextual information, do not include them in your output, only focus on the lines and line numbers.
+5. Separated them by semi-colons. If not sure, return empty string.
+
+The output should be a JSON with the following format:
+{"headings before cause of action": "HEADING A    (LINE NUMBER); HEADING B   (LINE NUMBER); HEADING C   (LINE NUMBER);...",
+"first heading of cause of action":"HEADING X     (LINE NUMBER)"}
+
+
+

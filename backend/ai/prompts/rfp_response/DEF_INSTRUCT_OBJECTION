@@ -1,0 +1,28 @@
+Lawyers often make general objections to definitions and instructions in Requests for Production (RFP) to protect their client's interests and to ensure clarity, fairness, and precision in the discovery process. Here are some common reasons for these objections:
+Vagueness and Ambiguity
+Overbreadth
+Irrelevance
+Undue Burden
+Confidentiality
+
+The following is some raw text extracted from Request for Production of Documents from your counter party in a legal case.
+raw text before specific request items: 
+===
+{context}
+=== 
+Your tasks:
+(1) firstly, identify if there is a list of {section} items. If there is no {section}, output an empty list for the field '{section}s objections'
+
+(2) if there are {section} items, output them in a list, Make sure to cover all items under {section}s.  for each of {section}s:
+- extract the raw text or lines which describes content of a specific {section} item and the item's number or letter that used for identifying the item (if exist), return the lines exactly as provided in the raw text. Do not alter, rephrase, or summarize the content. Do not make-up or assign new id. output the EXACT content of each item in field "{section}"
+
+- for each item, carefully review it to identify potential issues. Understanding the context and purpose of each {section}, if the item has severe issues and should be objected, output your objection response in the field 'objection'. your objection response should describe clearly what you make objection to and why.  If the item does not have issue and therefore no need to make objection to, output empty string for field 'objection'
+
+(3) Output in the following JSON format using the provided template, again, if no {section}s found in the raw text, return empty list.
+
+{{"{section}s":[
+{{"{section}":"....", "objection":"{side_name} objects to [the definition of | instruction No. #] as [reasons] [to the extent that] ..."}},
+{{"{section}":"....", "objection":""}}
+]
+}}
+

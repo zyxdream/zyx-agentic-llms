@@ -1,0 +1,12 @@
+
+The following text is a list of captalized lines and its corresponding line number extracted from a legal complaint.
+===
+{hd_lines}
+===
+Consider the semantic meaning of these lines and its position and context length between lines,
+Task:
+Identify all meaningful section headings such as introduction, parties, jurisdiction and venue, factual allegations, cause of action, prayer for relief, etc. There can be multiple headings for facts, or cause of actions.
+Output Requirement:
+1. Output the headings and corresponding line number exactly as provided, in order, separated by semicolons. Do not modify or make up headings or line numbers. If you are not sure, return empty string.
+2. Output using the following JSON format:
+{{"headings":"HEADING A (#);HEADING B   (#);HEADING C   (#)"}}
