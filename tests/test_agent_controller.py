@@ -7,12 +7,13 @@ from types import SimpleNamespace
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 
-from backend import agent_tasks as tasks, everything, case_assistant_routes as routes
+from backend import agent_tasks as tasks, workspace_runs as routes
+from backend.workspace import state as everything
 from backend.ai import agent_tools, base
 from backend.ai.token_budget import ContextBudgetExceeded
 from backend.database import db
 from backend.models import AgentArtifact, AgentStep, TextEntry
-from backend.util import case_assistant_workflow as service, document_preparation as prep, conversation_context
+from backend.util import workspace_service as service, document_preparation as prep, conversation_context
 from backend.util import document_drafts
 from tests.test_document_preparation import app, admit, receive, run
 
@@ -21,7 +22,7 @@ from tests.test_document_preparation import app, admit, receive, run
 def agent(app, monkeypatch):
     app.register_blueprint(routes.bp)
     for endpoint, fn in list(app.view_functions.items()):
-        if endpoint.startswith('case_assistant_workflows.'):
+        if endpoint.startswith('workspace_services.'):
             app.view_functions[endpoint] = fn.__wrapped__
     monkeypatch.setattr(routes, 'current_user', SimpleNamespace(id=1))
     monkeypatch.setattr(tasks.advance, 'apply_async', lambda **kw: None)
@@ -36,7 +37,7 @@ def agent(app, monkeypatch):
     db.session.add(TextEntry(draftId=1, textName='state', content=json.dumps(state)))
     db.session.commit()
     snapshot = prep.build_snapshot(1, 'draft-1', {'promptAttachments': [{'file_id': entry['document_id']}]})
-    row = service.submit(1, {'draftId': 'draft-1', 'query': 'Compare the source, draft a summary, and check its support.',
+    row = service.submit(1, {'conversation_id': 'draft-1', 'query': 'Compare the source, draft a summary, and check its support.',
         'document_snapshot': snapshot, 'assistant_mode': 'fast'})
     tasks.dispatch(row)
     # Existing controller tests permit ordinary candidate publication without
@@ -45,13 +46,12 @@ def agent(app, monkeypatch):
         decision='not_forbidden', reason='No explicit editor restriction.', supporting_wording=''))
     # Forced draft normalization is a separate existing provider operation.
     # Keep controller staging/publication regressions offline as well.
-    monkeypatch.setattr(everything, 'normalize_draft_for_phase2', lambda draft, **kw: draft)
     monkeypatch.setattr(document_drafts, 'resolve_court_settings', lambda *a, **kw: {'structural': {}, 'layout': {}})
     return row
 
 
 def tick(row):
-    tasks.advance.push_request(id=row.planning_task_id)
+    tasks.advance.push_request(id=row.expected_task_id)
     try:
         result = tasks.advance.run(row.id)
     finally:
@@ -207,7 +207,7 @@ def test_preserve_original_stays_explicitly_unsupported_for_workspace_targets(ag
         operation(agent, monkeypatch, 'create_draft', {'instructions': 'Create a candidate.', 'material_ids': []})
         target = last_result(agent)['artifact_id']
     before = state(agent)
-    monkeypatch.setattr(everything, 'run_draft_operation', lambda *a: pytest.fail('Unsupported mode reached drafting'))
+    monkeypatch.setattr(agent_tools.Operations, 'revise_uploaded_original', lambda *a: pytest.fail('Unsupported mode reached drafting'))
     operation(agent, monkeypatch, 'revise_draft', {'instructions': 'Make targeted edits.', 'material_ids': [],
         'target': target, 'revision_mode': 'preserve_original'})
     assert last_result(agent)['error'] is True
@@ -216,25 +216,6 @@ def test_preserve_original_stays_explicitly_unsupported_for_workspace_targets(ag
     assert state(agent) == before
 
 
-def test_uploaded_preserve_original_keeps_rejections_and_saves_candidate_status(agent, monkeypatch):
-    target = json.loads(agent.data_json)['document_snapshot']['files'][0]['file_id']
-    rejected = [{'op': 'edit_section', 'reason': 'Anchor was not found.'}]
-    def draft_operation(task, payload, doc_id, saved_state):
-        assert payload['revision_mode'] == 'preserve_original'
-        assert payload['file_selection']['primary_draft_file_id'] == target
-        assert payload['verbatim_file_unique_ids'] == [target]
-        return {'response': 'Updated the draft to the right.', 'rejected_operations': rejected}, saved_state
-    monkeypatch.setattr(everything, 'run_draft_operation', draft_operation)
-    before = state(agent)
-    operation(agent, monkeypatch, 'revise_draft', {'instructions': 'Make a source-anchored edit.', 'material_ids': [],
-        'target': target, 'revision_mode': 'preserve_original'})
-    result = last_result(agent)
-    assert result['message'] == 'Draft candidate saved; editor unchanged. Some requested edits were not applied.'
-    assert result['rejected_operations'] == rejected
-    saved = json.loads(db.session.get(AgentArtifact, result['artifact_id']).content_json)
-    assert saved['rejected_operations'] == rejected
-    assert saved['generation_notes'] == 'Updated the draft to the right.'
-    assert state(agent) == before
 
 
 def test_legacy_artifact_paging_preserves_saved_text_and_offsets(agent, monkeypatch):
@@ -421,8 +402,6 @@ def test_authority_lookup_precedes_verification_and_preserves_partial_findings(a
         return 'The substantive assertion needs source support.'
     monkeypatch.setattr(agent_tools.Operations, 'lookup_authorities', lookup)
     monkeypatch.setattr(base, 'chat_completion', report)
-    monkeypatch.setattr(everything._hg, 'run_hallucination_guard_on_text',
-                        lambda *a, **kw: pytest.fail('Agent invoked the legacy HG pipeline'))
 
     assert operation(agent, monkeypatch, 'verify_draft', {'instructions': 'Check source support and citations.',
         'target': 'current_draft', 'material_ids': [], 'check_citations': True}) == {'continued': True}
@@ -462,12 +441,12 @@ def test_authority_lookup_precedes_verification_and_preserves_partial_findings(a
 @pytest.mark.parametrize('options', [[], ['Use exhibit A', 'Use exhibit B']])
 def test_question_survives_reload_and_resumes_same_call(agent, monkeypatch, app, options):
     operation(agent, monkeypatch, 'request_user_input', {'question': 'Which exhibit should I use?', 'options': options})
-    response = app.test_client().get(f'/api/everything/workflows/{agent.id}')
+    response = app.test_client().get(f'/api/workspace/runs/{agent.id}')
     assert response.json['value']['confirmation']['kind'] == 'agent_question'
     assert agent.status == 'awaiting_user_confirmation'
     waiting = tasks.steps(agent).filter_by(state='waiting').one()
     call_id = waiting.call_id
-    response = app.test_client().post(f'/api/everything/workflows/{agent.id}/confirm', json={'decision': {'answer': 'Use exhibit B'}})
+    response = app.test_client().post(f'/api/workspace/runs/{agent.id}/confirm', json={'decision': {'answer': 'Use exhibit B'}})
     assert response.status_code == 200
     db.session.refresh(waiting)
     assert waiting.call_id == call_id and waiting.state == 'ready'
@@ -550,7 +529,7 @@ def test_retry_reuses_completed_results_and_reruns_only_interrupted_decision(age
     assert [(saved.id, saved.content_json) for saved in AgentArtifact.query.all()] == artifacts
     monkeypatch.setattr(base, 'chat_completion', lambda *a, **kw: 'Analysis completed')
     tick(agent)
-    assert AgentArtifact.query.filter_by(workflow_run_id=agent.id, step_id=pending.id).count() == 1
+    assert AgentArtifact.query.filter_by(run_id=agent.id, step_id=pending.id).count() == 1
 
 
 @pytest.mark.parametrize('failure', ['timeout', 'provider_exception', 'worker_loss', 'lease_expiry'])
@@ -563,7 +542,7 @@ def test_interrupted_tool_records_failure_without_changing_completed_work(agent,
     # A later requested call has not executed and must not appear completed.
     queued = tasks.add_step(agent, 'tool', 'list_documents', call_id='later_call', arguments={'raw': '{}'})
     db.session.commit()
-    old_task_id = agent.planning_task_id
+    old_task_id = agent.expected_task_id
     old_token = 'lost-worker'
     if failure in ('worker_loss', 'lease_expiry'):
         pending.state = 'running'
@@ -594,18 +573,18 @@ def test_interrupted_tool_records_failure_without_changing_completed_work(agent,
     assert tasks.progress(agent)['steps'][-2]['status'] == 'failed'
     assert tasks.steps(agent).filter_by(state='running').count() == 0
     assert queued.state == 'queued' and queued.result_json is None
-    assert AgentArtifact.query.filter_by(workflow_run_id=agent.id).count() == 0
+    assert AgentArtifact.query.filter_by(run_id=agent.id).count() == 0
     for uid, result, summary in ready:
         step = db.session.get(AgentStep, uid)
         assert (step.state, step.result_json, step.summary_json) == ('ready', result, summary)
 
     service.retry(agent)
     tasks.dispatch(agent)
-    new_task_id = agent.planning_task_id
+    new_task_id = agent.expected_task_id
     assert new_task_id != old_task_id
     assert service.fail_task(old_task_id, 'Late failure from the old attempt.') is False
     tasks.stop_owned_workflow(agent.id, old_token, 'Late worker failure.')
-    assert agent.status == 'running' and agent.planning_task_id == new_task_id
+    assert agent.status == 'running' and agent.expected_task_id == new_task_id
     assert pending.state == 'queued' and pending.summary_json is None
 
 
@@ -642,17 +621,17 @@ def test_cancel_records_unfinished_step_state_and_returns_actual_outcome(agent, 
         tick(agent)
     pending = tasks.steps(agent).filter(AgentStep.state != 'ready').one()
     identity = (pending.id, pending.sequence, pending.call_id, pending.arguments_json)
-    old_task_id, old_token = agent.planning_task_id, 'cancelled-worker'
+    old_task_id, old_token = agent.expected_task_id, 'cancelled-worker'
     pending.state = step_state
     agent.lease_token, agent.lease_until = old_token, service.now() + timedelta(minutes=1)
     db.session.commit()
     monkeypatch.setattr(__import__('celery').current_app.control, 'revoke', lambda *a, **kw: None)
 
-    response = app.test_client().post(f'/api/everything/workflows/{agent.id}/{action}',
+    response = app.test_client().post(f'/api/workspace/runs/{agent.id}/{action}',
         json={'decision': {'cancelled': True}} if action == 'confirm' else {})
 
     assert response.status_code == 200
-    assert response.json == {'workflow_run_id': agent.id, 'status': 'cancelled', 'cancelled': True}
+    assert response.json == {'run_id': agent.id, 'status': 'cancelled', 'cancelled': True}
     assert agent.status == 'cancelled' and pending.state == 'cancelled'
     assert pending.result_json is None and json.loads(pending.summary_json)['message']
     assert tasks.steps(agent).filter(AgentStep.state.in_(['queued', 'running', 'waiting'])).count() == 0
@@ -661,9 +640,9 @@ def test_cancel_records_unfinished_step_state_and_returns_actual_outcome(agent, 
         assert (step.state, step.result_json, step.summary_json) == ('ready', result, summary)
     assert {saved.id: saved.content_json for saved in AgentArtifact.query.all()} == artifacts
 
-    response = app.test_client().post(f'/api/everything/workflows/{agent.id}/retry')
-    assert response.status_code == 200 and response.json['workflow_run_id'] == agent.id
-    assert agent.status == 'running' and agent.planning_task_id != old_task_id
+    response = app.test_client().post(f'/api/workspace/runs/{agent.id}/retry')
+    assert response.status_code == 200 and response.json['run_id'] == agent.id
+    assert agent.status == 'running' and agent.expected_task_id != old_task_id
     assert pending.state == 'queued' and pending.result_json is None and pending.summary_json is None
     assert (pending.id, pending.sequence, pending.call_id, pending.arguments_json) == identity
     assert {saved.id: saved.content_json for saved in AgentArtifact.query.all()} == artifacts
@@ -704,12 +683,6 @@ def test_cancelled_agent_retry_keeps_existing_scope_and_draft_guards(agent, chan
     assert agent.status == 'cancelled'
 
 
-def test_legacy_cancelled_request_still_cannot_be_retried(agent):
-    agent.execution_version = 0
-    db.session.commit()
-    service.stop(agent, cancelled=True)
-    with pytest.raises(ValueError, match='Only a failed request'):
-        service.retry(agent)
 
 
 @pytest.mark.parametrize('action', ['cancel', 'confirm'])
@@ -718,11 +691,11 @@ def test_cancel_after_failure_returns_failed_without_overwriting_the_reason(agen
     saved_result = agent.result_json
     monkeypatch.setattr(__import__('celery').current_app.control, 'revoke', lambda *a, **kw: pytest.fail('No active execution'))
 
-    response = app.test_client().post(f'/api/everything/workflows/{agent.id}/{action}',
+    response = app.test_client().post(f'/api/workspace/runs/{agent.id}/{action}',
         json={'decision': {'cancelled': True}} if action == 'confirm' else {})
 
     assert response.status_code == 200
-    assert response.json == {'workflow_run_id': agent.id, 'status': 'failed', 'cancelled': False}
+    assert response.json == {'run_id': agent.id, 'status': 'failed', 'cancelled': False}
     assert agent.result_json == saved_result
     assert agent.error_message == 'The worker failed before cancellation arrived.'
 
@@ -730,13 +703,13 @@ def test_cancel_after_failure_returns_failed_without_overwriting_the_reason(agen
 def test_progress_and_artifact_route_omit_model_reasoning_and_enforce_owner(agent, monkeypatch, app):
     monkeypatch.setattr(base, 'chat_completion', lambda *a, **kw: 'Findings')
     operation(agent, monkeypatch, 'analyze_material', {'instructions': 'Analyze', 'material_ids': []})
-    progress = app.test_client().get(f'/api/everything/workflows/{agent.id}').json
+    progress = app.test_client().get(f'/api/workspace/runs/{agent.id}').json
     assert 'encrypted-state' not in json.dumps(progress)
     assert progress['info']['agent']['steps'][0]['operation'] == 'analyze_material'
     uid = last_result(agent)['artifact_id']
-    assert app.test_client().get(f'/api/everything/workflows/{agent.id}/artifacts/{uid}').json['content']['text'] == 'Findings'
+    assert app.test_client().get(f'/api/workspace/runs/{agent.id}/artifacts/{uid}').json['content']['text'] == 'Findings'
     monkeypatch.setattr(routes, 'current_user', SimpleNamespace(id=2))
-    assert app.test_client().get(f'/api/everything/workflows/{agent.id}/artifacts/{uid}').status_code == 404
+    assert app.test_client().get(f'/api/workspace/runs/{agent.id}/artifacts/{uid}').status_code == 404
 
 
 def test_tool_history_context_preflight_runs_before_provider(monkeypatch):
@@ -822,11 +795,11 @@ def test_cancel_after_publication_returns_completed_without_rerun_or_revocation(
     monkeypatch.setattr(tasks.advance, 'apply_async', lambda *a, **kw: pytest.fail('Do not schedule another execution'))
     monkeypatch.setattr(base, 'responses_completion', lambda *a, **kw: pytest.fail('Do not repeat a model call'))
 
-    response = app.test_client().post(f'/api/everything/workflows/{agent.id}/{action}',
+    response = app.test_client().post(f'/api/workspace/runs/{agent.id}/{action}',
         json={'decision': {'cancelled': True}} if action == 'confirm' else {})
 
     assert response.status_code == 200
-    assert response.json == {'workflow_run_id': agent.id, 'status': 'completed', 'cancelled': False}
+    assert response.json == {'run_id': agent.id, 'status': 'completed', 'cancelled': False}
     assert agent.status == 'completed' and agent.active_draft_id is None
     assert json.loads(agent.result_json)['response'] == 'Analysis finished.'
     assert state(agent) == published
@@ -846,7 +819,7 @@ def test_stale_worker_cannot_save_a_late_operation_result(agent, monkeypatch):
     pending = tasks.steps(agent).filter_by(kind='tool').one()
     assert pending.state == 'cancelled' and pending.result_json is None
     assert json.loads(pending.summary_json)['message']
-    assert AgentArtifact.query.filter_by(workflow_run_id=agent.id).count() == 0
+    assert AgentArtifact.query.filter_by(run_id=agent.id).count() == 0
     assert not state(agent)['chat_history']
 
 
@@ -869,34 +842,3 @@ def test_controller_has_no_fifty_call_cutoff(agent, monkeypatch):
         assert tick(agent) == {'continued': True}
     assert tasks.steps(agent).filter_by(kind='tool', state='ready').count() == 51
     assert agent.status == 'running'
-
-
-def test_question_is_restored_by_document_endpoint(agent, monkeypatch, app):
-    from backend import views
-    operation(agent, monkeypatch, 'request_user_input', {'question': 'Which exhibit?', 'options': []})
-    def ownership(d, jwt_id):
-        ownership._last_draft = db.session.get(tasks.ChatThread, agent.chat_thread_id)
-    monkeypatch.setattr(views, 'ownership_check', ownership)
-    monkeypatch.setattr(views, 'current_user', SimpleNamespace(id=1))
-    with app.test_request_context(json={'draftId': 'draft-1'}):
-        body, status = views.get_document.__wrapped__()
-    assert status == 200
-    assert body['pendingTurn']['awaitingConfirmation']
-    assert body['pendingTurn']['confirmation']['kind'] == 'agent_question'
-    assert body['pendingTurn']['workflowRunId'] == agent.id
-
-
-def test_migration_preserves_old_workflows_as_version_zero(agent):
-    import importlib
-    from alembic.migration import MigrationContext
-    from alembic.operations import Operations
-    migration = importlib.import_module('migrations.versions.a8b9c0d1e2f3_agent_controller')
-    uid = agent.id
-    db.session.remove()
-    with db.engine.begin() as connection:
-        with Operations.context(MigrationContext.configure(connection)):
-            migration.downgrade()
-            migration.upgrade()
-    saved = db.session.get(service.Workflow, uid)
-    assert saved.execution_version == 0
-    assert saved.id == uid

@@ -82,7 +82,7 @@ def write_document(*, assignment, instructions, conversation, materials, target,
 
 
 def resolve_court_settings(draft, *, constraints, conversation, instructions, model, reasoning_effort):
-    from backend.util.pleading_format_resolver import resolve_format_spec_for_export
+    from backend.domains.legal.pleading_format_resolver import resolve_format_spec_for_export
     # The existing resolver reads legacy section excerpts. This temporary adapter
     # supplies the new source without converting or rewriting the saved revision.
     legacy = {'title': draft.get('title', ''), 'sections': [

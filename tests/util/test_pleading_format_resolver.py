@@ -9,13 +9,13 @@ from docx import Document
 from docx.shared import Inches
 
 from backend.ai import base as ai_base
-from backend.util.markdown_docx import create_everything_pleading_document
-from backend.util.pleading_format import (
+from backend.util.markdown_docx import create_workspace_pleading_document
+from backend.domains.legal.pleading_format import (
     DEFAULT_CAED_PLEADING_SPEC,
     DEFAULT_EXPORT_SPEC,
     DEFAULT_STRUCTURAL_SPEC,
 )
-from backend.util.pleading_format_resolver import (
+from backend.domains.legal.pleading_format_resolver import (
     build_draft_excerpt,
     extract_heuristic_caption,
     infer_export_policy_heuristic,
@@ -323,7 +323,7 @@ def test_merge_llm_format_response_clamps_out_of_range():
     assert _layout(spec)["page_margins_in"]["left"] == 2.0
 
 
-@patch("backend.util.pleading_format_resolver.chat_completion_parse")
+@patch("backend.domains.legal.pleading_format_resolver.chat_completion_parse")
 def test_resolve_format_spec_for_export_uses_llm(mock_chat, caplog):
     raw = {
         "confidence": "high",
@@ -346,7 +346,7 @@ def test_resolve_format_spec_for_export_uses_llm(mock_chat, caplog):
     }
     mock_chat.return_value = SimpleNamespace(model_dump=lambda **kwargs: raw)
     draft = {"title": "Complaint", "sections": [{"section_name": "Intro", "section_content": "Body"}]}
-    caplog.set_level(logging.INFO, logger="backend.util.pleading_format_resolver")
+    caplog.set_level(logging.INFO, logger="backend.domains.legal.pleading_format_resolver")
     spec = resolve_format_spec_for_export(
         draft,
         constraints={},
@@ -404,7 +404,6 @@ def test_resolve_format_spec_for_export_uses_responses_parse(monkeypatch):
         responses=SimpleNamespace(parse=fake_parse)
     ))
     monkeypatch.setattr(ai_base, "record_scoped_llm_response", lambda *args, **kwargs: None)
-    monkeypatch.setattr(ai_base, "record_guided_llm_response", lambda *args, **kwargs: None)
 
     result = resolve_format_spec_for_export(
         {"title": "Research Memo", "sections": []},
@@ -419,7 +418,7 @@ def test_resolve_format_spec_for_export_uses_responses_parse(monkeypatch):
     assert requests[0]["text_format"] is PleadingFormatResult
 
 
-@patch("backend.util.pleading_format_resolver.chat_completion_parse")
+@patch("backend.domains.legal.pleading_format_resolver.chat_completion_parse")
 def test_resolve_format_spec_for_export_fallback_on_bad_json(mock_chat):
     mock_chat.return_value = None
     spec = resolve_format_spec_for_export({"title": "T", "sections": []})
@@ -427,7 +426,7 @@ def test_resolve_format_spec_for_export_fallback_on_bad_json(mock_chat):
     assert spec["structural"]["require_caption_page"] is False
 
 
-@patch("backend.util.pleading_format_resolver.chat_completion_parse")
+@patch("backend.domains.legal.pleading_format_resolver.chat_completion_parse")
 def test_resolve_format_spec_for_export_fallback_formal_reply_caption(mock_chat):
     mock_chat.return_value = None
     spec = resolve_format_spec_for_export(
@@ -437,7 +436,7 @@ def test_resolve_format_spec_for_export_fallback_formal_reply_caption(mock_chat)
     assert spec["structural"]["caption_ready"] is True
 
 
-@patch("backend.util.pleading_format_resolver.chat_completion_parse")
+@patch("backend.domains.legal.pleading_format_resolver.chat_completion_parse")
 def test_resolve_format_spec_for_export_fallback_on_llm_error(mock_chat):
     mock_chat.side_effect = RuntimeError("api down")
     spec = resolve_format_spec_for_export({"title": "T", "sections": []})
@@ -445,7 +444,7 @@ def test_resolve_format_spec_for_export_fallback_on_llm_error(mock_chat):
     assert spec["structural"]["require_caption_page"] is False
 
 
-@patch("backend.util.pleading_format_resolver.chat_completion_parse")
+@patch("backend.domains.legal.pleading_format_resolver.chat_completion_parse")
 def test_resolve_format_spec_for_export_heuristic_caption_with_constraints(mock_chat):
     mock_chat.return_value = None
     constraints = {
@@ -464,7 +463,7 @@ def test_resolve_format_spec_for_export_heuristic_caption_with_constraints(mock_
     assert spec["structural"]["use_vertical_lines"] is True
 
 
-def test_create_everything_pleading_document_accepts_custom_format_spec():
+def test_create_workspace_pleading_document_accepts_custom_format_spec():
     custom = copy.deepcopy(DEFAULT_EXPORT_SPEC)
     custom["structural"]["require_caption_page"] = False
     custom["layout"]["page_margins_in"] = {
@@ -473,7 +472,7 @@ def test_create_everything_pleading_document_accepts_custom_format_spec():
         "top": 1.5,
         "bottom": 1.5,
     }
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Test",
         [{"section_name": "A", "section_content": "Paragraph."}],
         format_spec=custom,

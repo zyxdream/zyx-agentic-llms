@@ -272,26 +272,6 @@ def test_expand_search_keywords_preserves_explicit_model_override(monkeypatch):
     assert captured["model"] == "gpt-5.5"
 
 
-def test_chat_history_retrieval_uses_local_ranking_without_model_calls(monkeypatch):
-    from backend import everything
-
-    expansion_calls = []
-
-    def fake_expand_search_keywords(*args, **kwargs):
-        expansion_calls.append((args, kwargs))
-        return ["damages"]
-
-    monkeypatch.setattr(everything, "expand_search_keywords", fake_expand_search_keywords)
-    monkeypatch.setattr(everything, "compute_bm25_scores", lambda *_args: [])
-    history = [("First question", "First answer"), ("Second question", "Second answer"),
-               ("Third question", "Third answer")]
-
-    assert everything.retrieve_relevant_chat_turns("damages", history) == ""
-    assert everything.retrieve_relevant_chat_turns(
-        "damages", history, model="gpt-6.1-sol"
-    ) == ""
-    # Local paragraph ranking needs no model call on ordinary follow-ups.
-    assert expansion_calls == []
 
 
 # ---------------------------------------------------------------------------
@@ -321,7 +301,7 @@ def manual_test_bm25_with_db(draft_id: int):
         python tests/test_bm25_search.py --draft-id 42
     """
     from backend.app import app
-    from backend.everything import bm25_search_chunks
+    from backend.workspace.state import bm25_search_chunks
     from backend.util.bm25_search import format_bm25_results
     from backend.models import DocumentChunk
 
@@ -367,7 +347,7 @@ def manual_test_end_to_end(draft_id: int):
         python tests/test_bm25_search.py --draft-id 42 --e2e
     """
     from backend.app import app
-    from backend.everything import get_relevant_content_bm25
+    from backend.workspace.state import get_relevant_content_bm25
 
     queries = [
         "What are the key terms of the contract?",

@@ -11,7 +11,7 @@ from docx.oxml.ns import qn
 import pytest
 
 from backend.util import document_exports as exports
-from backend.util.pleading_format import DEFAULT_EXPORT_SPEC, STYLE_NUMBERED_PARAGRAPH
+from backend.domains.legal.pleading_format import DEFAULT_EXPORT_SPEC, STYLE_NUMBERED_PARAGRAPH
 
 
 MARKDOWN = '''# Reconciliation report
@@ -36,7 +36,7 @@ print(invoice_id)
 ```
 '''
 
-CASE_URL = 'https://lexintel.example/CaseViewer/matter/347%20U.S.%20483&105221'
+CASE_URL = 'https://sources.example.test/opinions/347%20U.S.%20483&105221'
 STATUTE_URL = 'https://uscode.house.gov/us/usc/t28/s1331/'
 ACT_URL = ('https://palrb.gov/getfile.cfm?file=resources%2Fpreservation-project%2Fpltiftopdf'
            '%2F20002099%2F2004%2F0%2Fact%2F0152.pdf&view=true')
@@ -139,7 +139,7 @@ def test_docx_hyperlinks_define_and_apply_character_style_without_losing_inline_
     assert value == before
 
 
-@pytest.mark.skipif(os.environ.get('LEXINTEL_PYTHON_LIVE') != '1', reason='Set LEXINTEL_PYTHON_LIVE=1 for Docker integration.')
+@pytest.mark.skipif(os.environ.get('ZYX_PYTHON_LIVE') != '1', reason='Set ZYX_PYTHON_LIVE=1 for Docker integration.')
 def test_real_pdf_runtime_retains_case_and_official_links_in_nested_formatting_and_tables(tmp_path):
     import fitz
 
@@ -159,7 +159,7 @@ def test_real_pdf_runtime_retains_case_and_official_links_in_nested_formatting_a
 
 
 def test_court_uses_saved_spec_without_resolving_or_mutating_it(tmp_path, monkeypatch):
-    from backend.util import pleading_format_resolver
+    from backend.domains.legal import pleading_format_resolver
     monkeypatch.setattr(pleading_format_resolver, 'resolve_format_spec_for_export', lambda *a, **kw: pytest.fail('Export called a model resolver'))
     spec = copy.deepcopy(DEFAULT_EXPORT_SPEC)
     spec['structural']['require_caption_page'] = False

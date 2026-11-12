@@ -2,7 +2,7 @@
 
 ## Upload and agent context
 
-Case Assistant accepts XLSX and CSV in chat and matter uploads. Preparation
+Workspace accepts XLSX and CSV in chat and matter uploads. Preparation
 extracts cell-addressed searchable text and a deterministic workbook profile
 before the document becomes ready. One preparation model call summarizes the
 profile and bounded samples for navigation; it does not analyze the whole grid
@@ -21,7 +21,7 @@ search/read tools retain sheet/cell/range locations alongside text documents.
 Build once on each execution host:
 
 ```sh
-docker build -t lexintel-python-analysis:1 backend/python_runtime
+docker build -t zyx-agentic-llms-python-analysis:1 backend/python_runtime
 ```
 
 The application calls `backend.util.python_execution.run_python`. The runner
@@ -32,7 +32,7 @@ image is reported as an operation error, with no host Python fallback.
 Each container also enforces its own execution deadline, so a lost host worker
 cannot leave an analysis running indefinitely.
 
-`AGENT_PYTHON_STORAGE_DIR` defaults to `instance/agent_python`; web and worker
+`AGENT_PYTHON_STORAGE_DIR` defaults to `instance/workspace/python`; web and worker
 processes must share this durable storage for later file reuse and downloads,
 as they already share document source storage. `AGENT_PYTHON_TIMEOUT_SECONDS`
 defaults to 120 and is bounded by the assignment's remaining deadline. Both
@@ -90,12 +90,12 @@ the application owns durable artifact IDs, authorization, and downloads.
 
 ## Validation
 
-Activate Conda `lexintel` before backend tooling. The following includes actual
+Activate the project Python environment before backend tooling. The following includes actual
 containers, pandas analysis, formula recalculation, error recovery, output reuse,
 and an authenticated generated-file download:
 
 ```sh
-LEXINTEL_PYTHON_LIVE=1 pytest -q tests/test_python_execution.py tests/test_agent_spreadsheets.py
+ZYX_PYTHON_LIVE=1 pytest -q tests/test_python_execution.py tests/test_agent_spreadsheets.py
 ```
 
 Spreadsheet preparation and source-context regressions can run without Docker.
@@ -111,7 +111,7 @@ helper to convert a saved DOCX to PDF in a restricted container; it does not
 execute model-written code for document downloads. Markdown, HTML and DOCX
 exports do not need Docker. The `python_run` output types remain CSV/XLSX/JSON.
 
-`DOCUMENT_EXPORT_STORAGE_DIR` defaults to `instance/document_exports`. Keep this
+`DOCUMENT_EXPORT_STORAGE_DIR` defaults to `instance/workspace/exports`. Keep this
 private and durable on the web hosts serving downloads. Each export record
 stores its source revision, format, layout preset, file key and content hash.
 The authenticated download route rechecks the revision's owner/chat/source

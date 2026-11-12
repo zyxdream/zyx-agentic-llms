@@ -11,7 +11,7 @@ from flask import current_app
 
 from backend.database import db
 from backend.models import AgentArtifact
-from backend.util import case_assistant_workflow as workflows
+from backend.util import workspace_service as workflows
 from backend.util.document_drafts import is_markdown_draft
 from backend.util.document_preparation import validate_snapshot
 
@@ -69,7 +69,7 @@ def download_revision(*, user_id, draft_id, revision_id, format, preset='general
     if artifact is None or artifact.kind != 'draft':
         raise DocumentDownloadError('Document revision not found.', 404)
     try:
-        workflow = workflows.owned(artifact.workflow_run_id, user_id)
+        workflow = workflows.owned(artifact.run_id, user_id)
     except workflows.WorkflowNotFound:
         raise DocumentDownloadError('Document revision not found.', 404) from None
     if workflow.draft_id != draft_id:
@@ -84,8 +84,8 @@ def download_revision(*, user_id, draft_id, revision_id, format, preset='general
         raise DocumentDownloadError('The current document differs from its saved revision. Refresh the document.', 409)
     preset = preset if format in {'docx', 'pdf'} else 'general'
     # End the authorization transaction before filesystem or Docker work.
-    workflow_id, step_id = artifact.workflow_run_id, artifact.step_id
-    saved = AgentArtifact.query.filter_by(workflow_run_id=workflow_id, kind='document_export').all()
+    workflow_id, step_id = artifact.run_id, artifact.step_id
+    saved = AgentArtifact.query.filter_by(run_id=workflow_id, kind='document_export').all()
     db.session.commit()
     root = _root()
     for record in saved:
@@ -112,7 +112,7 @@ def download_revision(*, user_id, draft_id, revision_id, format, preset='general
             'source_sha256': source_hash, 'preset': preset, 'renderer_version': EXPORT_RENDERER_VERSION,
             'storage_key': str(path.relative_to(root)), 'sha256': _hash(path),
             'text': f'{format.upper()} export of {source.get("title") or "document"} ({preset} layout).'}
-        db.session.add(AgentArtifact(id=export_id, workflow_run_id=workflow_id, step_id=step_id,
+        db.session.add(AgentArtifact(id=export_id, run_id=workflow_id, step_id=step_id,
             kind='document_export', content_json=json.dumps(value, ensure_ascii=False), created_at=workflows.now()))
         db.session.commit()
     except Exception:

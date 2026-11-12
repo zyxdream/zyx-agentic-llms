@@ -11,7 +11,7 @@ from flask import current_app
 
 from backend.database import db
 from backend.models import AgentArtifact, DocumentPreparation, UploadedFiles
-from backend.util import case_assistant_workflow as service
+from backend.util import workspace_service as service
 from backend.util.document_preparation import validate_snapshot
 
 
@@ -240,11 +240,11 @@ def execute(operations, args):
 
 
 def downloadable_file(workflow, execution_id, file_id):
-    execution = AgentArtifact.query.filter_by(id=execution_id, workflow_run_id=workflow.id,
+    execution = AgentArtifact.query.filter_by(id=execution_id, run_id=workflow.id,
                                              kind='python_execution').first()
     if not execution or file_id not in {item['id'] for item in json.loads(execution.content_json).get('files', [])}:
         raise service.WorkflowNotFound('Generated file not found')
-    artifact = AgentArtifact.query.filter_by(id=file_id, workflow_run_id=workflow.id, kind='derived_file').first()
+    artifact = AgentArtifact.query.filter_by(id=file_id, run_id=workflow.id, kind='derived_file').first()
     if not artifact:
         raise service.WorkflowNotFound('Generated file not found')
     value = json.loads(artifact.content_json)

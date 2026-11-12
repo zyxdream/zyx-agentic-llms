@@ -11,12 +11,12 @@ from flask import current_app
 import pytest
 from werkzeug.datastructures import FileStorage
 
-from backend import agent_tasks as tasks, document_preparation_tasks as preparation_tasks, case_assistant_routes as routes
+from backend import agent_tasks as tasks, document_preparation_tasks as preparation_tasks, workspace_runs as routes
 from backend.ai import agent_tools, base
 from backend.database import db
 from backend.models import AgentArtifact, DocumentPreparation, UploadedFiles
 from backend.util import attachment_parser, document_preparation as prep, python_execution
-from backend.util import case_assistant_workflow as service
+from backend.util import workspace_service as service
 from backend.util.agent_catalogue import documents
 from backend.util.agent_python import file_hash, storage_root
 from tests.test_agent_controller import agent, call, last_result, operation, state, tick
@@ -161,7 +161,7 @@ def test_python_error_correction_saved_file_reuse_and_download(agent, monkeypatc
     assert_retained_attempt(kept, {'stdout.log', 'stderr.log', 'output/reconciled.csv'})
     db.session.expire_all()  # Reload saved metadata, without depending on live objects.
     client = current_app.test_client()
-    url = f'/api/everything/workflows/{agent.id}/artifacts/{success["artifact_id"]}/files/{file_id}'
+    url = f'/api/workspace/runs/{agent.id}/artifacts/{success["artifact_id"]}/files/{file_id}'
     response = client.get(url)
     assert response.status_code == 200 and response.data == b'invoice,balance\nINV1,75\n'
     assert 'reconciled.csv' in response.headers['Content-Disposition']
@@ -357,7 +357,7 @@ def test_last_sheet_title_rows_and_source_locations_reach_agent(agent, monkeypat
     assert 'Payment detail!A4:B4' in rendered and '0001' in rendered
 
 
-@pytest.mark.skipif(os.environ.get('LEXINTEL_PYTHON_LIVE') != '1', reason='Set LEXINTEL_PYTHON_LIVE=1 for Docker integration.')
+@pytest.mark.skipif(os.environ.get('ZYX_PYTHON_LIVE') != '1', reason='Set ZYX_PYTHON_LIVE=1 for Docker integration.')
 def test_real_python_agent_uses_full_data_saves_and_downloads_new_file(agent, monkeypatch):
     content = ('Invoice,Amount\n' + ''.join(f'INV{i:03},{i}\n' for i in range(1, 101))).encode()
     uid = add_input(agent, monkeypatch, 'invoices.csv', content)
@@ -389,6 +389,6 @@ def test_real_python_agent_uses_full_data_saves_and_downloads_new_file(agent, mo
     assert_retained_attempt(success_attempt, {'stdout.log', 'stderr.log', 'output/new-data.xlsx'})
     db.session.expire_all()
     response = current_app.test_client().get(
-        f'/api/everything/workflows/{agent.id}/artifacts/{answer["artifact_id"]}/files/{file_id}')
+        f'/api/workspace/runs/{agent.id}/artifacts/{answer["artifact_id"]}/files/{file_id}')
     assert response.status_code == 200 and response.data.startswith(b'PK')
     assert file_hash(original) == digest

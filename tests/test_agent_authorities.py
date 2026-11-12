@@ -3,12 +3,13 @@ import json
 
 import pytest
 
-from backend import everything, agent_tasks
-from backend.everything import finalize_llm_response_for_display as real_finalizer
+from backend.workspace import state as everything
+from backend import agent_tasks
+from backend.workspace.state import finalize_llm_response_for_display as real_finalizer
 from backend.ai import agent_tools, base
 from backend.database import db
 from backend.models import AgentArtifact
-from backend.util import document_drafts, case_assistant_workflow
+from backend.util import document_drafts, workspace_service
 from tests.test_agent_controller import agent, operation, last_result, state
 from tests.test_document_preparation import app
 from tests.test_agent_uploaded_result_contract import uploaded_revision
@@ -70,7 +71,7 @@ def test_lookup_mode_is_explicit_with_a_documented_old_call_default():
 
 @pytest.mark.parametrize('mode', ['overview', 'audit'])
 def test_controller_dispatches_explicit_lookup_mode_and_unchanged_source_range(agent, monkeypatch, mode):
-    from backend.util import authority_research
+    from backend.domains.legal import authority_research
     uid = json.loads(agent.data_json)['document_snapshot']['files'][0]['file_id']
     requested = {'file_id': uid, 'draft_id': None, 'text': None, 'start': 3, 'end': 19}
     seen = []
@@ -89,10 +90,10 @@ def test_controller_dispatches_explicit_lookup_mode_and_unchanged_source_range(a
 
 
 def test_controller_describes_scope_modes_without_automatic_verification():
-    assert 'normally choose overview' in agent_tasks.SYSTEM
-    assert 'choose audit when the user wants every citation occurrence' in agent_tasks.SYSTEM
-    assert 'lookup does not silently\nsample or select passages' in agent_tasks.SYSTEM
-    assert 'Discovery mode does not automatically add source reading' in agent_tasks.SYSTEM
+    assert 'normally choose overview' in agent_tasks.system_instructions()
+    assert 'choose audit when the user wants every citation occurrence' in agent_tasks.system_instructions()
+    assert 'lookup does not silently\nsample or select passages' in agent_tasks.system_instructions()
+    assert 'Discovery mode does not automatically add source reading' in agent_tasks.system_instructions()
 
 
 def test_writer_gets_actual_passages_and_keeps_research_provenance(agent, monkeypatch):
@@ -112,8 +113,8 @@ def test_writer_gets_actual_passages_and_keeps_research_provenance(agent, monkey
         'references': []}
     cache = {'kind': 'authority_source', 'role': 'source_cache', 'text': passage['text']}
     for uid, value in ((research_id, research), (passage_id, passage), (cache_id, cache)):
-        db.session.add(AgentArtifact(id=uid, workflow_run_id=agent.id, step_id=step.id,
-            kind=value['kind'], content_json=json.dumps(value), created_at=case_assistant_workflow.now()))
+        db.session.add(AgentArtifact(id=uid, run_id=agent.id, step_id=step.id,
+            kind=value['kind'], content_json=json.dumps(value), created_at=workspace_service.now()))
     db.session.commit()
     seen = []
     def writer(**kwargs):

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def _capture(directory, raw, error, request_kwargs):
     """Capture response evidence without changing how the original error exits."""
     try:
-        from backend.util.case_assistant_workflow import current_execution
+        from backend.util.workspace_service import current_execution
         response = raw.http_response
         body = response.content
         try:

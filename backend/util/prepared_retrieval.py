@@ -66,7 +66,7 @@ def checked_call(prompt, schema, *, model, reasoning_effort='medium', token_coun
     size = request_tokens(prompt, schema)
     if size > limit:
         raise ValueError('Document workflow input exceeds its bounded request budget')
-    from backend.util.case_assistant_workflow import before_call
+    from backend.util.workspace_service import before_call
     before_call()
     return chat_completion_parse(prompt, schema, model=model, reasoning_effort=reasoning_effort,
                                  sys_prompt=SYSTEM, max_output_tokens=OUTPUT_LIMIT, token_counter=token_counter,

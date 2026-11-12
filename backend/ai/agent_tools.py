@@ -18,8 +18,9 @@ from typing import Literal
 
 from backend.database import db
 from backend.models import AgentArtifact, ChatThread, UploadedFiles
-from backend.util import case_assistant_workflow as service
+from backend.util import workspace_service as service
 from backend.util import prepared_retrieval as retrieval, source_context
+from flask import current_app, has_app_context
 
 
 class Arguments(BaseModel):
@@ -139,6 +140,14 @@ TOOL_TYPES = {
 
 
 
+LEGAL_TOOLS = {'lookup_authorities', 'search_legal_sources', 'read_authority'}
+
+def legal_enabled():
+    return not has_app_context() or current_app.config.get('WORKSPACE_LEGAL_ENABLED', True)
+
+def available_tools():
+    return {name: value for name, value in TOOL_TYPES.items() if legal_enabled() or name not in LEGAL_TOOLS}
+
 def definitions():
     """Build the tool catalogue supplied to the controller LLM.
 
@@ -147,7 +156,7 @@ def definitions():
     """
     return [{'type': 'function', 'name': name, 'description': description,
              'parameters': schema.model_json_schema(), 'strict': True}
-            for name, (schema, description) in TOOL_TYPES.items()]
+            for name, (schema, description) in available_tools().items()]
 
 
 def arguments(name, value):
@@ -155,7 +164,7 @@ def arguments(name, value):
 
     This prepares inputs for execution; it does not perform the requested work.
     """
-    if name not in TOOL_TYPES:
+    if name not in available_tools():
         raise ValueError(f'Unknown application tool: {name}')
     # Saved calls from before discovery modes remain replayable. The model-facing
     # strict schema still requires a mode on newly generated lookup calls.
@@ -176,16 +185,16 @@ class Operations:
         self.snapshot = self.data['document_snapshot']
         self.context = json.loads(row.payload_json)['agent_context']
         self.state = copy.deepcopy(self.context['state'])
-        from backend import everything
-        self.model = everything._assistant_model(everything.resolve_assistant_mode(self.data))
-        self.effort = everything._output_effort(everything.resolve_assistant_mode(self.data))
+        from backend.workspace import state as workspace_state
+        self.model = workspace_state._assistant_model(workspace_state.resolve_assistant_mode(self.data))
+        self.effort = workspace_state._output_effort(workspace_state.resolve_assistant_mode(self.data))
 
     def artifact(self, uid, *, kind=None):
-        saved = AgentArtifact.query.filter_by(id=uid, workflow_run_id=self.row.id).first()
+        saved = AgentArtifact.query.filter_by(id=uid, run_id=self.row.id).first()
         if saved is None and db.session.get(AgentArtifact, uid) is None:
             raise ValueError('Artifact is unavailable. Use a saved operation-result artifact_id, not a file_id or prepared_artifact_id. Read original ranges with read_sources first.')
         if saved is None or saved.kind in {'authority_research', 'authority_source'}:
-            from backend.util.authority_research import resolve_artifact
+            from backend.domains.legal.authority_research import resolve_artifact
             return resolve_artifact(self, uid, kind=kind)
         if not saved or (kind and saved.kind != kind):
             raise ValueError('Artifact is unavailable in this assignment or has the wrong type. Use a saved operation-result artifact_id from this assignment, not a file_id or prepared_artifact_id. To obtain source material, call read_sources with original file ranges first.')
@@ -199,7 +208,7 @@ class Operations:
         The worker commits it together with the completed tool observation.
         """
         service.validate_execution(lock=True)
-        saved = AgentArtifact(id=artifact_id or str(uuid.uuid4()), workflow_run_id=self.row.id,
+        saved = AgentArtifact(id=artifact_id or str(uuid.uuid4()), run_id=self.row.id,
             step_id=self.step.id, kind=kind, content_json=service.encode(value), created_at=service.now())
         db.session.add(saved)
         # Artifact and completed tool result are committed together by the worker.
@@ -225,7 +234,7 @@ class Operations:
 
     def list_documents(self, args):
         from backend.util.agent_catalogue import documents
-        from backend.util.authority_research import catalogue
+        from backend.domains.legal.authority_research import catalogue
         return {'documents': documents(self.row), 'current_draft': 'current_draft',
                 'chat_thread_id': self.state.get('chat_thread_id'),
                 'draft_document_id': self.state.get('draft_document_id'),
@@ -270,19 +279,19 @@ class Operations:
 
     def lookup_authorities(self, args):
         """Run the legal-research engine for the controller's lookup request."""
-        from backend.util.authority_research import lookup
+        from backend.domains.legal.authority_research import lookup
         # self is this Operations instance: it supplies the selected request's
         # authorized source access and artifact-saving helpers to the engine.
         return lookup(self, args)
 
     def search_legal_sources(self, args):
         """Extend saved authority research with a CourtListener or web search."""
-        from backend.util.authority_research import search
+        from backend.domains.legal.authority_research import search
         return search(self, args)
 
     def read_authority(self, args):
         """Read a chosen authority source and save passages for analysis or drafting."""
-        from backend.util.authority_research import read
+        from backend.domains.legal.authority_research import read
         return read(self, args)
 
     def search_sources(self, args):
@@ -362,7 +371,7 @@ class Operations:
         observation = {'artifact_id': uid, 'kind': 'analysis', 'characters': len(result), 'message': 'Read the saved findings with read_sources.'}
         research_ids = [item['artifact_id'] for item in materials if item.get('kind') == 'authority_research']
         if research_ids:
-            from backend.util.authority_research import attach_assessment
+            from backend.domains.legal.authority_research import attach_assessment
             observation['research_ids'] = attach_assessment(self, research_ids, uid, result)
         return observation
 
@@ -371,7 +380,7 @@ class Operations:
 
         Save a draft candidate for the controller to inspect or publish later.
         """
-        from backend import everything
+        from backend.workspace import state as workspace_state
         from backend.util import document_drafts
         from backend.util.agent_context import clarifications
 
@@ -379,7 +388,7 @@ class Operations:
         if not create and args.revision_mode == 'preserve_original':
             if args.target not in file_ids:
                 raise ValueError('preserve_original is the uploaded-draft revision mode. For a workspace candidate, use general_revision with targeted edit instructions.')
-            return self._legacy_draft_operation(args)
+            return self.revise_uploaded_original(args)
 
         materials = [self.material(uid) for uid in args.material_ids]
         target, parent = None, None
@@ -397,7 +406,7 @@ class Operations:
                 parent = target.get('revision_id') or (args.target if args.target != 'current_draft' else None)
                 if args.target != 'current_draft':
                     saved = self.artifact(args.target, kind='draft')
-                    everything.merge_validated_cases(self.state, saved.get('validated_cases', {}))
+                    workspace_state.merge_validated_cases(self.state, saved.get('validated_cases', {}))
                     references.extend(saved.get('references', []))
                 if not document_drafts.is_markdown_draft(target):
                     target = {**target, 'markdown': document_drafts.draft_to_markdown(target)}
@@ -410,7 +419,7 @@ class Operations:
             conversation=self.context['conversation'], materials=materials, target=target,
             answers=clarifications(self.row, self.step.sequence), model=self.model, reasoning_effort=self.effort)
         settings = copy.deepcopy((target or {}).get('export_settings') or {})
-        if not isinstance(settings.get('court'), dict) or written.update_court_format:
+        if legal_enabled() and (not isinstance(settings.get('court'), dict) or written.update_court_format):
             service.before_call()
             settings['court'] = document_drafts.resolve_court_settings(
                 {'title': written.title, 'markdown': written.markdown}, constraints=self.state.get('constraints'),
@@ -445,65 +454,29 @@ class Operations:
                 'revision_id': uid, 'source_format': 'markdown', 'format_version': 2,
                 'message': 'Draft candidate saved; editor unchanged.', 'rejected_operations': []}
 
-    def _legacy_draft_operation(self, args, *, create=False):
-        from backend import everything
-        # The LLM has already chosen create_draft/revise_draft and its inputs.
-        # Build the payload that existing _everything_phase2_body understands;
-        # do not run legacy _everything_phase1_body classification first.
-        # run_draft_operation substitutes OperationMemory for DBMemory, so the
-        # old generation/revision code produces a candidate without publishing.
-        # Save its result as AgentArtifact; agent_tasks.publish owns completion.
+    def revise_uploaded_original(self, args):
+        """Save a source-preserving revision candidate; publication belongs to the controller."""
+        from backend.documents.revisions import run_preserve_original_uploaded_revision
         materials = [self.material(uid) for uid in args.material_ids]
-        payload = {**self.data, 'doc_id': self.row.chat_thread_id, 'project_id': db.session.get(ChatThread, self.row.chat_thread_id).projectId,
-            'user_message': args.instructions, 'display_user_message': args.instructions,
-            'conversation_context': self.context['conversation'], 'use_uploaded_files': bool(materials),
-            'file_extractions_str': service.encode(materials) if materials else '', 'saved_evidence_only': True,
-            'create_new_draft': create, 'change_draft_requested': not create,
-            'draft_action': 'create_new_draft' if create else 'edit_current_draft',
-            'selected_section': self.data.get('selected_section', 'Not Specified')}
-        if not create:
-            if args.target in {entry['file_id'] for entry in self.snapshot['files']}:
-                # Exact target source is loaded by the existing uploaded revision helper.
-                doc = self.document(args.target)
-                original = source_context.format_document(doc, [{'start': 0, 'end': len(doc['manifest']['text'])}], doc['filename'])
-                payload.update(draft_action='revise_uploaded_draft', revision_mode=args.revision_mode,
-                    verbatim_file_unique_ids=[args.target], use_uploaded_files=True,
-                    file_selection={'primary_draft_file_id': args.target},
-                    file_extractions_str='[Verbatim Source Files — Full Text]\n' + original + '\n' + payload['file_extractions_str'])
-            else:
-                if args.revision_mode == 'preserve_original':
-                    raise ValueError('preserve_original is the uploaded-draft revision mode. For a workspace candidate, use general_revision with targeted edit instructions.')
-                self.state['draft'] = copy.deepcopy(self.target(args.target))
-                if args.target != 'current_draft':
-                    everything.merge_validated_cases(self.state, self.artifact(args.target, kind='draft').get('validated_cases', {}))
-        result, candidate_state = everything.run_draft_operation(self.task, payload, self.row.chat_thread_id, self.state)
-        if result.get('error') or result.get('error_message') or result.get('cancelled') or result.get('blocked'):
-            raise ValueError(result.get('error_message') or result.get('response') or 'Draft operation was interrupted.')
-        draft = candidate_state.get('draft', {})
-        if not draft.get('sections'):
-            raise ValueError('The drafting provider did not produce a candidate draft.')
-        # Uploaded preserve_original returns operations/edits_rejected; workspace
-        # revision returns applied_operations/rejected_operations. Keep both
-        # existing result shapes visible through the same candidate interface.
-        operations = result.get('applied_operations', result.get('operations', []))
-        rejected = result.get('rejected_operations', [edit
-            for operation in result.get('operations', [])
-            for edit in operation.get('edits_rejected', [])])
-        uid = self.save('draft', {'kind': 'draft', 'draft': draft,
-            'chat_thread_id': self.state.get('chat_thread_id'),
-            'draft_document_id': self.state.get('draft_document_id'),
-            'validated_cases': candidate_state.get('validated_cases', {}), 'material_ids': args.material_ids,
-            'generation_notes': result.get('response'),
-            'revision_target': None if create else args.target,
+        service.before_call()
+        result = run_preserve_original_uploaded_revision(
+            user_message=args.instructions, primary_draft_file_id=args.target,
+            doc_id=self.row.chat_thread_id,
+            project_id=db.session.get(ChatThread, self.row.chat_thread_id).projectId,
+            model=self.model, selection_reasoning_effort=self.effort,
+            edit_reasoning_effort=self.effort, structure_reasoning_effort=self.effort,
+            supporting_evidence=service.encode(materials) if materials else '')
+        if result.get('error') or result.get('blocked') or not result.get('draft'):
+            raise ValueError(result.get('message') or 'The original document could not be revised.')
+        operations = result.get('operations', [])
+        rejected = [edit for operation in operations for edit in operation.get('edits_rejected', [])]
+        uid = self.save('draft', {'kind': 'draft', 'draft': result['draft'],
+            'chat_thread_id': self.state.get('chat_thread_id'), 'draft_document_id': self.state.get('draft_document_id'),
+            'validated_cases': self.state.get('validated_cases', {}), 'material_ids': args.material_ids,
+            'generation_notes': result.get('message'), 'revision_target': args.target,
             'operations': operations, 'rejected_operations': rejected})
-        # Legacy generation notes may claim the editor was changed. Keep them
-        # with the private candidate; application-owned status describes what
-        # actually happened. Structured rejection details remain available.
-        message = 'Draft candidate saved; editor unchanged.'
-        if rejected:
-            message += ' Some requested edits were not applied.'
-        return {'artifact_id': uid, 'kind': 'draft', 'title': draft.get('title'), 'message': message,
-                'rejected_operations': rejected}
+        return {'artifact_id': uid, 'kind': 'draft', 'title': result['draft'].get('title'),
+            'message': 'Draft candidate saved; editor unchanged.' + (' Some requested edits were not applied.' if rejected else ''), 'rejected_operations': rejected}
 
     def create_draft(self, args):
         return self.draft_operation(args, create=True)
@@ -522,6 +495,8 @@ class Operations:
             draft = self.target(args.target)
         materials = [self.material(uid) for uid in args.material_ids]
         research = None
+        if args.check_citations and not legal_enabled():
+            raise ValueError('Legal verification is disabled')
         if args.check_citations:
             # Retain the recorded argument, but use the same optional research
             # operation as the controller. Its facts reach the report BEFORE

@@ -5,12 +5,13 @@ from datetime import timedelta
 
 import pytest
 
-from backend import agent_tasks as tasks, everything
+from backend import agent_tasks as tasks
+from backend.workspace import state as everything
 from backend.ai import base
 from backend.ai.token_budget import IncompleteStructuredOutput
 from backend.database import db
 from backend.models import AgentArtifact
-from backend.util import case_assistant_workflow as service
+from backend.util import workspace_service as service
 from backend.util import document_drafts
 from tests.test_agent_controller import agent, app, last_result, operation, state
 

@@ -1,4 +1,4 @@
-"""Fail-open, operation-scoped analytics for Case Assistant tasks."""
+"""Fail-open, operation-scoped analytics for Workspace tasks."""
 
 from __future__ import annotations
 
@@ -13,26 +13,20 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from backend.database import db
-from backend.models import ChatThread, Project, TaskAnalytics
+from backend.models import ChatThread, Project, WorkspaceUsage
 
 
 logger = logging.getLogger(__name__)
 
 LLM_USAGE_CHAT = "chat"
-LLM_USAGE_HALLUCINATION_GUARD = "hallucination_guard"
 LLM_USAGE_DOWNLOAD = "download"
 LLM_USAGE_CATEGORIES = {
     LLM_USAGE_CHAT,
-    LLM_USAGE_HALLUCINATION_GUARD,
     LLM_USAGE_DOWNLOAD,
 }
 
 _LLM_COUNTER_FIELDS = {
     LLM_USAGE_CHAT: ("llmCallCount", "totalTokens"),
-    LLM_USAGE_HALLUCINATION_GUARD: (
-        "hallucinationGuardLlmCallCount",
-        "hallucinationGuardTokens",
-    ),
     LLM_USAGE_DOWNLOAD: ("downloadLlmCallCount", "downloadTokens"),
 }
 
@@ -41,11 +35,6 @@ _COUNTER_FIELDS = {
     "answersReturned",
     "llmCallCount",
     "totalTokens",
-    "hallucinationGuardAttempts",
-    "hallucinationGuardSuccesses",
-    "hallucinationGuardFailures",
-    "hallucinationGuardLlmCallCount",
-    "hallucinationGuardTokens",
     "downloadAttempts",
     "downloadSuccesses",
     "downloadFailures",
@@ -61,7 +50,7 @@ class LlmUsageContext:
 
 
 _current_llm_usage: ContextVar[LlmUsageContext | None] = ContextVar(
-    "case_assistant_llm_usage",
+    "workspace_llm_usage",
     default=None,
 )
 
@@ -70,7 +59,7 @@ _current_llm_usage: ContextVar[LlmUsageContext | None] = ContextVar(
 def task_llm_usage_scope(draft_id: int, category: str) -> Iterator[None]:
     """Attribute successful LLM responses in this execution context to one task."""
     if category not in LLM_USAGE_CATEGORIES:
-        raise ValueError(f"Unknown Case Assistant LLM usage category: {category}")
+        raise ValueError(f"Unknown Workspace LLM usage category: {category}")
     token = _current_llm_usage.set(
         LlmUsageContext(draft_id=int(draft_id), category=category)
     )
@@ -93,14 +82,14 @@ def _resolve_user_id(session, draft_id: int) -> int | None:
     ).scalar_one_or_none()
 
 
-def _resolve_case_assistant_user_id(session, draft_id: int) -> int | None:
-    """Return the task owner only when the draft is a Case Assistant task."""
+def _resolve_workspace_user_id(session, draft_id: int) -> int | None:
+    """Return the task owner only when the draft is a Workspace task."""
     row = session.execute(
-        select(ChatThread.docCategory, Project.userId)
+        select(Project.userId)
         .join(Project, ChatThread.projectId == Project.id)
         .where(ChatThread.id == int(draft_id))
     ).one_or_none()
-    if row is None or row.docCategory != 69:
+    if row is None:
         return None
     return row.userId
 
@@ -111,16 +100,16 @@ def ensure_task_analytics_row(draft_id: int, user_id: int | None = None) -> bool
     try:
         session = _session()
         existing = session.execute(
-            select(TaskAnalytics.id).where(TaskAnalytics.chat_thread_id == int(draft_id))
+            select(WorkspaceUsage.id).where(WorkspaceUsage.chat_thread_id == int(draft_id))
         ).scalar_one_or_none()
         if existing is not None:
             return True
 
         resolved_user_id = user_id or _resolve_user_id(session, draft_id)
         if resolved_user_id is None:
-            raise ValueError(f"Cannot resolve user for Case Assistant task {draft_id}")
+            raise ValueError(f"Cannot resolve user for Workspace task {draft_id}")
         session.add(
-            TaskAnalytics(userId=int(resolved_user_id), chat_thread_id=int(draft_id))
+            WorkspaceUsage(userId=int(resolved_user_id), chat_thread_id=int(draft_id))
         )
         session.commit()
         return True
@@ -130,20 +119,20 @@ def ensure_task_analytics_row(draft_id: int, user_id: int | None = None) -> bool
             # A concurrent recorder may have inserted the unique draftId first.
             try:
                 existing = session.execute(
-                    select(TaskAnalytics.id).where(
-                        TaskAnalytics.chat_thread_id == int(draft_id)
+                    select(WorkspaceUsage.id).where(
+                        WorkspaceUsage.chat_thread_id == int(draft_id)
                     )
                 ).scalar_one_or_none()
                 if existing is not None:
                     return True
             except Exception:
                 logger.exception(
-                    "Failed to verify concurrent Case Assistant analytics insert: draft_id=%s",
+                    "Failed to verify concurrent Workspace analytics insert: draft_id=%s",
                     draft_id,
                 )
                 return False
         logger.exception(
-            "Failed to insert Case Assistant task analytics row: draft_id=%s",
+            "Failed to insert Workspace task analytics row: draft_id=%s",
             draft_id,
         )
         return False
@@ -151,7 +140,7 @@ def ensure_task_analytics_row(draft_id: int, user_id: int | None = None) -> bool
         if session is not None:
             session.rollback()
         logger.exception(
-            "Failed to ensure Case Assistant task analytics row: draft_id=%s",
+            "Failed to ensure Workspace task analytics row: draft_id=%s",
             draft_id,
         )
         return False
@@ -170,10 +159,10 @@ def increment_task_analytics(
     clean: dict[str, int] = {}
     for field, amount in increments.items():
         if field not in _COUNTER_FIELDS:
-            raise ValueError(f"Unknown TaskAnalytics counter: {field}")
+            raise ValueError(f"Unknown WorkspaceUsage counter: {field}")
         numeric_amount = int(amount)
         if numeric_amount < 0:
-            raise ValueError(f"TaskAnalytics increments must be non-negative: {field}")
+            raise ValueError(f"WorkspaceUsage increments must be non-negative: {field}")
         if numeric_amount:
             clean[field] = numeric_amount
     if not clean:
@@ -181,13 +170,13 @@ def increment_task_analytics(
 
     def apply_update(session) -> int:
         values = {
-            field: getattr(TaskAnalytics, field) + amount
+            field: getattr(WorkspaceUsage, field) + amount
             for field, amount in clean.items()
         }
         values["updatedAt"] = func.now()
         result = session.execute(
-            update(TaskAnalytics)
-            .where(TaskAnalytics.chat_thread_id == int(draft_id))
+            update(WorkspaceUsage)
+            .where(WorkspaceUsage.chat_thread_id == int(draft_id))
             .values(**values)
         )
         return result.rowcount
@@ -198,9 +187,9 @@ def increment_task_analytics(
         if apply_update(session) == 0:
             resolved_user_id = user_id or _resolve_user_id(session, draft_id)
             if resolved_user_id is None:
-                raise ValueError(f"Cannot resolve user for Case Assistant task {draft_id}")
+                raise ValueError(f"Cannot resolve user for Workspace task {draft_id}")
             session.add(
-                TaskAnalytics(
+                WorkspaceUsage(
                     userId=int(resolved_user_id),
                     chat_thread_id=int(draft_id),
                     **clean,
@@ -215,14 +204,14 @@ def increment_task_analytics(
         try:
             if apply_update(session) == 0:
                 raise RuntimeError(
-                    f"TaskAnalytics row disappeared during update for draft {draft_id}"
+                    f"WorkspaceUsage row disappeared during update for draft {draft_id}"
                 )
             session.commit()
             return True
         except Exception:
             session.rollback()
             logger.exception(
-                "Failed to retry Case Assistant task analytics update: draft_id=%s increments=%s",
+                "Failed to retry Workspace task analytics update: draft_id=%s increments=%s",
                 draft_id,
                 clean,
             )
@@ -231,7 +220,7 @@ def increment_task_analytics(
         if session is not None:
             session.rollback()
         logger.exception(
-            "Failed to update Case Assistant task analytics: draft_id=%s increments=%s",
+            "Failed to update Workspace task analytics: draft_id=%s increments=%s",
             draft_id,
             clean,
         )
@@ -248,22 +237,22 @@ def sync_task_analytics_draft_title(
     """Keep the aggregate row aligned with the persisted workspace draft title.
 
     This deliberately uses an independent session and absorbs all persistence
-    errors so analytics cannot prevent the primary Case Assistant state save.
+    errors so analytics cannot prevent the primary Workspace state save.
     """
     session = None
     try:
         normalized_title = None if draft_title is None else str(draft_title)
         session = _session()
-        user_id = _resolve_case_assistant_user_id(session, draft_id)
+        user_id = _resolve_workspace_user_id(session, draft_id)
         if user_id is None:
             return False
 
         row = session.execute(
-            select(TaskAnalytics).where(TaskAnalytics.chat_thread_id == int(draft_id))
+            select(WorkspaceUsage).where(WorkspaceUsage.chat_thread_id == int(draft_id))
         ).scalar_one_or_none()
         if row is None:
             session.add(
-                TaskAnalytics(
+                WorkspaceUsage(
                     userId=int(user_id),
                     chat_thread_id=int(draft_id),
                     draftTitle=normalized_title,
@@ -276,8 +265,8 @@ def sync_task_analytics_draft_title(
             return True
 
         session.execute(
-            update(TaskAnalytics)
-            .where(TaskAnalytics.chat_thread_id == int(draft_id))
+            update(WorkspaceUsage)
+            .where(WorkspaceUsage.chat_thread_id == int(draft_id))
             .values(draftTitle=normalized_title, updatedAt=func.now())
         )
         session.commit()
@@ -288,13 +277,13 @@ def sync_task_analytics_draft_title(
             session.rollback()
         try:
             result = session.execute(
-                update(TaskAnalytics)
-                .where(TaskAnalytics.chat_thread_id == int(draft_id))
+                update(WorkspaceUsage)
+                .where(WorkspaceUsage.chat_thread_id == int(draft_id))
                 .values(draftTitle=normalized_title, updatedAt=func.now())
             )
             if result.rowcount == 0:
                 raise RuntimeError(
-                    f"TaskAnalytics row disappeared during title sync for draft {draft_id}"
+                    f"WorkspaceUsage row disappeared during title sync for draft {draft_id}"
                 )
             session.commit()
             return True
@@ -302,7 +291,7 @@ def sync_task_analytics_draft_title(
             if session is not None:
                 session.rollback()
             logger.exception(
-                "Failed to retry Case Assistant draft-title sync: draft_id=%s",
+                "Failed to retry Workspace draft-title sync: draft_id=%s",
                 draft_id,
             )
             return False
@@ -310,7 +299,7 @@ def sync_task_analytics_draft_title(
         if session is not None:
             session.rollback()
         logger.exception(
-            "Failed to sync Case Assistant analytics draft title: draft_id=%s",
+            "Failed to sync Workspace analytics draft title: draft_id=%s",
             draft_id,
         )
         return False
@@ -347,7 +336,7 @@ def record_scoped_llm_response(response, *, model: str | None = None) -> bool:
     )
     if recorded:
         logger.info(
-            "Recorded Case Assistant LLM usage: draft_id=%s category=%s model=%s total_tokens=%s",
+            "Recorded Workspace LLM usage: draft_id=%s category=%s model=%s total_tokens=%s",
             context.draft_id,
             context.category,
             model,

@@ -28,7 +28,7 @@ class DBMemory(BaseMemory):
             ChatThread, Project.id == ChatThread.projectId  # Join Project and ChatThread on Project.id and ChatThread.projectId
         ).filter(
             ChatThread.id == self.chat_thread_id
-        ).first() 
+        ).first()
         self.user = user
 
     @property
@@ -66,7 +66,7 @@ class DBMemory(BaseMemory):
             return entry_check.content
         else:
             raise KeyError(f"File '{key}' could not be found in the database")
-        
+
     def get(self, key: str, default: Optional[Any] = None) -> Any:
         """
         Get the content of a file in the database, or a default value if the file does not exist.
@@ -110,7 +110,7 @@ class DBMemory(BaseMemory):
             raise ValueError('Workspace state is a read projection. Use explicit draft, turn, or auxiliary writes.')
         from backend.util.account_access import check_current_account
         check_current_account()
-        
+
         entry_check = TextEntry.query.filter_by(chat_thread_id=self.doc_id, textName=key).first()
         if entry_check is None:
             new_entry = TextEntry(chat_thread_id=self.doc_id, textName=key, content=val)
@@ -144,7 +144,7 @@ class DBMemory(BaseMemory):
 
     def __len__(self):
         return TextEntry.query.filter_by(chat_thread_id=self.doc_id).count()
-    
+
     def __iter__(self) -> Iterator[str]:
         return iter(TextEntry.query.filter_by(chat_thread_id=self.doc_id).all())
 

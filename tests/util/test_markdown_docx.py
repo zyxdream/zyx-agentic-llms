@@ -12,12 +12,12 @@ from docx.shared import Inches, Pt
 from backend.util.markdown_docx import (
     _line_matches_section_name,
     _strip_duplicate_section_heading,
-    create_everything_pleading_document,
+    create_workspace_pleading_document,
     normalize_markdown,
     reorder_sections,
     render_markdown_to_docx,
 )
-from backend.util.pleading_format import (
+from backend.domains.legal.pleading_format import (
     DEFAULT_EXPORT_SPEC,
     STYLE_BODY,
     STYLE_BODY_CONTINUED,
@@ -263,7 +263,7 @@ def test_continuous_numbering_across_sections():
 def test_create_everything_document_skips_duplicate_section_heading():
     # section_name renders as the heading; a bold duplicate at the top of the body is stripped,
     # so "Introduction" appears exactly once (as the heading) and the body renders once.
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Motion to Dismiss",
         [
             {
@@ -284,7 +284,7 @@ def test_create_everything_document_skips_duplicate_section_heading():
 
 
 def test_create_everything_document_markdown_heading_once():
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Motion",
         [
             {
@@ -303,7 +303,7 @@ def test_create_everything_document_markdown_heading_once():
 
 def test_create_everything_document_renders_section_and_subheadings():
     # section_name -> Heading 1; standalone bold lines in the body -> centered bold headers.
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Motion",
         [
             {
@@ -330,7 +330,7 @@ def test_create_everything_document_renders_section_and_subheadings():
 def test_create_everything_document_preserve_original_style_heading_once():
     # preserve_original shape: section_name set, plain body with no markdown heading -> the heading
     # still renders exactly once from section_name.
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Hallucinated Brief.pdf",
         [{"section_name": "Preliminary Statement", "section_content": "The debtors are entities."}],
         format_spec=_body_only_export_spec(),
@@ -343,7 +343,7 @@ def test_create_everything_document_preserve_original_style_heading_once():
 def test_create_everything_document_renders_section_name_heading():
     # section_name is the authoritative heading: it renders as a Word heading even when the body
     # carries no markdown heading of its own.
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Motion",
         [{"section_name": "Facts", "section_content": "- Item one\n- Item two"}],
         format_spec=_body_only_export_spec(),
@@ -356,7 +356,7 @@ def test_create_everything_document_renders_section_name_heading():
 
 
 def test_create_everything_document_writes_to_disk():
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Test Pleading",
         [{"section_name": "Facts", "section_content": "- Item one\n- Item two"}],
         format_spec=_body_only_export_spec(),
@@ -370,7 +370,7 @@ def test_create_everything_document_writes_to_disk():
 
 
 def test_create_everything_document_includes_caption_when_enabled():
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Complaint for Damages",
         [{"section_name": "Facts", "section_content": "Body text."}],
         format_spec=_caption_enabled_export_spec(),
@@ -383,7 +383,7 @@ def test_create_everything_document_includes_caption_when_enabled():
 def test_create_everything_document_strips_caption_source_sections_from_body():
     spec = _caption_enabled_export_spec()
     spec["structural"]["caption_source_section_indices"] = [0]
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Complaint",
         [
             {"section_name": "", "section_content": "UNITED STATES DISTRICT COURT\nJohn Doe v. Acme Corp.\nCase No. 1:23-cv-001"},
@@ -402,7 +402,7 @@ def test_create_everything_document_strips_caption_source_sections_from_body():
 def test_create_everything_document_no_caption_source_renders_full_body():
     spec = _caption_enabled_export_spec()
     spec["structural"]["caption_source_section_indices"] = []
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Complaint",
         [{"section_name": "Preliminary Statement", "section_content": "Alleged facts."}],
         format_spec=spec,
@@ -413,7 +413,7 @@ def test_create_everything_document_no_caption_source_renders_full_body():
 def test_create_everything_document_all_marked_falls_back_to_full_body():
     spec = _caption_enabled_export_spec()
     spec["structural"]["caption_source_section_indices"] = [0]
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Complaint",
         [{"section_name": "Only Section", "section_content": "Body text."}],
         format_spec=spec,
@@ -429,7 +429,7 @@ def test_create_everything_document_does_not_mutate_input_sections():
         {"section_name": "Caption", "section_content": "UNITED STATES DISTRICT COURT"},
         {"section_name": "Body", "section_content": "Text."},
     ]
-    create_everything_pleading_document("Complaint", sections, format_spec=spec)
+    create_workspace_pleading_document("Complaint", sections, format_spec=spec)
     assert len(sections) == 2
     assert sections[0]["section_name"] == "Caption"
 
@@ -437,7 +437,7 @@ def test_create_everything_document_does_not_mutate_input_sections():
 def test_create_everything_document_caption_uses_one_inch_margins_without_vertical_lines():
     # Ordinary federal caption doc (no vertical lines): page margins are the normal 1", not the
     # pleading template's 1.25" left / 0.55" right.
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Complaint for Damages",
         [{"section_name": "Facts", "section_content": "Body text."}],
         format_spec=_caption_enabled_export_spec(),
@@ -451,7 +451,7 @@ def test_create_everything_document_caption_preserves_gutter_with_vertical_lines
     # printed line-number rule.
     spec = _caption_enabled_export_spec()
     spec["structural"]["use_vertical_lines"] = True
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Complaint for Damages",
         [{"section_name": "Facts", "section_content": "Body text."}],
         format_spec=spec,
@@ -460,7 +460,7 @@ def test_create_everything_document_caption_preserves_gutter_with_vertical_lines
 
 
 def test_create_everything_document_analysis_has_no_caption_page():
-    doc = create_everything_pleading_document(
+    doc = create_workspace_pleading_document(
         "Internal Case Analysis",
         [{"section_name": "Summary", "section_content": "Analysis text."}],
         format_spec=_body_only_export_spec(),

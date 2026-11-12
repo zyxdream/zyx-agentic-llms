@@ -35,7 +35,7 @@ def app(tmp_path, monkeypatch):
     app = Flask(__name__)
     app.config.update(TESTING=True, SQLALCHEMY_DATABASE_URI=f'sqlite:///{tmp_path / "documents.db"}',
                       DOCUMENT_PREPARATION_ENABLED=True, DOCUMENT_PREPARATION_SOURCE_DIR=str(tmp_path / 'sources'),
-                      CELERY={'task_default_queue': 'lexintel-e2e-documents'})
+                      CELERY={'task_default_queue': 'zyx-agentic-llms.e2e-documents'})
     db.init_app(app)
     routes.register(app)
     for endpoint, fn in list(app.view_functions.items()):
@@ -51,8 +51,8 @@ def app(tmp_path, monkeypatch):
         db.session.add(User(id=2, email='other@example.test'))
         db.session.add(Project(id=1, name='Matter', userId=1))
         db.session.add(Project(id=2, name='Other', userId=2))
-        db.session.add(Drafts(id=1, public_id='draft-1', projectId=1, docCategory=69, display_name='Chat'))
-        db.session.add(Drafts(id=2, public_id='draft-2', projectId=1, docCategory=69, display_name='Sibling'))
+        db.session.add(Drafts(id=1, public_id='draft-1', projectId=1,  display_name='Chat'))
+        db.session.add(Drafts(id=2, public_id='draft-2', projectId=1,  display_name='Sibling'))
         db.session.commit()
         yield app
         db.session.remove()
@@ -224,16 +224,16 @@ def test_expired_untransferred_selection_releases_capacity(app):
 def test_http_groups_enforce_count_bytes_and_aggregate_status(app):
     client = app.test_client()
     app.config.update(DOCUMENT_UPLOAD_GROUP_FILES=2, DOCUMENT_UPLOAD_GROUP_BYTES=7)
-    response = client.post('/api/everything/upload-groups', json={
+    response = client.post('/api/workspace/upload-groups', json={
         'scope': 'chat', 'scopeId': 'draft-1', 'selectionId': 'selection', 'documents': manifest('A', 'B')})
     assert response.status_code == 201
     group = response.json
-    response = client.post(f'/api/everything/upload-groups/{group["group_id"]}/files', data={
+    response = client.post(f'/api/workspace/upload-groups/{group["group_id"]}/files', data={
         'clientUploadIds': json.dumps(['A', 'B']),
         'files': [(io.BytesIO(b'text'), 'A.txt'), (io.BytesIO(b'text'), 'B.txt')]})
     assert response.status_code == 413
     assert UploadedFiles.query.count() == 0
-    response = client.get('/api/everything/document-preparation?draftId=draft-1')
+    response = client.get('/api/workspace/document-preparation?conversation_id=draft-1')
     assert response.json['counts'] == {'queued': 2}
     assert len(response.json['documents']) == 2
     assert all('source_key' not in d for d in response.json['documents'])
@@ -265,156 +265,35 @@ def test_luna_route_budget_and_full_middle_coverage(app, monkeypatch):
 _real_summary_call = summaries._call
 
 
-def test_backfill_reuses_canonical_text_but_rebuilds_incomplete_chunks(app):
-    from backend.document_preparation_cli import backfill_documents
-    file = UploadedFiles(unique_id='legacy', original_filename='legacy.txt', file_size=4,
-                         content='A contract about the middle event.', draft_id=1)
-    db.session.add(file)
-    db.session.commit()
-    assert prep.catalog(1, 'draft-1')['documents'][0]['error_code'] == 'backfill_required'
-    assert backfill_documents() == ['legacy']
-    assert backfill_documents() == []
-    assert tasks.prepare_document.run('legacy', 1)['ok']
-    assert UploadedFiles.query.count() == 1
-    assert DocumentChunk.query.count() == 1
 
 
-@pytest.mark.parametrize('scope', ['chat', 'matter'])
-def test_existing_file_retry_registers_once_and_backfill_reuses_work(app, scope):
-    from backend.document_preparation_cli import backfill_documents
-    file = UploadedFiles(unique_id='old-file', original_filename='old.txt', file_size=4,
-        content='A contract about the middle event.', draft_id=1 if scope == 'chat' else None,
-        project_id=1 if scope == 'matter' else None)
-    db.session.add(file)
-    db.session.commit()
-    client = app.test_client()
-    assert client.get('/api/everything/document-preparation?draftId=draft-1').status_code == 200
-    assert DocumentPreparation.query.count() == 0  # Polling never starts work.
-    first = client.post('/api/everything/documents/old-file/retry')
-    assert first.status_code == 202
-    assert first.json['document_id'] == 'old-file'
-    doc = db.session.get(DocumentPreparation, 'old-file')
-    generation, group_id = doc.generation, doc.group_id
-    assert doc.parsed_at and json.loads(doc.parse_manifest_json)['extraction']['gaps']
-    assert client.post('/api/everything/documents/old-file/retry').status_code == 202
-    assert backfill_documents() == []
-    assert DocumentPreparation.query.count() == UploadGroup.query.count() == 1
-    assert (doc.generation, doc.group_id) == (generation, group_id)
-    assert run(first.json)['ok']
 
 
-@pytest.mark.parametrize('prepared', [False, True])
-def test_existing_file_remove_cleans_chunks_and_chat_cache_without_deleting_history(app, prepared):
-    file = UploadedFiles(unique_id='old-file', original_filename='old.txt', file_size=4,
-        content='A contract about the middle event.', draft_id=1)
-    db.session.add(file)
-    db.session.flush()
-    db.session.add(DocumentChunk(uploaded_file_id=file.id, draft_id=1, chunk_index=0,
-        content='old text', token_count=2, char_count=8, source_filename='old.txt', source_unique_id=file.unique_id))
-    db.session.add(TextEntry(draftId=1, textName='inputs/old-file', content='cached text'))
-    db.session.add(TextEntry(draftId=1, textName='state', content=json.dumps({
-        'uploaded_files': {'old-file': {'page_count': 2}, 'other-file': {'page_count': 3}},
-        'total_page_count': 5, 'chat_history': [['question', 'answer']]})))
-    db.session.commit()
-    if prepared:
-        from backend.util.document_backfill import register_existing_document
-        register_existing_document(file.id, 1)
-    result = app.test_client().delete('/api/everything/documents/old-file')
-    assert result.status_code == 200
-    assert result.json['status'] == 'cancelled'
-    assert UploadedFiles.query.count() == DocumentChunk.query.count() == 0
-    assert TextEntry.query.filter_by(textName='inputs/old-file').first() is None
-    from backend.util.workspace_store import load
-    state = load(1)
-    assert state['uploaded_files'] == {'other-file': {'page_count': 3}}
-    assert state['total_page_count'] == 3
-    assert state['chat_history'] == [['question', 'answer']]
-    assert prep.catalog(1, 'draft-1')['documents'] == []
 
 
 @pytest.mark.parametrize('kind', ['other-user', 'search', 'other-pipeline', 'missing'])
 @pytest.mark.parametrize('action', ['retry', 'remove'])
 def test_existing_document_actions_reject_inaccessible_or_unrelated_uploads(app, kind, action):
     if kind == 'other-pipeline':
-        db.session.add(Drafts(id=3, projectId=1, docCategory=1, display_name='Other pipeline'))
+        db.session.add(Drafts(id=3, projectId=1,  display_name='Other pipeline'))
     if kind != 'missing':
         db.session.add(UploadedFiles(unique_id='forbidden', original_filename='old.txt', file_size=4,
             content='private', project_id=2 if kind == 'other-user' else 1,
             draft_id=3 if kind == 'other-pipeline' else None, source='search' if kind == 'search' else None))
     db.session.commit()
     client = app.test_client()
-    result = client.post('/api/everything/documents/forbidden/retry') if action == 'retry' else client.delete('/api/everything/documents/forbidden')
+    result = client.post('/api/workspace/sources/forbidden/retry') if action == 'retry' else client.delete('/api/workspace/sources/forbidden')
     assert result.status_code == 404
     assert DocumentPreparation.query.count() == UploadGroup.query.count() == 0
     assert UploadedFiles.query.count() == (0 if kind == 'missing' else 1)
 
 
-def test_existing_ready_file_with_outdated_artifact_queues_current_preparation(app):
-    from backend.models import DocumentPreparedArtifact
-    entry = receive(admit('A'))
-    assert run(entry)['ok']
-    doc = db.session.get(DocumentPreparation, entry['document_id'])
-    artifact = db.session.get(DocumentPreparedArtifact, doc.artifact_id)
-    artifact.preparation_version = 'previous-preparation-version'
-    generation = doc.generation
-    db.session.commit()
-    result = app.test_client().post(f'/api/everything/documents/{doc.id}/retry')
-    assert result.status_code == 202
-    assert result.json['status'] == 'queued'
-    assert result.json['generation'] == generation + 1
-    assert result.json['artifact_id'] is None
 
 
-def test_existing_file_without_readable_content_requires_reupload(app):
-    db.session.add(UploadedFiles(unique_id='empty-file', original_filename='old.txt', file_size=4,
-                                content='', project_id=1))
-    db.session.commit()
-    response = app.test_client().post('/api/everything/documents/empty-file/retry')
-    assert response.status_code == 202
-    assert response.json['status'] == 'failed'
-    assert response.json['needs_reupload']
-    assert response.json['error_code'] == 'source_missing'
 
 
-def test_concurrent_existing_file_registration_reuses_one_document_and_dispatch(app, monkeypatch):
-    from concurrent.futures import ThreadPoolExecutor
-    from threading import Barrier
-    from backend.util.document_backfill import register_existing_document
-    file = UploadedFiles(unique_id='old-file', original_filename='old.txt', file_size=4,
-                         content='Stored readable text.', project_id=1)
-    db.session.add(file)
-    db.session.commit()
-    file_id = file.id
-    db.session.commit()
-    barrier = Barrier(2)
-    def register(_):
-        with app.app_context():
-            barrier.wait(timeout=10)
-            doc, changed = register_existing_document(file_id, 1)
-            return doc.id, changed
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        results = list(pool.map(register, range(2)))
-    assert sorted(changed for _, changed in results) == [False, True]
-    assert {document_id for document_id, _ in results} == {'old-file'}
-    assert DocumentPreparation.query.count() == UploadGroup.query.count() == 1
 
 
-def test_backfill_retry_replay_after_completion_does_not_repeat_preparation(app):
-    db.session.add(UploadedFiles(unique_id='old-file', original_filename='old.txt', file_size=4,
-                                content='Stored readable text.', project_id=1))
-    db.session.commit()
-    client = app.test_client()
-    initial = client.post('/api/everything/documents/old-file/retry', json={'backfill': True})
-    assert run(initial.json)['ok']
-    doc = db.session.get(DocumentPreparation, 'old-file')
-    generation, artifact_id = doc.generation, doc.artifact_id
-    repeated = client.post('/api/everything/documents/old-file/retry', json={'backfill': True})
-    assert repeated.status_code == 202
-    assert repeated.json['status'] == 'ready'
-    assert (repeated.json['generation'], repeated.json['artifact_id']) == (generation, artifact_id)
-    # A stale retry of an older attempt also cannot reset successful work.
-    stale = client.post('/api/everything/documents/old-file/retry', json={'generation': generation - 1})
-    assert stale.json['artifact_id'] == artifact_id
 
 
 def test_default_100_document_manifest_status_and_101st_rejection(app):
@@ -435,45 +314,6 @@ def test_default_100_document_manifest_status_and_101st_rejection(app):
     assert DocumentPreparation.query.count() == 100
 
 
-@pytest.mark.parametrize('quota,expected_error', [('count', 'file_count_limit'), ('bytes', 'total_size_limit')])
-def test_active_upload_workers_cannot_overbook_final_slot_or_byte_capacity(app, tmp_path, monkeypatch, quota, expected_error):
-    from concurrent.futures import ThreadPoolExecutor
-    from threading import Barrier
-    from backend import upload_tasks
-    barrier = Barrier(2)
-    sizes = [4] * 99 if quota == 'count' else [50 * 1024**2] * 20 + [24 * 1024**2 - 4]
-    db.session.add_all([UploadedFiles(unique_id=f'existing-{i}', original_filename=f'existing-{i}.txt',
-        file_size=size, content='', draft_id=1) for i, size in enumerate(sizes)])
-    db.session.commit()
-    def parse(_path):
-        barrier.wait(timeout=10)
-        return 'Document contents.', '', False
-    monkeypatch.setattr(upload_tasks, 'get_complaint_text_from_file', parse)
-    monkeypatch.setattr(upload_tasks, 'get_last_ocr_warning', lambda: None)
-    monkeypatch.setattr(upload_tasks, 'DBMemory', lambda **kw: {})
-    monkeypatch.setattr(upload_tasks, 'load_state_from_memory', lambda memory: {})
-    monkeypatch.setattr(upload_tasks, 'save_state_to_memory', lambda *args: None)
-    monkeypatch.setattr(upload_tasks.document_metadata_task, 'delay', lambda *args: None)
-    paths = [tmp_path / f'worker-{i}.txt' for i in range(2)]
-    for path in paths:
-        path.write_bytes(b'text')
-    db.session.remove()
-    def process(path):
-        with app.app_context():
-            return upload_tasks.case_assistant_upload_file_task.run({
-                'draft_id': 'draft-1', 'temp_path': str(path), 'filename': path.name,
-                'unique_id': f'accepted-{path.stem}',
-                'client_upload_id': path.name})
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        results = list(pool.map(process, paths))
-    assert sum(result['ok'] for result in results) == 1
-    assert [result['reason'] for result in results if not result['ok']] == [expected_error]
-    assert UploadedFiles.query.count() == len(sizes) + 1
-    assert db.session.query(db.func.sum(UploadedFiles.file_size)).scalar() <= 1024**3
-    completed = next(result for result in results if result['ok'])
-    assert completed['unique_id'].startswith('accepted-worker-')
-    assert UploadedFiles.query.filter_by(unique_id=completed['unique_id']).one()
-    assert completed['metadata']['status'] == 'pending'
 
 
 @pytest.mark.parametrize('quota,expected_error', [('count', 'file_count_limit'), ('bytes', 'total_size_limit')])
@@ -560,36 +400,6 @@ def test_total_size_includes_legacy_files_and_keeps_chat_matter_search_scopes_se
     admit('background', scope='matter', key='background', size=8)
 
 
-@pytest.mark.parametrize('partial', [False, True])
-def test_direct_prompt_api_rejects_preparing_files_before_enqueue(app, monkeypatch, partial):
-    from backend import views
-    from backend import agent_tasks
-    from backend.models import CaseAssistantWorkflow
-    queued = []
-    monkeypatch.setattr(views, 'current_user', SimpleNamespace(id=1))
-    monkeypatch.setattr(agent_tasks.advance, 'apply_async', lambda **kw: queued.append(kw) or SimpleNamespace(id='turn'))
-    monkeypatch.setattr(views, 'increment_task_analytics', lambda *a, **kw: None)
-    monkeypatch.setattr(views, '_cancel_redis', SimpleNamespace(set=lambda *a, **kw: None))
-    if partial:
-        monkeypatch.setattr(tasks, 'parse_attachment', lambda *a, **kw: manifest_from_blocks(
-            [{'text': 'Readable contract text.'}],
-            gaps=[{'code': 'ocr_unreadable', 'page': 2, 'message': 'Unreadable page'}]))
-    entry = receive(admit('A'))
-    payload = {'draftId': 'draft-1', 'query': 'Review the attached contract.',
-               'chatFiles': [{'name': entry['document_id']}]}
-    with app.test_request_context(json=payload):
-        body, status = views.everything_api.__wrapped__()
-    assert status == 409 and body['code'] == 'documents_not_ready' and not queued
-    assert db.session.get(DocumentPreparation, entry['document_id']).first_attached_at is None
-    run(entry)
-    payload['document_snapshot'] = {'files': ['forged-client-snapshot']}
-    with app.test_request_context(json=payload):
-        _, status = views.everything_api.__wrapped__()
-    assert status == 200
-    accepted = db.session.get(CaseAssistantWorkflow, queued[0]['args'][0])
-    assert json.loads(accepted.data_json)['document_snapshot']['files'][0]['file_id'] == entry['document_id']
-    assert 'accepted_coverage_gaps' not in json.loads(accepted.data_json)['document_snapshot']
-    assert db.session.get(DocumentPreparation, entry['document_id']).first_attached_at is not None
 
 
 def test_100_documents_prepare_and_admit_one_frozen_prompt(app):
@@ -621,37 +431,12 @@ def test_long_unicode_summary_preserves_exact_text_coverage(app, monkeypatch):
     assert ''.join(source[r['core_start']:r['core_end']] for r in seen) == source
 
 
-def test_migration_matches_models_and_can_be_reversed(app):
-    import importlib
-    from sqlalchemy import inspect
-    from alembic.migration import MigrationContext
-    from alembic.operations import Operations
-    migration = importlib.import_module('migrations.versions.d5e6f7a8b9c0_document_preparation')
-    latest = importlib.import_module('migrations.versions.e6f7a8b9c0d1_prepared_document_artifacts')
-    names = ['document_prepared_artifacts', 'document_summary_segments', 'document_preparations', 'document_upload_groups']
-    with db.engine.begin() as connection:
-        for name in names:
-            db.metadata.tables[name].drop(connection)
-        with Operations.context(MigrationContext.configure(connection)):
-            migration.upgrade()
-            latest.upgrade()
-        inspector = inspect(connection)
-        for name in names:
-            expected = set(db.metadata.tables[name].columns.keys())
-            # These historical migrations precede the chat-identity rename.
-            if name == 'document_upload_groups':
-                expected = (expected - {'chat_thread_id'}) | {'draft_id'}
-            assert {c['name'] for c in inspector.get_columns(name)} == expected
-        with Operations.context(MigrationContext.configure(connection)):
-            latest.downgrade()
-            migration.downgrade()
-        assert not set(names) & set(inspect(connection).get_table_names())
 
 
 def test_transfer_failure_is_durable_and_retry_keeps_document_id(app):
     group = admit('A')
     client = app.test_client()
-    response = client.post(f'/api/everything/upload-groups/{group["group_id"]}/files', data={
+    response = client.post(f'/api/workspace/upload-groups/{group["group_id"]}/files', data={
         'clientUploadIds': json.dumps(['A']), 'files': (io.BytesIO(b'wrong-size'), 'A.txt')})
     assert response.status_code == 202
     assert response.json['failed'][0]['code'] == 'size_mismatch'
@@ -664,63 +449,15 @@ def test_transfer_failure_is_durable_and_retry_keeps_document_id(app):
     assert run(entry)['ok']
 
 
-def test_confirmation_revalidates_snapshot_and_keeps_cancellation_available(app, monkeypatch):
-    from backend import everything, views
-    from backend.util.db import DBMemory
-    monkeypatch.setattr(views, 'current_user', SimpleNamespace(id=1))
-    queued = []
-    monkeypatch.setattr(views.everything_confirmed_workflow_task, 'apply_async', lambda **kw: queued.append(kw))
-    entry = receive(admit('A'))
-    run(entry)
-    snapshot = prep.build_snapshot(1, 'draft-1', {'chatFiles': [{'name': entry['document_id']}]})
-    state = everything.create_empty_state()
-    state['active_workflow'] = {'workflow_run_id': 'workflow', 'status': 'awaiting_user_confirmation',
-        'pending_confirmation': {'workflow_run_id': 'workflow', 'original_turn_input': {'document_snapshot': snapshot}}}
-    memory = DBMemory(db, 1)
-    from backend.util.workspace_store import initialize, patch_auxiliary
-    initialize(1, state=state)
-    patch_auxiliary(1, {'active_workflow': state['active_workflow']})
-    db.session.commit()
-    prep.cancel_document(db.session.get(DocumentPreparation, entry['document_id']))
-    with app.test_request_context(json={'draftId': 'draft-1', 'workflow_run_id': 'workflow', 'decision': {}}):
-        body, status = views.everything_confirm_workflow_api.__wrapped__()
-    assert status == 409 and body['code'] == 'stale_scope' and not queued
-    with app.test_request_context(json={'draftId': 'draft-1', 'workflow_run_id': 'workflow', 'decision': {'cancelled': True}}):
-        body, status = views.everything_confirm_workflow_api.__wrapped__()
-    assert status == 200 and body['cancelled']
 
 
 def test_prompt_scope_metadata_survives_normalization(app):
-    from backend import everything
+    from backend.workspace import state as everything
     scope = {'version': 1, 'files': [], 'excluded_ids': ['failed-document']}
     meta = everything._normalize_prompt_turn_meta({'prompt_attachments': [], 'document_scope': scope})
     assert meta['document_scope'] == scope
 
 
-def test_new_matter_documents_do_not_expand_phase_one_snapshot(app, monkeypatch):
-    from backend import everything
-    first = receive(admit('A', scope='matter'))
-    run(first)
-    snapshot = prep.build_snapshot(1, 'draft-1', {})
-    second = receive(admit('B', scope='matter', key='later-selection'))
-    run(second)
-    captured = []
-    def classify(*args, **kwargs):
-        captured.extend(args[4])
-        return {'draft_action': 'answer_only', 'revision_mode': 'general_revision', 'selected_files': [],
-                'context_policy': 'none', 'needs_confirmation': False,
-                'file_selection': {'selected_files': [], 'primary_draft_file_id': None}}
-    monkeypatch.setattr(everything, 'classify_intent_decision', classify)
-    from backend.util import prepared_retrieval
-    monkeypatch.setattr(prepared_retrieval, 'refine_selection', lambda snapshot, decision, *a, **kw: decision)
-    monkeypatch.setattr(everything, 'acquire_draft_lock', lambda *a: True)
-    monkeypatch.setattr(everything, 'release_draft_lock', lambda *a: None)
-    monkeypatch.setattr(everything, 'analytics_record', lambda *a: None)
-    task = SimpleNamespace(request=SimpleNamespace(id='turn'), update_state=lambda **kw: None)
-    result = everything._everything_phase1_body(task, {'draftId': 'draft-1', 'user_id': 1,
-        'query': 'Discuss the matter.', 'assistant_mode': 'fast', 'document_snapshot': snapshot})
-    assert not result.get('error')
-    assert [d['unique_id'] for d in captured] == [first['document_id']]
 
 
 def test_deleting_draft_cascades_preparation_on_sqlite(app):
@@ -734,7 +471,7 @@ def test_deleting_draft_cascades_preparation_on_sqlite(app):
 
 
 def test_e2e_queue_cannot_be_overridden_with_a_shared_queue(app):
-    app.config.update(E2E_CELERY_QUEUE='lexintel-e2e-documents', DOCUMENT_PREPARATION_QUEUE='celery.documents')
+    app.config.update(E2E_CELERY_QUEUE='zyx-agentic-llms.e2e-documents', DOCUMENT_PREPARATION_QUEUE='celery.documents')
     with pytest.raises(ValueError, match='isolated E2E namespace'):
         prep.queue_name()
 
@@ -770,3 +507,24 @@ def test_missing_or_corrupted_source_can_be_retransferred_without_new_identity(a
     assert retry['document_id'] == entry['document_id'] and retry['needs_reupload']
     assert run(receive(group))['ok']
     assert UploadedFiles.query.count() == 1
+
+
+def test_outdated_prepared_artifact_can_be_reprepared_without_legacy_backfill(app):
+    from backend.models import DocumentPreparedArtifact
+    entry=receive(admit('versioned'))
+    assert run(entry)['ok']
+    doc=db.session.get(DocumentPreparation,entry['document_id'])
+    artifact=db.session.get(DocumentPreparedArtifact,doc.artifact_id)
+    prior_artifact='obsolete-test-artifact'
+    artifact.id=prior_artifact
+    artifact.preparation_version='obsolete-test-version'
+    doc.artifact_id=prior_artifact
+    db.session.commit()
+    generation=doc.generation
+    response=app.test_client().post(f'/api/workspace/sources/{doc.id}/retry',json={'generation':generation})
+    assert response.status_code==202
+    assert response.json['generation']==generation+1
+    assert run(response.json)['ok']
+    db.session.refresh(doc)
+    assert doc.status=='ready' and doc.artifact_id!=prior_artifact
+    assert db.session.get(DocumentPreparedArtifact,prior_artifact) is not None

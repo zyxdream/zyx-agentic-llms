@@ -13,7 +13,7 @@ updates:
         - "Flask*"
     versioning-strategy: increase
   - package-ecosystem: "npm"
-    directory: "/frontend/lex-intel"
+    directory: "/frontend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10

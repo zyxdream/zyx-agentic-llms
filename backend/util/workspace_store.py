@@ -13,7 +13,7 @@ import uuid
 from sqlalchemy.orm import aliased
 
 from backend.database import db
-from backend.models import (CaseAssistantWorkflow, ConversationTurn, ChatThread,
+from backend.models import (WorkspaceRun, ConversationTurn, ChatThread,
                             TextEntry, DraftDocument)
 
 UNSET = object()
@@ -52,7 +52,7 @@ def _stable_id(draft_id, identity, existing_turn_owners=None):
              getattr(db.session.get(ConversationTurn, identity), 'chat_thread_id', None)) if len(identity) <= 80 else None
     if len(identity) <= 80 and (owner is None or owner == draft_id):
         return identity
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, f'lexintel:workspace:{draft_id}:turn:{identity}'))
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f'zyx-agentic-llms:workspace:{draft_id}:turn:{identity}'))
 
 
 def _legacy_records(draft_id, entries, state, *, workflows=None, archives=None, existing_turn_owners=None):
@@ -60,8 +60,8 @@ def _legacy_records(draft_id, entries, state, *, workflows=None, archives=None, 
     # Explicit rows let the identity migration reuse this reconciliation on its
     # own SQL connection, without application-session commits or provider calls.
     if workflows is None:
-        workflows = {row.id: row for row in CaseAssistantWorkflow.query.filter_by(
-            chat_thread_id=draft_id).order_by(CaseAssistantWorkflow.created_at, CaseAssistantWorkflow.id).all()}
+        workflows = {row.id: row for row in WorkspaceRun.query.filter_by(
+            chat_thread_id=draft_id).order_by(WorkspaceRun.created_at, WorkspaceRun.id).all()}
     records, by_id, ambiguities = [], {}, []
     counts = {'state_turns': 0, 'archived_turns': 0, 'completed_workflows': 0,
               'merged_by_identity': 0, 'recovered_workflow_turns': 0,
@@ -71,10 +71,10 @@ def _legacy_records(draft_id, entries, state, *, workflows=None, archives=None, 
         if not isinstance(turn, (list, tuple)) or len(turn) != 2 or not all(isinstance(v, str) for v in turn):
             raise ValueError(f'Workspace {draft_id} has an invalid conversation pair in {origin}.')
         meta = copy.deepcopy(meta) if isinstance(meta, dict) else {}
-        workflow_id = meta.get('workflow_run_id')
+        workflow_id = meta.get('run_id')
         if workflow_id and workflow_id not in workflows:
             ambiguities.append({'source': origin, 'reason': 'Workflow association is not in this workspace.',
-                                'workflow_run_id': workflow_id})
+                                'run_id': workflow_id})
         valid_workflow = workflow_id if workflow_id in workflows else None
         if valid_workflow and workflows[valid_workflow].status != 'completed' and not meta.get('workflow_completed'):
             # Failed/cancelled/pending workflow text remains a workflow overlay;
@@ -83,7 +83,7 @@ def _legacy_records(draft_id, entries, state, *, workflows=None, archives=None, 
             return None
         explicit = valid_workflow or meta.get('conversation_turn_id')
         uid = _stable_id(draft_id, explicit or str(uuid.uuid5(uuid.NAMESPACE_URL,
-                         f'lexintel:workspace:{draft_id}:{identity}')), existing_turn_owners)
+                         f'zyx-agentic-llms:workspace:{draft_id}:{identity}')), existing_turn_owners)
         if uid in by_id:
             existing = by_id[uid]
             existing['meta'].update(meta)
@@ -127,7 +127,7 @@ def _legacy_records(draft_id, entries, state, *, workflows=None, archives=None, 
         record = by_id.get(uid)
         if record is None:
             record = add([data.get('display_user_message') or data.get('query', ''), result['response']],
-                         {'workflow_run_id': workflow.id}, workflow.id, f'workflow:{workflow.id}', workflow.created_at)
+                         {'run_id': workflow.id}, workflow.id, f'workflow:{workflow.id}', workflow.created_at)
             records.remove(record)
             # Unknown legacy dates remain in their recorded source order. A
             # missing modern turn is inserted before its next known workflow.
@@ -138,8 +138,8 @@ def _legacy_records(draft_id, entries, state, *, workflows=None, archives=None, 
         record['turn'] = [data.get('display_user_message') or data.get('query', ''), result['response']]
         metadata = data.get('prompt_turn_meta')
         record['meta'] = {**(metadata if isinstance(metadata, dict) else {}), **record['meta'],
-                          'workflow_run_id': workflow.id, 'workflow_completed': True,
-                          'agent_run': workflow.execution_version == 1}
+                          'run_id': workflow.id, 'workflow_completed': True,
+                          'agent_run': True}
         record['meta'].pop('workflow_failed', None)
         record['meta'].pop('workflow_cancelled', None)
         if data.get('promptAttachments') and 'prompt_attachments' not in record['meta']:
@@ -186,7 +186,7 @@ def initialize(draft_id, state=None):
         meta = record['meta']
         meta.setdefault('conversation_turn_id', record['id'])
         db.session.add(ConversationTurn(id=record['id'], chat_thread_id=draft_id,
-            workflow_run_id=record['workflow_id'], position=position,
+            run_id=record['workflow_id'], position=position,
             user_text=record['turn'][0], assistant_text=record['turn'][1],
             metadata_json=_encode(meta), created_at=record['created_at']))
     db.session.flush()
@@ -241,7 +241,7 @@ def turns(draft_id):
 
 
 def turn_for_workflow(workflow_id):
-    return ConversationTurn.query.filter_by(workflow_run_id=workflow_id).first()
+    return ConversationTurn.query.filter_by(run_id=workflow_id).first()
 
 
 def load(draft_id, lock=False):
@@ -308,7 +308,7 @@ def append_turn(draft_id, user_text, assistant_text, meta=None, workflow_id=None
     ChatThread.query.filter_by(id=chat_id).populate_existing().with_for_update().one()
     row = _draft_row(chat_id, lock=True)
     if workflow_id:
-        workflow = db.session.get(CaseAssistantWorkflow, workflow_id)
+        workflow = db.session.get(WorkspaceRun, workflow_id)
         if workflow is None or workflow.chat_thread_id != row.chat_thread_id:
             raise ValueError('Conversation workflow must belong to this workspace.')
         existing = turn_for_workflow(workflow_id)
@@ -323,13 +323,13 @@ def append_turn(draft_id, user_text, assistant_text, meta=None, workflow_id=None
             raise ValueError('Conversation identity belongs to another workspace.')
         return existing
     if workflow_id:
-        meta['workflow_run_id'] = workflow_id
+        meta['run_id'] = workflow_id
     meta.setdefault('conversation_turn_id', uid)
     ChatThread.query.filter_by(id=row.chat_thread_id).update({
         'next_turn_position': ChatThread.next_turn_position + 1}, synchronize_session=False)
     chat = db.session.get(ChatThread, row.chat_thread_id)
     db.session.expire(chat, ['next_turn_position'])
-    turn = ConversationTurn(id=uid, chat_thread_id=row.chat_thread_id, workflow_run_id=workflow_id,
+    turn = ConversationTurn(id=uid, chat_thread_id=row.chat_thread_id, run_id=workflow_id,
         position=chat.next_turn_position - 1, user_text=user_text, assistant_text=assistant_text,
         metadata_json=_encode(meta), created_at=datetime.utcnow())
     db.session.add(turn)

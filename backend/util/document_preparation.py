@@ -210,7 +210,7 @@ def document_view(doc, file=None, artifact=None):
         'generation': doc.generation, 'task_id': doc.task_id,
         'committed': bool(doc.first_attached_at),
         'error_code': 'backfill_required' if needs_backfill else doc.error_code,
-        'error': 'This document needs the current preparation version. Run document backfill.' if needs_backfill else doc.error_message,
+        'error': 'This document needs the current preparation version. Retry preparation.' if needs_backfill else doc.error_message,
         'warning': extraction_warning(coverage['extraction']) if coverage else doc.warning,
         'artifact_id': artifact.id if artifact else None,
         'needs_reupload': not doc.parsed_at and doc.status != 'ready' and
@@ -351,7 +351,7 @@ def catalog(owner_id, draft_id=None, project_id=None):
                           'relative_path': file.relative_path, 'folder_id': file.folder_upload_id,
                           'scope': 'chat' if file.chat_thread_id else 'matter', 'status': 'failed',
                           'stage': 'failed', 'error_code': 'backfill_required',
-                          'error': 'This document needs preparation. Ask an administrator to run document backfill.',
+                          'error': 'Re-upload this source to prepare it in Workspace.',
                           'metadata': parse_metadata(file.metadata_json)})
     views.sort(key=lambda d: d['document_id'])
     revision = hashlib.sha256(json.dumps(views, sort_keys=True).encode()).hexdigest()
@@ -447,7 +447,14 @@ def retry_document(doc, expected_generation=None):
         return document_view(doc)
     extraction = normalized_extraction(json.loads(doc.coverage_json).get('extraction')) if doc.coverage_json else {}
     retry_extraction = doc.status == 'ready' and bool(extraction.get('gap_fingerprint'))
-    if doc.status != 'failed' and not retry_extraction:
+    artifact = db.session.get(DocumentPreparedArtifact, doc.artifact_id) if doc.artifact_id else None
+    outdated = doc.status == 'ready' and (artifact is None or artifact.preparation_version != VERSION)
+    if outdated:
+        # Start a new generation from the retained original; keep immutable old artifacts.
+        DocumentSummarySegment.query.filter_by(document_id=doc.id).delete(synchronize_session=False)
+        doc.parsed_at = doc.indexed_at = doc.summarized_at = None
+        doc.coverage_json = None
+    if doc.status != 'failed' and not retry_extraction and not outdated:
         raise PreparationError('invalid_transition', 'Only failed documents or extraction gaps can be retried.')
     if doc.status == 'failed':
         # A manual retry grants a fresh bounded reduction attempt sequence while
@@ -486,8 +493,6 @@ def cancel_document(doc):
         file = db.session.get(UploadedFiles, doc.uploaded_file_id)
         doc.uploaded_file_id = None
         if file:
-            from backend.util.document_backfill import forget_chat_file
-            forget_chat_file(file.chat_thread_id, doc.id)
             db.session.delete(file)
     db.session.commit()
     return document_view(doc)

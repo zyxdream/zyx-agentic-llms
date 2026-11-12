@@ -8,7 +8,7 @@ from backend.models import UploadedFiles, DocumentChunk
 from backend.util.chunker import chunk_text
 from backend.util.data_tools import get_text_from_extended_formats
 from backend.util.document_metadata import default_document_metadata, serialize_metadata
-from backend.ai.complaint_parser import get_pagenum_from_pdf_fitz
+from backend.ai.document_parser import get_pagenum_from_pdf_fitz
 from backend.util.account_access import project_account_id, require_enabled_account
 
 

@@ -2,7 +2,7 @@
 BM25-based full-text search scoring.
 
 Generic BM25 utilities — no database dependencies.
-Application-specific chunk retrieval lives in everything.py.
+Document retrieval uses prepared_retrieval.
 
 Usage:
     from backend.util.bm25_search import compute_bm25_scores, format_bm25_results

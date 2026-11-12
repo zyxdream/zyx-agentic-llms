@@ -8,8 +8,10 @@ from backend import agent_tasks
 from backend.ai import agent_tools, base
 from backend.database import db
 from backend.models import AgentArtifact
-from backend.util import authority_research, authority_sources, document_drafts
-from backend.util import case_assistant_workflow as workflow
+from backend.util import document_drafts
+from backend.domains.legal import authority_sources
+from backend.domains.legal import authority_research
+from backend.util import workspace_service as workflow
 from tests.test_agent_controller import agent, operation, last_result, state, choose, tick
 from tests.test_document_preparation import app
 
@@ -78,7 +80,7 @@ def test_standalone_search_saves_without_documents_or_legal_research(no_document
     assert seen[0][1]['model'] == 'gpt-6-luna'
     assert seen[0][1]['reasoning_effort'] == agent_tools.Operations(
         no_documents, agent_tasks.steps(no_documents).filter_by(kind='tool').first(), None).effort
-    assert AgentArtifact.query.filter_by(workflow_run_id=no_documents.id, kind='authority_research').count() == 0
+    assert AgentArtifact.query.filter_by(run_id=no_documents.id, kind='authority_research').count() == 0
     saved = db.session.get(AgentArtifact, result['artifact_id'])
     assert saved.kind == 'web_search'
     assert json.loads(saved.content_json)['results'] == result['results']
@@ -88,7 +90,7 @@ def test_standalone_search_saves_without_documents_or_legal_research(no_document
     # rather than depending on an in-memory provider response.
     db.session.expire_all()
     response = app.test_client().get(
-        f'/api/everything/workflows/{no_documents.id}/artifacts/{result["artifact_id"]}')
+        f'/api/workspace/runs/{no_documents.id}/artifacts/{result["artifact_id"]}')
     assert response.status_code == 200
     assert response.json['kind'] == 'web_search'
     operation(no_documents, monkeypatch, 'read_sources', {
@@ -147,7 +149,7 @@ def test_empty_search_results_remain_explicit_without_starting_legal_research(ag
     result = last_result(agent)
     assert result['results'] == []
     assert 'No observed source URLs were returned.' in result['text']
-    assert AgentArtifact.query.filter_by(workflow_run_id=agent.id, kind='authority_research').count() == 0
+    assert AgentArtifact.query.filter_by(run_id=agent.id, kind='authority_research').count() == 0
 
 
 def test_cancelled_search_cannot_save_a_late_result(agent, monkeypatch):
@@ -164,7 +166,7 @@ def test_cancelled_search_cannot_save_a_late_result(agent, monkeypatch):
     assert tick(agent) == {'continued': True}
     assert tick(agent) == {'stopped': True}
     assert agent.status == 'cancelled'
-    assert AgentArtifact.query.filter_by(workflow_run_id=agent.id).count() == 0
+    assert AgentArtifact.query.filter_by(run_id=agent.id).count() == 0
     assert state(agent) == before
 
 
@@ -177,6 +179,6 @@ def test_controller_context_supplies_current_utc_date_and_available_search(no_do
     initial = json.loads(json.loads(no_documents.payload_json)['agent_context']['input'][1]['content'])
     assert initial['current_date'] in {before, after}
     assert initial['documents'] == []
-    guidance = ' '.join(agent_tasks.SYSTEM.lower().split())
+    guidance = ' '.join(agent_tasks.system_instructions().lower().split())
     assert 'web_search' in guidance and 'news' in guidance and 'case developments' in guidance
     assert 'citation' in guidance and 'search_legal_sources' in guidance

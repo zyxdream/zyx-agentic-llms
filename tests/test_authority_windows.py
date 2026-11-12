@@ -1,7 +1,7 @@
 """Source-preserving extraction windows and individual mention anchors."""
 import pytest
 
-from backend.util import authority_research as research
+from backend.domains.legal import authority_research as research
 
 
 def mention(window, citation, context, *, index=1, name=None, position=None):

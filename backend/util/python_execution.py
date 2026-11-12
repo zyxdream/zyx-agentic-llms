@@ -18,7 +18,7 @@ import time
 import uuid
 
 
-IMAGE = 'lexintel-python-analysis:1'
+IMAGE = 'zyx-agentic-llms-python-analysis:1'
 PREVIEW_CHARACTERS = 16000
 MAX_LOG_BYTES = 8 * 1024 * 1024
 MAX_OUTPUT_BYTES = 100 * 1024 * 1024
@@ -145,7 +145,7 @@ def _cleanup_container_files(attempt_dir, retained_files):
                             for path in retained if path.is_relative_to(directory)]
     if not manifest:
         return
-    command, name = _docker(), 'lexintel-python-cleanup-' + uuid.uuid4().hex
+    command, name = _docker(), 'zyx-agentic-llms-python-cleanup-' + uuid.uuid4().hex
     args = [*command, 'run', '--name', name, '--init', '--network', 'none',
             '--read-only', '--user', '65532:65532', '--cap-drop', 'ALL',
             '--security-opt', 'no-new-privileges', '--pids-limit', '128',
@@ -179,7 +179,7 @@ def run_python(code, inputs, artifacts, *, check_execution=None, timeout_seconds
         raise ValueError('Python execution timeout must be positive.')
     if check_execution:
         check_execution()
-    attempt = Path(attempt_dir) if attempt_dir is not None else Path(tempfile.mkdtemp(prefix='lexintel-python-'))
+    attempt = Path(attempt_dir) if attempt_dir is not None else Path(tempfile.mkdtemp(prefix='zyx-agentic-llms-python-'))
     attempt.mkdir(parents=True, exist_ok=True, mode=0o700)
     # An execution attempt is immutable after use. A worker retry gets a new
     # directory, rather than reusing partially written files from a lost worker.
@@ -198,7 +198,7 @@ def run_python(code, inputs, artifacts, *, check_execution=None, timeout_seconds
     (directories['job'] / 'request.json').write_text(
         json.dumps({'input_paths': paths, 'input_artifacts': imported}, ensure_ascii=False, allow_nan=False),
         encoding='utf-8')
-    command, container_name = _docker(), 'lexintel-python-' + uuid.uuid4().hex
+    command, container_name = _docker(), 'zyx-agentic-llms-python-' + uuid.uuid4().hex
     args = [*command, 'run', '--name', container_name, '--init', '--network', 'none',
             '--read-only', '--user', '65532:65532', '--cap-drop', 'ALL',
             '--security-opt', 'no-new-privileges', '--pids-limit', '128',

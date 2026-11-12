@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from backend.database import db
-from backend.models import CaseAssistantWorkflow, ConversationTurn, Drafts, TextEntry, DraftDocument, ChatThread
+from backend.models import WorkspaceRun, ConversationTurn, Drafts, TextEntry, DraftDocument, ChatThread
 from backend.util import workspace_store as store
 from tests.test_document_preparation import app
 
@@ -21,8 +21,8 @@ def seed(state):
 
 def saved_workflow(uid, position, *, status='completed', response=None):
     date = datetime(2026, 11, 1) + timedelta(minutes=position)
-    row = CaseAssistantWorkflow(id=uid, user_id=1, draft_id=1, status=status,
-        phase='finalize' if status == 'completed' else 'agent', execution_version=1,
+    row = WorkspaceRun(id=uid, user_id=1, draft_id=1, status=status,
+        phase='finalize' if status == 'completed' else 'agent',
         data_json=json.dumps({'query': f'Question {position}', 'promptAttachments': [{'file_id': 'original'}]}),
         result_json=json.dumps({'response': response or f'Answer {position}'}) if status == 'completed' else None,
         draft_hash='original', created_at=date, updated_at=date, last_progress_at=date,
@@ -59,13 +59,13 @@ def test_completed_workflows_repair_missing_answers_and_preserve_metadata(app):
     middle = saved_workflow('wf_middle', 2)
     last = saved_workflow('wf_last', 3)
     seed({'draft': {}, 'chat_history': [['Question 1', 'Stale answer'], ['Question 3', 'Answer 3']],
-          'chat_history_meta': [{'workflow_run_id': first.id, 'prompt_attachments': [{'file_name': 'Brief'}],
+          'chat_history_meta': [{'run_id': first.id, 'prompt_attachments': [{'file_name': 'Brief'}],
                                 'workflow_failed': True, 'workflow_cancelled': True},
-                                {'workflow_run_id': last.id}]})
+                                {'run_id': last.id}]})
     report = store.initialize(1)
     records = store.turns(1)
     assert report['recovered_workflow_turns'] == 1 and report['turns_imported'] == 3
-    assert [record.workflow_run_id for record in records] == [first.id, middle.id, last.id]
+    assert [record.run_id for record in records] == [first.id, middle.id, last.id]
     assert records[0].assistant_text == 'Answer 1'
     metadata = json.loads(records[0].metadata_json)
     assert metadata['prompt_attachments'] == [{'file_name': 'Brief'}]
@@ -145,7 +145,7 @@ def test_publication_stages_draft_turn_and_workflow_without_independent_commit(a
     db.session.flush()
     db.session.rollback()  # Equivalent to a failure at any point before publication commit.
     assert store.load(1)['draft'] == {'title': 'Original'}
-    assert store.turns(1) == [] and db.session.get(CaseAssistantWorkflow, workflow.id).status == 'running'
+    assert store.turns(1) == [] and db.session.get(WorkspaceRun, workflow.id).status == 'running'
     assert store.update_draft(1, {'title': 'Candidate'}, 1) == 2
     turn = store.append_turn(1, 'Question', 'Answer', workflow_id=workflow.id)
     workflow.status = 'completed'
@@ -241,7 +241,7 @@ def test_all_chat_owner_columns_use_canonical_database_names(app):
     from backend import models
     for model in (models.TextEntry, models.ConversationTurn, models.FolderUpload,
                   models.UploadedFiles, models.DocumentChunk, models.UploadGroup,
-                  models.CaseAssistantWorkflow, models.StepAnalytics, models.TaskAnalytics):
+                  models.WorkspaceRun, models.WorkspaceUsage):
         assert 'chat_thread_id' in model.__table__.columns
         assert 'draft_id' not in model.__table__.columns and 'draftId' not in model.__table__.columns
     assert models.Drafts is models.ChatThread
@@ -280,7 +280,7 @@ def test_reconciliation_reports_duplicate_state_rows_and_retains_originals(app):
 def test_pending_or_failed_workflow_display_is_not_imported_as_final_turn(app):
     workflow = saved_workflow('wf_retryable', 1, status='failed')
     seed({'draft': {}, 'chat_history': [['Question', 'Worker failed.']],
-          'chat_history_meta': [{'workflow_run_id': workflow.id, 'workflow_failed': True}]})
+          'chat_history_meta': [{'run_id': workflow.id, 'workflow_failed': True}]})
     report = store.initialize(1)
     assert report['workflow_overlays_skipped'] == 1 and store.turns(1) == []
     turn = store.append_turn(1, 'Question', 'Successful answer', workflow_id=workflow.id)
@@ -290,29 +290,7 @@ def test_pending_or_failed_workflow_display_is_not_imported_as_final_turn(app):
 def test_published_marker_survives_bookkeeping_crash_during_backfill(app):
     workflow = saved_workflow('wf_committed', 1, status='running')
     seed({'draft': {}, 'chat_history': [['Question', 'Already published']],
-          'chat_history_meta': [{'workflow_run_id': workflow.id, 'workflow_completed': True}]})
+          'chat_history_meta': [{'run_id': workflow.id, 'workflow_completed': True}]})
     report = store.initialize(1)
     assert report['workflow_overlays_skipped'] == 0
     assert store.turn_for_workflow(workflow.id).assistant_text == 'Already published'
-
-
-def test_additive_migration_creates_matching_tables_and_can_downgrade():
-    from alembic.migration import MigrationContext
-    from alembic.operations import Operations
-    import sqlalchemy as sa
-    path = Path(__file__).resolve().parents[1] / 'migrations/versions/b9c0d1e2f3a4_separate_workspace_draft_and_turns.py'
-    spec = importlib.util.spec_from_file_location('workspace_storage_migration', path)
-    migration = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(migration)
-    engine = sa.create_engine('sqlite://')
-    with engine.begin() as connection:
-        connection.execute(sa.text('CREATE TABLE drafts (id INTEGER PRIMARY KEY)'))
-        connection.execute(sa.text('CREATE TABLE case_assistant_workflows (id VARCHAR(80) PRIMARY KEY)'))
-        with Operations.context(MigrationContext.configure(connection)):
-            migration.upgrade()
-            assert set(sa.inspect(connection).get_table_names()) >= {'workspace_draft_states', 'conversation_turns'}
-            assert {column['name'] for column in sa.inspect(connection).get_columns('workspace_draft_states')} == {'draft_id', 'draft_json', 'draft_before_json', 'draft_version', 'next_turn_position', 'legacy_snapshot_json', 'migration_report_json', 'updated_at'}
-            assert {column['name'] for column in sa.inspect(connection).get_columns('conversation_turns')} == {'id', 'draft_id', 'workflow_run_id', 'position', 'user_text', 'assistant_text', 'metadata_json', 'created_at'}
-            migration.downgrade()
-            assert set(sa.inspect(connection).get_table_names()) == {'drafts', 'case_assistant_workflows'}
-    engine.dispose()

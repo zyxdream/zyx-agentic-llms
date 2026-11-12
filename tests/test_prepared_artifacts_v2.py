@@ -24,7 +24,7 @@ def selected_snapshot(entry, *, acknowledgments=None):
 def test_preparation_cannot_be_disabled_by_old_flag(app):
     app.config['DOCUMENT_PREPARATION_ENABLED'] = False
     assert prep.enabled()
-    response = app.test_client().get('/api/everything/document-preparation?draftId=draft-1')
+    response = app.test_client().get('/api/workspace/document-preparation?conversation_id=draft-1')
     assert response.status_code == 200 and response.json['enabled'] is True
 
 
@@ -153,7 +153,7 @@ def test_historical_vector_warnings_are_normalized_without_repreparation_or_arti
     assert view['status'] == 'ready' and view['artifact_id'] == stored[0]
     assert view['coverage']['extraction']['gap_count'] == int(real_gap)
     assert bool(view['warning']) is real_gap
-    response = app.test_client().get(f'/api/everything/documents/{doc.id}/summary')
+    response = app.test_client().get(f'/api/workspace/sources/{doc.id}/summary')
     assert response.status_code == 200
     assert len(response.json['coverage']['extraction']['gaps']) == int(real_gap)
     snapshot = selected_snapshot(entry)
@@ -273,12 +273,12 @@ def test_summary_endpoint_authorizes_document_and_requested_artifact(app):
     a = db.session.get(DocumentPreparation, first['document_id'])
     b = db.session.get(DocumentPreparation, second['document_id'])
     client = app.test_client()
-    result = client.get(f'/api/everything/documents/{a.id}/summary?artifactId={a.artifact_id}')
+    result = client.get(f'/api/workspace/sources/{a.id}/summary?artifactId={a.artifact_id}')
     assert result.status_code == 200
     assert 'detailed_digest' in result.json and 'parse_manifest' not in result.json
-    assert client.get(f'/api/everything/documents/{a.id}/summary?artifactId={b.artifact_id}').status_code == 404
+    assert client.get(f'/api/workspace/sources/{a.id}/summary?artifactId={b.artifact_id}').status_code == 404
     prep.cancel_document(a)
-    assert client.get(f'/api/everything/documents/{a.id}/summary').status_code == 404
+    assert client.get(f'/api/workspace/sources/{a.id}/summary').status_code == 404
 
 
 def test_raw_source_search_finds_fact_absent_from_preview_and_scope_is_exact(app, monkeypatch):
@@ -384,7 +384,7 @@ def test_card_budget_preserves_exact_identity_and_headline():
 def test_chat_per_file_limit_is_admitted_before_transfer(app):
     client = app.test_client()
     def submit(key, size):
-        return client.post('/api/everything/upload-groups', json={'scope': 'chat', 'scopeId': 'draft-1',
+        return client.post('/api/workspace/upload-groups', json={'scope': 'chat', 'scopeId': 'draft-1',
             'selectionId': key, 'documents': [{'client_upload_id': key, 'filename': key + '.pdf', 'file_size': size}]})
     assert submit('at-limit', 50 * 1024**2).status_code == 201
     assert submit('over-limit', 50 * 1024**2 + 1).status_code == 400
@@ -540,18 +540,6 @@ def test_manual_retry_resets_exhausted_reduction_attempts(app, monkeypatch):
 
 
 
-def test_mysql_migration_emits_longtext_artifacts_and_fulltext_section_index():
-    from importlib import import_module
-    from alembic.migration import MigrationContext
-    from alembic.operations import Operations
-    output = io.StringIO()
-    context = MigrationContext.configure(dialect_name='mysql', opts={'as_sql': True, 'output_buffer': output})
-    with Operations.context(context):
-        import_module('migrations.versions.e6f7a8b9c0d1_prepared_document_artifacts').upgrade()
-    sql = output.getvalue()
-    assert 'CREATE FULLTEXT INDEX ix_prepared_section_search' in sql
-    assert 'manifest_json LONGTEXT' in sql and 'card_json LONGTEXT' in sql
-    assert "DEFAULT '{}'" not in sql  # Literal LONGTEXT defaults are invalid in MySQL.
 
 
 

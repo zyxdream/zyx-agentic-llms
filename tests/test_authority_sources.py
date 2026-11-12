@@ -6,8 +6,8 @@ import socket
 import pytest
 import requests
 
-from backend.util import authority_sources as sources
-from backend.util.case_assistant_workflow import WorkflowStopped
+from backend.domains.legal import authority_sources as sources
+from backend.util.workspace_service import WorkflowStopped
 
 
 class Response:
@@ -401,3 +401,8 @@ def test_cancellation_after_web_search_is_not_converted_to_a_provider_error(monk
         sources.search_sources('query', 'web', model='test', reasoning_effort=None,
                                check_execution=cancelled_after_search)
     assert provider_calls == [1]
+
+
+def test_saved_case_links_use_the_cluster_opinion_permalink():
+    from backend.domains.legal.free_law_tools import build_caseviewer_href
+    assert build_caseviewer_href({'type':'case','cluster_id':51}) == 'https://www.courtlistener.com/opinion/51/'

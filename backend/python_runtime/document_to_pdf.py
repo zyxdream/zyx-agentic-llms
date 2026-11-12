@@ -20,7 +20,7 @@ def convert_document(source, destination):
     work.mkdir()
     copied = work / 'source.docx'
     shutil.copyfile(source, copied)
-    pipe_name = 'lexintel-writer-' + uuid.uuid4().hex
+    pipe_name = 'zyx-agentic-llms-writer-' + uuid.uuid4().hex
     command = ['soffice', '-env:UserInstallation=' + (work / 'profile').as_uri(),
                '--headless', '--nologo', '--nodefault', '--norestore', '--nofirststartwizard',
                '--accept=pipe,name=' + pipe_name + ';urp;StarOffice.ServiceManager']

@@ -13,7 +13,7 @@ VERSION = 1
 
 
 def turn_id(turn, meta=None):
-    return ((meta or {}).get('workflow_run_id') or (meta or {}).get('conversation_turn_id')) or hashlib.sha256(
+    return ((meta or {}).get('run_id') or (meta or {}).get('conversation_turn_id')) or hashlib.sha256(
         json.dumps(turn, ensure_ascii=False).encode()).hexdigest()
 
 
@@ -24,10 +24,10 @@ def archive_removed(state, memory):
         return
     from backend.models import TextEntry
     from backend.database import db
-    from backend.models import CaseAssistantWorkflow
+    from backend.models import WorkspaceRun
     for turn, meta in removed:
-        prior = CaseAssistantWorkflow.query.filter_by(
-            id=meta['workflow_run_id'], draft_id=memory.doc_id, status='completed').first() if meta.get('workflow_run_id') else None
+        prior = WorkspaceRun.query.filter_by(
+            id=meta['run_id'], draft_id=memory.doc_id, status='completed').first() if meta.get('run_id') else None
         if prior and json.loads(prior.result_json or '{}').get('response'):
             continue
         key = 'conversation-turn:' + turn_id(turn, meta)
@@ -40,31 +40,31 @@ def available_turns(state, doc_id=None):
     """Read canonical turns, including history outside the latest-100 display."""
     unique = {}
     if doc_id is not None:
-        from backend.models import AgentStep, CaseAssistantWorkflow
+        from backend.models import AgentStep, WorkspaceRun
         from backend.util.workspace_store import turns
         for row in turns(doc_id):
             meta = json.loads(row.metadata_json)
-            uid = row.workflow_run_id or row.id
+            uid = row.run_id or row.id
             unique[uid] = {'id': uid, 'turn': [row.user_text, row.assistant_text], 'meta': meta}
     else:
         # Private operation/Smart Search memory keeps its own chronological pairs.
         for index, turn in enumerate(state.get('chat_history', [])):
             meta = state.get('chat_history_meta', [])[index] if index < len(state.get('chat_history_meta', [])) else {}
-            uid = meta.get('workflow_run_id') or meta.get('conversation_turn_id') or f'private-turn:{index}'
+            uid = meta.get('run_id') or meta.get('conversation_turn_id') or f'private-turn:{index}'
             unique[uid] = {'id': uid, 'turn': list(turn), 'meta': dict(meta)}
     if doc_id is not None:
         # The agent saves clarification answers in AgentStep, rather than the
         # older data_json.confirmed_clarification field read above. Retrieve only
         # answered questions from completed assignments in this same chat.
         questions = AgentStep.query.with_entities(
-            AgentStep.workflow_run_id, AgentStep.arguments_json, AgentStep.result_json).join(
-            CaseAssistantWorkflow, AgentStep.workflow_run_id == CaseAssistantWorkflow.id).filter(
-            CaseAssistantWorkflow.chat_thread_id == doc_id, CaseAssistantWorkflow.status == 'completed',
+            AgentStep.run_id, AgentStep.arguments_json, AgentStep.result_json).join(
+            WorkspaceRun, AgentStep.run_id == WorkspaceRun.id).filter(
+            WorkspaceRun.chat_thread_id == doc_id, WorkspaceRun.status == 'completed',
             AgentStep.kind == 'tool', AgentStep.name == 'request_user_input', AgentStep.state == 'ready').order_by(
-            AgentStep.workflow_run_id, AgentStep.sequence).all()
+            AgentStep.run_id, AgentStep.sequence).all()
         clarifications = {}
         for step in questions:
-            if step.workflow_run_id not in unique:
+            if step.run_id not in unique:
                 continue
             result = json.loads(step.result_json or '{}')
             # Invalid tool calls can also be ready, but their error observations
@@ -83,7 +83,7 @@ def available_turns(state, doc_id=None):
                 #    result_json and marks it 'ready'.
                 # Here we collect the saved pair in memory, grouped by workflow
                 # ID, so later assignments can receive it; no new SQL row is added.
-                clarifications.setdefault(step.workflow_run_id, []).append({'question': arguments['question'], 'answer': result['answer']})
+                clarifications.setdefault(step.run_id, []).append({'question': arguments['question'], 'answer': result['answer']})
         # Enrich after merging SQL/state copies so the current chat suffix cannot
         # overwrite these answers. Copy metadata to keep this read from changing
         # the caller's saved chat state; original AgentStep records stay intact.
@@ -148,8 +148,9 @@ def compact(text, budget, *, model, token_counter=None):
     """
     if token_count(text) <= budget:
         return text
-    from backend import everything
-    from backend.util import case_assistant_workflow as service
+    from backend.ai import base as workspace_state
+    from backend.ai.workspace_schemas import BriefUpdateResult
+    from backend.util import workspace_service as service
     context = service.current_execution()
     row = service.validate_execution() if context else None
     key = hashlib.sha256((str(budget) + model + text).encode()).hexdigest()
@@ -175,11 +176,11 @@ def compact(text, budget, *, model, token_counter=None):
             'Cover the entire supplied material; do not retain only its beginning or end.\n'
             f'Previous compact content:\n{summary}\nNext complete content:\n{source}')
         from backend.util.prepared_retrieval import request_tokens
-        if request_tokens(prompt, everything.BriefUpdateResult) > 40000:
+        if request_tokens(prompt, BriefUpdateResult) > 40000:
             raise ValueError('Conversation compaction input exceeds its token budget')
         service.before_call()
-        result = everything.chat_completion_parse(prompt,
-            everything.BriefUpdateResult, model=model, reasoning_effort='medium',
+        result = workspace_state.chat_completion_parse(prompt,
+            BriefUpdateResult, model=model, reasoning_effort='medium',
             sys_prompt='Maintain conversation context, not document evidence.', token_counter=token_counter,
             max_output_tokens=32768, raise_on_incomplete=True)
         if result is None or not result.brief.strip() or token_count(result.brief) > budget:
@@ -222,13 +223,13 @@ def build(state, query, *, doc_id=None, model, token_counter=None):
                            3900, model=model, token_counter=token_counter)
     previous, previous_documents = None, []
     if doc_id is not None:
-        from backend.models import CaseAssistantWorkflow
+        from backend.models import WorkspaceRun
         # A short acknowledgment without documents must not sever the link to
         # the most recent document-backed work in this same chat.
-        for prior in CaseAssistantWorkflow.query.with_entities(
-                CaseAssistantWorkflow.id, CaseAssistantWorkflow.payload_json).filter_by(
+        for prior in WorkspaceRun.query.with_entities(
+                WorkspaceRun.id, WorkspaceRun.payload_json).filter_by(
                 draft_id=doc_id, status='completed').order_by(
-                CaseAssistantWorkflow.created_at.desc(), CaseAssistantWorkflow.id.desc()).yield_per(8):
+                WorkspaceRun.created_at.desc(), WorkspaceRun.id.desc()).yield_per(8):
             if not prior.payload_json:
                 continue
             saved_payload = json.loads(prior.payload_json)
@@ -254,7 +255,7 @@ def build(state, query, *, doc_id=None, model, token_counter=None):
 def for_request(state, data, query, *, doc_id, model, token_counter=None):
     # for_request() builds a bounded, durable snapshot of prior conversation for one workflow.
     # It is not the function that appends new chat messages.
-    from backend.util import case_assistant_workflow as service
+    from backend.util import workspace_service as service
     context = service.current_execution()
     row = service.validate_execution() if context else None
     accepted = json.loads(row.data_json) if row else data

@@ -8,8 +8,8 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt
 
-from backend.util.pleading_caption import create_document_with_caption
-from backend.util.pleading_format import (
+from backend.domains.legal.pleading_caption import create_document_with_caption
+from backend.domains.legal.pleading_format import (
     STYLE_BLOCK_QUOTE,
     STYLE_BODY,
     STYLE_BODY_CONTINUED,
@@ -440,7 +440,7 @@ def render_draft_sections_to_docx(
     return doc
 
 
-def create_everything_pleading_document(
+def create_workspace_pleading_document(
     title: str,
     sections: list[dict],
     *,

@@ -53,7 +53,7 @@ def _parallel_map(items: list, worker: Callable, max_workers: int = STRUCTURE_SE
     """Run worker(item) across a thread pool and return results in input order.
 
     On a per-item exception the result is None (callers substitute a fallback). Mirrors the
-    ordered-results pattern used in everything.py's threaded file extraction. Used to
+    ordered-results pattern used in document preparation. Used to
     parallelize the independent per-section structuring LLM calls.
     """
     items = list(items or [])

@@ -1,0 +1,10 @@
+{
+  "name": "dev-monica",
+  "appUrl": "http://localhost:3010",
+  "frontendPort": 3010,
+  "apiUrl": "/api/",
+  "apiOrigin": "http://127.0.0.1:5010",
+  "backendPort": 5010,
+  "redisPort": 6390,
+  "authentication": "local"
+}

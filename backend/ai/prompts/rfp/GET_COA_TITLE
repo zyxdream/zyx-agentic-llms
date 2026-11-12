@@ -1,4 +1,0 @@
-Identify the cause of action of the following section in a legal complaint.
-Only output the cause of action in a few words in plain text. Do not use JSON format.
-
-context of {section}:\n

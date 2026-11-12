@@ -12,10 +12,10 @@ backend/memory/
 backend/static/
 backend/uploads/
 artifacts/
-frontend/lex-intel/node_modules/
-frontend/lex-intel/playwright-report/
-frontend/lex-intel/test-results/
-frontend/lex-intel/src/brandConfig.generated.js
+frontend/node_modules/
+frontend/playwright-report/
+frontend/test-results/
+frontend/src/brandConfig.generated.js
 
 # SqLite files
 *.db
@@ -189,3 +189,15 @@ backend/ai/prompts/dismiss/SUGGEST_OTHER_BATCHES
 #Sample Date
  backend/scripts/seed_*.py
  backend/scripts/_seed_*.py
+
+**/node_modules/
+**/playwright-report/
+**/test-results/
+frontend/src/localConfig.generated.json
+
+!/.env.example
+
+# Project-private credentials and isolated local runtime
+.private/
+.env.*
+!/.env.example

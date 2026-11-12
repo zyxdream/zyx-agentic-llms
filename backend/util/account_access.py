@@ -30,7 +30,7 @@ def require_enabled_account(user_id):
         with db.engine.connect() as connection:
             row = connection.execute(statement).first()
     if row is None or row[0]:
-        raise AccountUnavailable('This account cannot use LexText.')
+        raise AccountUnavailable('This account cannot use zyx-agentic-llms.')
 
 
 def chat_account_id(chat_id):
@@ -40,7 +40,7 @@ def chat_account_id(chat_id):
         owner_id = db.session.execute(select(Project.userId).join(
             ChatThread, ChatThread.projectId == Project.id).where(ChatThread.id == chat_id)).scalar_one_or_none()
     if owner_id is None:
-        raise AccountUnavailable('This account cannot use LexText.')
+        raise AccountUnavailable('This account cannot use zyx-agentic-llms.')
     return owner_id
 
 
@@ -50,7 +50,7 @@ def project_account_id(project_id):
         owner_id = db.session.execute(
             select(Project.userId).where(Project.id == project_id)).scalar_one_or_none()
     if owner_id is None:
-        raise AccountUnavailable('This account cannot use LexText.')
+        raise AccountUnavailable('This account cannot use zyx-agentic-llms.')
     return owner_id
 
 

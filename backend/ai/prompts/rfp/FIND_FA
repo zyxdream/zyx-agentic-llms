@@ -1,8 +1,0 @@
-The following text is a list of all the headings in a text dump of a legal complaint.  Which heading do you think corresponds to the start of the Factual Allegations section, and which heading do you think corresponds to the end? Return the lines exactly as they were sent. If a heading spans two lines only return the first line.  
-
-The output should be a JSON with the following format: 
-{
-    "starting heading": "...",
-    "first heading after factual allegations": "..."
-}
-

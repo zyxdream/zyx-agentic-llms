@@ -8,8 +8,9 @@ import pytest
 
 from backend.database import db
 from backend.models import AgentArtifact, AgentStep, Drafts
-from backend.util import authority_research as research, authority_sources as sources
-from backend.util import case_assistant_workflow as workflow, source_context
+from backend.domains.legal import authority_sources as sources
+from backend.domains.legal import authority_research as research
+from backend.util import workspace_service as workflow, source_context
 from tests.test_agent_controller import agent
 from tests.test_document_preparation import app
 
@@ -29,8 +30,8 @@ def lookup_args(text, research_id=None, mode='overview'):
 
 
 def step_ops(row):
-    count = AgentStep.query.filter_by(workflow_run_id=row.id).count()
-    step = AgentStep(id=str(uuid.uuid4()), workflow_run_id=row.id, sequence=count + 1,
+    count = AgentStep.query.filter_by(run_id=row.id).count()
+    step = AgentStep(id=str(uuid.uuid4()), run_id=row.id, sequence=count + 1,
         kind='tool', name='lookup_authorities', arguments_json='{}', state='running',
         created_at=workflow.now(), updated_at=workflow.now())
     db.session.add(step)
@@ -39,7 +40,7 @@ def step_ops(row):
         snapshot=json.loads(row.data_json)['document_snapshot'], model='gpt-6-luna', effort='medium')
     def save(kind, value, artifact_id=None):
         uid = artifact_id or str(uuid.uuid4())
-        db.session.add(AgentArtifact(id=uid, workflow_run_id=row.id, step_id=step.id,
+        db.session.add(AgentArtifact(id=uid, run_id=row.id, step_id=step.id,
             kind=kind, content_json=json.dumps(value), created_at=workflow.now()))
         return uid
     ops.save = save
@@ -122,37 +123,8 @@ def capture_discovery_model(monkeypatch, mentions):
     return calls
 
 
-@pytest.mark.parametrize(('configured', 'environment', 'origin'), [
-    ('https://configured.example///', 'https://environment.example/', 'https://configured.example'),
-    (None, 'https://environment.example///', 'https://environment.example'),
-    ('', None, 'http://localhost:3000'),
-    (None, '', ''),
-], ids=['configuration-first', 'environment-fallback', 'local-default', 'empty-environment-preserved'])
-def test_viewer_url_preserves_origin_precedence_and_exact_encoding(ops, monkeypatch, app, configured, environment, origin):
-    monkeypatch.setitem(app.config, 'PUBLIC_APP_URL', configured)
-    if environment is None:
-        monkeypatch.delenv('PUBLIC_APP_URL', raising=False)
-    else:
-        monkeypatch.setenv('PUBLIC_APP_URL', environment)
-    chat = db.session.get(Drafts, ops.row.draft_id)
-    source = {'cluster_id': 51, 'citations': ['Smith v. Jones / § 1 & Co.']}
-    assert research._viewer_url(ops, source) == (
-        origin + '/CaseViewer/' + chat.public_id +
-        '/Smith%20v.%20Jones%20%2F%20%C2%A7%201%20%26%20Co.&51')
 
 
-@pytest.mark.parametrize(('labels', 'encoded'), [
-    ({'citations': ['First / citation', 'Ignored citation'], 'case_name': 'Ignored name'}, 'First%20%2F%20citation'),
-    ({'citations': [], 'case_name': 'Smith & Jones'}, 'Smith%20%26%20Jones'),
-    ({'case_name': 'État v. X'}, '%C3%89tat%20v.%20X'),
-    ({'citations': [], 'case_name': ''}, 'Case'),
-    ({}, 'Case'),
-], ids=['first-citation', 'empty-citations-use-name', 'name-only', 'empty-name-default', 'default-label'])
-def test_viewer_url_preserves_citation_name_and_default_label_order(ops, monkeypatch, app, labels, encoded):
-    monkeypatch.setitem(app.config, 'PUBLIC_APP_URL', 'https://legal.example/')
-    chat = db.session.get(Drafts, ops.row.draft_id)
-    assert research._viewer_url(ops, {'cluster_id': 52, **labels}) == (
-        'https://legal.example/CaseViewer/' + chat.public_id + '/' + encoded + '&52')
 
 
 @pytest.mark.parametrize('cluster_id', [None, 0, ''])
@@ -286,7 +258,7 @@ def test_original_anchors_ignore_provider_offsets_and_keep_repeated_propositions
     assert [item['proposition'] for item in authority['occurrences']] == ['First proposition as drafted.', 'Different proposition as drafted.']
     assert authority['checking']['identity'] == 'not_assessed'
     assert 'is_valid' not in authority
-    assert authority['candidates'][0]['viewer_url'].startswith('https://legal.example/CaseViewer/draft-1/')
+    assert authority['candidates'][0]['viewer_url']=='https://www.courtlistener.com/opinion/51/smith/'
     assert saved['coverage']['complete']
 
 
@@ -522,7 +494,7 @@ def test_opinion_metadata_does_not_read_all_opinions_or_claim_support(ops, monke
         assert passage[key] == selected[key] == source[key]
     assert passage['cluster_id'] == 51 and passage['case_name'] == 'Smith v. Jones'
     assert passage['citations'] == [CITATION]
-    assert '/CaseViewer/draft-1/' in passage['viewer_url']
+    assert passage['viewer_url']=='https://www.courtlistener.com/opinion/51/smith/'
     assert record(selected['research_id'])['authorities'][0]['checking']['proposition'] == 'not_assessed'
 
 
@@ -554,7 +526,7 @@ def test_identification_context_budget_exhaustion_propagates_without_a_coverage_
     args = lookup_args('A source to inspect.')
     with pytest.raises(ContextBudgetExceeded, match='context budget'):
         research.lookup(ops, args)
-    checkpoint = (AgentArtifact.query.filter_by(workflow_run_id=ops.row.id, kind=research.RESEARCH_KIND)
+    checkpoint = (AgentArtifact.query.filter_by(run_id=ops.row.id, kind=research.RESEARCH_KIND)
         .order_by(AgentArtifact.created_at.desc()).first())
     saved = record(checkpoint.id)
     assert saved['coverage']['failed_chunks'] == []
@@ -661,7 +633,7 @@ def test_same_chat_research_and_linked_assessments_survive_new_request(ops, monk
     data = json.loads(ops.row.data_json)
     ops.row.status = 'completed'; ops.row.active_draft_id = None
     db.session.commit()
-    data.pop('workflow_run_id', None); data['query'] = 'Continue the earlier legal research.'
+    data.pop('run_id', None); data['query'] = 'Continue the earlier legal research.'
     next_row = workflow.submit(ops.row.user_id, data)
     next_ops = step_ops(next_row)
     assert research.resolve_artifact(next_ops, analysis_id)['text'] == 'A generated interpretation.'

@@ -1,5 +1,5 @@
 
-from backend.ai.complaint_parser import (
+from backend.ai.document_parser import (
     get_text_from_pdf_fitz,
     get_text_with_line_metadata_from_pdf_fitz,
     get_pagenum_from_pdf_fitz,
@@ -18,7 +18,7 @@ import uuid
 logger = logging.getLogger(__name__)
 
 
-def remove_empty_rows(intext: str) -> list[str]: 
+def remove_empty_rows(intext: str) -> list[str]:
     return [row for row in intext.split('\n') if len(row.strip()) > 0]
 
 
@@ -80,7 +80,7 @@ def invert_side(side: str) -> str:
         return 'plaintiff'
     else:
         return 'defendant'
-    
+
 
 def remove_biz_type(instr: str) -> str:
     """If the plaintiff or defendant ends in ,LLC or .Inc, remove that."""
@@ -174,7 +174,7 @@ def log_complaint_text_metadata_preview(
         filename,
         line_metadata[:3],
     )
-    
+
 def check_valid_file_length(filepath:str) -> tuple[bool, int]:
     filename = filepath.split('/')[-1]
     f_type = filename.rsplit('.', 1)[1].lower()
@@ -192,7 +192,7 @@ def check_valid_file_length(filepath:str) -> tuple[bool, int]:
         complaint_text = filter_uploaded_text(open(filepath).read())
         print(f"txt file contains {len(complaint_text.split())} words")
         return len(complaint_text.split()) < 22000, len(complaint_text.split())
-    elif f_type == 'doc' or f_type == 'docx':   
+    elif f_type == 'doc' or f_type == 'docx':
         text = textract.process(filepath)
         complaint_text = filter_uploaded_text(text.decode('utf-8'))
         print(f"word file contains {len(complaint_text.split())} words")
@@ -275,7 +275,7 @@ def get_text_from_extended_formats(filepath: str) -> tuple[str, str, bool]:
             from backend.util.cloud_pdf_parser import get_text_from_pdf_cloud
             return get_text_from_pdf_cloud(filepath)
         else:
-            from backend.ai.complaint_parser import get_text_from_pdf_fitz
+            from backend.ai.document_parser import get_text_from_pdf_fitz
             return get_text_from_pdf_fitz(filepath)
 
     elif f_type in ('doc', 'docx'):
@@ -352,7 +352,7 @@ def export_complaints_to_markdown(
         if max_files is not None and processed_count >= max_files:
             break
     return written_files
-    
+
 
 def extract_from_json(expected_key, data_from_llm) -> list|str:
     """Tries to open JSON data from an LLM."""
@@ -363,7 +363,7 @@ def extract_from_json(expected_key, data_from_llm) -> list|str:
         else:
             print(f"Expected key '{expected_key}' not found in provided dict. Returning empty list.")
             return []
-        
+
     if isinstance(data_from_llm, bytes):
         data_str = data_from_llm.decode('utf-8')
     elif isinstance(data_from_llm, str):
@@ -377,7 +377,7 @@ def extract_from_json(expected_key, data_from_llm) -> list|str:
     if not data_str:
         print("Data is empty or contains only whitespace. Return Empty List")  # for example: data_from_llm is b''
         return []
-    
+
     try:
         parsed = json.loads(data_str)
         if expected_key in parsed:

@@ -4,12 +4,13 @@ import json
 
 import pytest
 
-from backend import agent_tasks as tasks, everything
+from backend import agent_tasks as tasks
+from backend.workspace import state as everything
 from backend.ai import base
 from backend.database import db
 from backend.models import AgentArtifact
 from backend.util import document_drafts as documents, draft_structure
-from backend.util import case_assistant_workflow as service
+from backend.util import workspace_service as service
 from tests.test_agent_controller import agent, call, last_result, operation, state, tick
 from tests.test_document_preparation import app
 
@@ -65,7 +66,6 @@ def test_create_revise_and_publish_keep_immutable_markdown_and_court_settings(ag
         return {'structural': {'require_caption_page': False}, 'layout': {'font_size_pt': 10 + len(formats)}}
     monkeypatch.setattr(documents, 'write_document', writer)
     monkeypatch.setattr(documents, 'resolve_court_settings', resolve)
-    monkeypatch.setattr(everything, 'run_draft_operation', lambda *a, **kw: pytest.fail('New documents bypass section drafting'))
     operation(agent, monkeypatch, 'create_draft', {'instructions': 'Write a reconciliation report with a table and code example.', 'material_ids': []})
     first = last_result(agent)['artifact_id']
     original = db.session.get(AgentArtifact, first).content_json
@@ -141,8 +141,6 @@ def test_markdown_verification_and_authority_lookup_receive_complete_document(ag
             'targets': [], 'authorities': [], 'sources': [], 'references': [], 'coverage': {}})
         return {'research_id': uid, 'artifact_id': uid, 'error': False}
     monkeypatch.setattr(agent_tools.Operations, 'lookup_authorities', lookup)
-    monkeypatch.setattr(everything._hg, 'run_hallucination_guard_on_text',
-                        lambda *a, **kw: pytest.fail('Agent invoked legacy HG'))
     operation(agent, monkeypatch, 'verify_draft', {'target': revision, 'instructions': 'Check all cells and code.',
         'material_ids': [], 'check_citations': True})
     assert audited == [SOURCE]
@@ -158,5 +156,5 @@ def test_cancelled_document_writer_cannot_save_a_candidate(agent, monkeypatch):
     monkeypatch.setattr(documents, 'write_document', cancelled)
     operation(agent, monkeypatch, 'create_draft', {'instructions': 'Make a report.', 'material_ids': []})
     assert agent.status == 'cancelled'
-    assert AgentArtifact.query.filter_by(workflow_run_id=agent.id, kind='draft').count() == 0
+    assert AgentArtifact.query.filter_by(run_id=agent.id, kind='draft').count() == 0
     assert state(agent)['draft']['title'] == 'Original'

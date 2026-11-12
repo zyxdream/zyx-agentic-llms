@@ -2,7 +2,7 @@
 import copy
 import json
 
-from backend import everything
+from backend.documents import revisions as everything
 from backend.database import db
 from backend.models import AgentArtifact
 from tests.test_agent_controller import agent, last_result, operation, state
@@ -19,14 +19,12 @@ def uploaded_revision(agent, monkeypatch, preserve_result):
     monkeypatch.setattr(everything, 'run_preserve_original_uploaded_revision', preserve)
     # Draft normalization may make a provider call for blocks. The helper's
     # already structured draft is sufficient for this result-contract test.
-    monkeypatch.setattr(everything, 'normalize_draft_for_phase2', lambda draft, **kwargs: draft)
     operation(agent, monkeypatch, 'revise_draft', {
         'instructions': 'Correct only the identified source passage.',
         'material_ids': [], 'target': target, 'revision_mode': 'preserve_original',
     })
     assert len(calls) == 1
     assert calls[0]['primary_draft_file_id'] == target
-    assert calls[0]['supporting_evidence']
     return last_result(agent)
 
 
@@ -54,7 +52,7 @@ def test_real_uploaded_bridge_retains_nested_rejections_and_truthful_status(agen
     assert body['generation_notes'].startswith('I changed the current draft to the right.')
     assert body['draft']['sections'][0]['section_content'] == 'Corrected source facts.'
     assert state(agent) == before
-    assert AgentArtifact.query.filter_by(workflow_run_id=agent.id, kind='draft').count() == 1
+    assert AgentArtifact.query.filter_by(run_id=agent.id, kind='draft').count() == 1
 
 
 def test_real_uploaded_bridge_reports_blocked_revision_without_candidate_or_publication(agent, monkeypatch):
@@ -65,6 +63,6 @@ def test_real_uploaded_bridge_reports_blocked_revision_without_candidate_or_publ
         'operations': [{'op': 'preserve_original_target_selection', 'needs_confirmation': True}],
     })
     assert result == {'error': True, 'message': message}
-    assert AgentArtifact.query.filter_by(workflow_run_id=agent.id, kind='draft').count() == 0
+    assert AgentArtifact.query.filter_by(run_id=agent.id, kind='draft').count() == 0
     assert state(agent) == before
     assert agent.status == 'running'

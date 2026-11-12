@@ -36,22 +36,21 @@ def update_form(fn: str, out_name: str, field_pairs: list):
 
 def generate_pdf(data_d: dict) -> str:
 
-    # determine the service 
+    # determine the service
     if data_d['service'] == 'Unlawful Detainer/Eviction Defense':
         mapping = UD105_MAPPING
         file_name = 'docs/ud105.pdf'
     else:
         return "service not supported"
-    
+
     # remove 'service' key from data_d
     mapped_pairs = list(map(lambda x: (mapping[x[0]], x[1]), data_d.items()))
     print('mapped_pairs: ', mapped_pairs)
     update_form(file_name, "backend/static/filled-out.pdf", mapped_pairs)
-    
+
     return "Form processed successfully"
 
 if __name__ == "__main__":
-    # update_form('docs/ud105.pdf', "frontend/lex-intel/public/filled-out.pdf", [('CaseNumber[0]', '5555555555')])
 
     generate_pdf({'service': 'Unlawful Detainer/Eviction Defense',
                   'caseNumber': '5784574985',

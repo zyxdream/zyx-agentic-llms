@@ -34,7 +34,7 @@ def recalculate_workbook(source, destination=None):
     if destination == source or destination == copied:
         raise ValueError('Choose a new path for the recalculated workbook.')
     destination.parent.mkdir(parents=True, exist_ok=True)
-    pipe_name = 'lexintel-' + uuid.uuid4().hex
+    pipe_name = 'zyx-agentic-llms-' + uuid.uuid4().hex
     command = ['soffice', '-env:UserInstallation=' + (work / 'profile').as_uri(),
                '--headless', '--nologo', '--nodefault', '--norestore', '--nofirststartwizard',
                '--accept=pipe,name=' + pipe_name + ';urp;StarOffice.ServiceManager']

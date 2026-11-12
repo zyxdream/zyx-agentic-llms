@@ -1,0 +1,48 @@
+name: Tests
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      ZYX_E2E: '1'
+      ZYX_REPLAY_E2E: '1'
+      ZYX_PYTHON_LIVE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      # textract 1.6.x carries legacy dependency metadata; preserve its existing installer requirement.
+      - run: python -m pip install 'pip<24.1'
+      - run: sudo apt-get update && sudo apt-get install -y redis-server antiword
+      - run: pip install -r requirements.txt
+      - run: python scripts/cache_tokenizers.py
+      - run: docker build -t zyx-agentic-llms-python-analysis:1 backend/python_runtime
+      - run: python -m pytest -q -p tests.offline_guard --junitxml=artifacts/workspace-replay/backend-results.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-replay-results
+          path: artifacts/workspace-replay
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - run: CI=true npm test -- --watch=false --runInBand
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-replay-results
+          path: artifacts/workspace-replay

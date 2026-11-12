@@ -1,4 +1,4 @@
-import boto3
+from backend.credentials import textract_client
 
 AWS_REGION = "us-east-1"
 
@@ -8,7 +8,7 @@ def detect_text_from_image_bytes(image_bytes: bytes) -> str:
     Returns extracted text (LINE blocks joined by newlines).
     Max 5 MB per image.
     """
-    client = boto3.client("textract", region_name=AWS_REGION)
+    client = textract_client()
     response = client.detect_document_text(Document={"Bytes": image_bytes})
     lines = [
         b["Text"]

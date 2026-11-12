@@ -424,7 +424,7 @@ def test_host_pruning_does_not_follow_a_directory_replaced_before_rmtree(tmp_pat
     assert retained.read_text() == 'saved'
 
 
-@pytest.mark.skipif(os.environ.get('LEXINTEL_PYTHON_LIVE') != '1', reason='Set LEXINTEL_PYTHON_LIVE=1 for Docker integration.')
+@pytest.mark.skipif(os.environ.get('ZYX_PYTHON_LIVE') != '1', reason='Set ZYX_PYTHON_LIVE=1 for Docker integration.')
 def test_real_container_analysis_recovery_and_input_isolation(tmp_path):
     source = tmp_path / 'payments.csv'
     source.write_text('invoice,amount\n001,20\n001,22\n002,7\n')
@@ -448,7 +448,7 @@ result = totals.to_dict(orient='records')
     assert missing['error'] is True and 'KeyError' in missing['traceback']
 
 
-@pytest.mark.skipif(os.environ.get('LEXINTEL_PYTHON_LIVE') != '1', reason='Set LEXINTEL_PYTHON_LIVE=1 for Docker integration.')
+@pytest.mark.skipif(os.environ.get('ZYX_PYTHON_LIVE') != '1', reason='Set ZYX_PYTHON_LIVE=1 for Docker integration.')
 def test_real_container_cleanup_removes_private_files_and_preserves_retained_outputs(tmp_path):
     source = tmp_path / 'original.csv'
     source.write_text('amount\n42\n')
@@ -480,7 +480,7 @@ result = 42
     assert hashlib.sha256(source.read_bytes()).hexdigest() == digest
 
 
-@pytest.mark.skipif(os.environ.get('LEXINTEL_PYTHON_LIVE') != '1', reason='Set LEXINTEL_PYTHON_LIVE=1 for Docker integration.')
+@pytest.mark.skipif(os.environ.get('ZYX_PYTHON_LIVE') != '1', reason='Set ZYX_PYTHON_LIVE=1 for Docker integration.')
 def test_real_container_recalculates_working_copy(tmp_path):
     import openpyxl
     source = tmp_path / 'formula.xlsx'
@@ -503,7 +503,7 @@ result = {'total': calculated['Summary']['B4'].value}
     assert hashlib.sha256(source.read_bytes()).hexdigest() == before
 
 
-@pytest.mark.skipif(os.environ.get('LEXINTEL_PYTHON_LIVE') != '1', reason='Set LEXINTEL_PYTHON_LIVE=1 for Docker integration.')
+@pytest.mark.skipif(os.environ.get('ZYX_PYTHON_LIVE') != '1', reason='Set ZYX_PYTHON_LIVE=1 for Docker integration.')
 def test_real_container_is_nonroot_without_network_and_has_timeout(tmp_path, monkeypatch):
     monkeypatch.setenv('LEXINTEL_PRIVATE_TEST_TOKEN', 'must-not-reach-the-container')
     code = '''import os, socket
@@ -524,7 +524,7 @@ result = {'uid': os.getuid(), 'network_blocked': network_blocked,
     assert timeout['output_files'] == []
 
 
-@pytest.mark.skipif(os.environ.get('LEXINTEL_PYTHON_LIVE') != '1', reason='Set LEXINTEL_PYTHON_LIVE=1 for Docker integration.')
+@pytest.mark.skipif(os.environ.get('ZYX_PYTHON_LIVE') != '1', reason='Set ZYX_PYTHON_LIVE=1 for Docker integration.')
 def test_real_container_reports_formula_errors_and_external_dependencies(tmp_path):
     from zipfile import ZipFile
     import openpyxl

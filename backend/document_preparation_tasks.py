@@ -139,7 +139,7 @@ def prepare_document(self, document_id, generation):
             if file is None:
                 file = UploadedFiles(unique_id=document_id, original_filename=filename, file_size=size,
                     chat_thread_id=group.chat_thread_id, project_id=group.project_id if not group.chat_thread_id else None,
-                    folder_upload_id=doc.folder_upload_id, relative_path=doc.relative_path, source='everything')
+                    folder_upload_id=doc.folder_upload_id, relative_path=doc.relative_path, source='workspace')
             file.content, file.page_count = text, pages
             file.metadata_json = serialize_metadata(default_document_metadata('pending'))
             db.session.add(file)

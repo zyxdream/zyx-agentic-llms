@@ -3,7 +3,7 @@ import fitz
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from backend.util.aws_textract import detect_text_from_image_bytes
 from backend.util.pdf_ocr_heuristic import page_needs_ocr
-from backend.ai.complaint_parser import (
+from backend.ai.document_parser import (
     clean_pdf_page_records_to_full_text,
     make_pdf_line_record,
     ocr_text_to_pdf_line_records,

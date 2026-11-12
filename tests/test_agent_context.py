@@ -11,7 +11,7 @@ from backend import agent_tasks as tasks
 from backend.ai import agent_tools, base, token_budget
 from backend.database import db
 from backend.models import AgentArtifact, AgentStep
-from backend.util import agent_context, case_assistant_workflow as service
+from backend.util import agent_context, workspace_service as service
 from tests.test_agent_controller import agent, choose, state, tick
 from tests.test_document_preparation import app
 
@@ -66,7 +66,7 @@ def raw_history(row):
 
 
 def claim(row):
-    token = tasks.claim_workflow(row.id, task_id=row.planning_task_id, task_field='planning_task_id')
+    token = tasks.claim_workflow(row.id, task_id=row.expected_task_id, task_field='expected_task_id')
     assert token
     return token
 
@@ -114,7 +114,7 @@ def test_unregistered_model_preserves_replay_without_estimating(context_row, mon
 def test_repeated_large_reads_are_bounded_and_preserve_saved_steps_and_artifacts(context_row, monkeypatch):
     row = context_row
     _, tools = add_group(row, [{'artifact_id': 'source-material', 'kind': 'source', 'text': 'original passage ' * 6000}])
-    artifact = AgentArtifact(id='source-material', workflow_run_id=row.id, step_id=tools[0].id,
+    artifact = AgentArtifact(id='source-material', run_id=row.id, step_id=tools[0].id,
         kind='source', content_json=service.encode({'kind': 'source', 'text': 'Exact original source body.'}), created_at=service.now())
     db.session.add(artifact); db.session.commit()
     saved_steps, saved_artifact, editor = completed_bytes(row), artifact.content_json, state(row)
@@ -207,7 +207,7 @@ def test_compaction_preserves_report_target_without_marking_a_later_candidate_ch
         (candidate_b, 'draft', revised_steps[0], {'kind': 'draft', 'revision_target': candidate_a,
             'draft': {'title': 'B', 'sections': []}}),
     ]:
-        db.session.add(AgentArtifact(id=uid, workflow_run_id=row.id, step_id=step.id,
+        db.session.add(AgentArtifact(id=uid, run_id=row.id, step_id=step.id,
             kind=kind, content_json=service.encode(body), created_at=service.now()))
     db.session.commit()
     saved_steps = completed_bytes(row)
@@ -370,7 +370,7 @@ def test_controller_finishes_from_compacted_synthetic_working_state(context_row,
         (candidate_id, 'draft', candidate_steps[0], {'kind': 'draft', 'draft': {
             'title': 'Candidate order summary', 'sections': [{'section_id': 'facts', 'section_name': 'Facts', 'section_content': facts}]}}),
     ]:
-        db.session.add(AgentArtifact(id=uid, workflow_run_id=row.id, step_id=step.id,
+        db.session.add(AgentArtifact(id=uid, run_id=row.id, step_id=step.id,
             kind=kind, content_json=service.encode(body), created_at=service.now()))
     db.session.commit()
     monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'gpt-6-luna', 140000)

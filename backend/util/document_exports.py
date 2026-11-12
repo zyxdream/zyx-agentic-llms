@@ -19,8 +19,8 @@ from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.shared import Inches, Pt, RGBColor
 from markdown_it import MarkdownIt
 
-from backend.util.pleading_caption import create_document_with_caption
-from backend.util.pleading_format import (
+from backend.domains.legal.pleading_caption import create_document_with_caption
+from backend.domains.legal.pleading_format import (
     STYLE_BLOCK_QUOTE, STYLE_BODY, STYLE_NUMBERED_PARAGRAPH, STYLE_TITLE,
     STYLE_TITLE1, STYLE_TITLE2, STYLE_TITLE3, apply_pleading_format_to_document,
     finalize_export_spec, get_structural_spec,
@@ -319,8 +319,8 @@ def convert_docx_to_pdf(source_path, output_path, *, timeout_seconds=120):
         raise ValueError('PDF conversion requires a DOCX document.')
     if timeout_seconds <= 0:
         raise ValueError('PDF conversion timeout must be positive.')
-    docker, name = _docker(), 'lexintel-document-' + uuid.uuid4().hex
-    with tempfile.TemporaryDirectory(prefix='lexintel-document-export-') as temporary:
+    docker, name = _docker(), 'zyx-agentic-llms-document-' + uuid.uuid4().hex
+    with tempfile.TemporaryDirectory(prefix='zyx-agentic-llms-document-export-') as temporary:
         work = Path(temporary)
         for directory in ('scratch', 'output'):
             (work / directory).mkdir(mode=0o777)
@@ -371,7 +371,7 @@ def export_document(draft, format, output_path, *, preset='general', pdf_convert
     elif format == 'docx':
         render_docx(draft, output_path, preset=preset)
     else:
-        with tempfile.TemporaryDirectory(prefix='lexintel-document-source-') as temporary:
+        with tempfile.TemporaryDirectory(prefix='zyx-agentic-llms-document-source-') as temporary:
             source = render_docx(draft, Path(temporary) / 'document.docx', preset=preset)
             (pdf_converter or convert_docx_to_pdf)(source, output_path)
     return {'format': format, 'content_type': CONTENT_TYPES[format], 'filename': output_path.name,

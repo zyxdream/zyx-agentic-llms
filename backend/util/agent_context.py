@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.models import AgentStep
-from backend.util import case_assistant_workflow as service
+from backend.util import workspace_service as service
 from backend.util.preparation_summary import token_count
 from backend.ai.token_budget import IncompleteStructuredOutput, estimate_text_request, usable_input_budget, validate_text_request
 
@@ -52,7 +52,7 @@ class _Group:
 def _groups(row, through):
     """Rebuild history for the next LLM call from saved tool requests and their matching results."""
     # Read only the raw suffix. Old large bodies stay in SQL after compaction.
-    saved = AgentStep.query.filter_by(workflow_run_id=row.id, state='ready').filter(AgentStep.sequence > through).order_by(AgentStep.sequence).all()
+    saved = AgentStep.query.filter_by(run_id=row.id, state='ready').filter(AgentStep.sequence > through).order_by(AgentStep.sequence).all()
     groups = []
     expected = set()
     for step in saved:
@@ -78,7 +78,7 @@ def clarifications(row, through):
     # Shared by working-context replay and verify_draft(). Read actual SQL
     # answers, which remain available even after generated working notes replace
     # their call/result groups in the controller's next LLM input.
-    questions = AgentStep.query.filter_by(workflow_run_id=row.id, kind='tool', name='request_user_input', state='ready').filter(AgentStep.sequence <= through).order_by(AgentStep.sequence).all()
+    questions = AgentStep.query.filter_by(run_id=row.id, kind='tool', name='request_user_input', state='ready').filter(AgentStep.sequence <= through).order_by(AgentStep.sequence).all()
     answers = []
     for step in questions:
         result = json.loads(step.result_json)
