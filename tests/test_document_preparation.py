@@ -458,6 +458,28 @@ def test_prompt_scope_metadata_survives_normalization(app):
     assert meta['document_scope'] == scope
 
 
+def test_project_folder_catalog_is_shared_and_keeps_relative_paths(app):
+    entries = manifest('folder-file')
+    entries[0]['relative_path'] = 'nested/folder-file.txt'
+    group = prep.admit_group(1, 'matter', 1, 'project-folder', entries, folder_name='Research')
+    for draft_id in ('draft-1', 'draft-2'):
+        documents = prep.catalog(1, draft_id)['documents']
+        assert len(documents) == 1
+        assert documents[0]['folder_name'] == 'Research'
+        assert documents[0]['relative_path'] == 'nested/folder-file.txt'
+        assert documents[0]['scope'] == 'matter'
+    assert prep.catalog(2, project_id=2)['documents'] == []
+    assert len(group['documents']) == 1
+
+
+@pytest.mark.parametrize('key', ['file_name', 'fileName', 'filename', 'name'])
+def test_prompt_attachment_filename_variants_are_preserved(app, key):
+    from backend.workspace.state import _normalize_prompt_turn_meta
+    assert _normalize_prompt_turn_meta({'prompt_attachments': [
+        {'file_id': 'file-1', key: 'notes.txt'}]})['prompt_attachments'] == [
+            {'file_id': 'file-1', 'file_name': 'notes.txt'}]
+
+
 
 
 def test_deleting_draft_cascades_preparation_on_sqlite(app):

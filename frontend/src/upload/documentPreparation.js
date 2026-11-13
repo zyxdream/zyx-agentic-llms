@@ -2,6 +2,14 @@
 export const uploadId = () => window.crypto?.randomUUID?.()
   || `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+export function matchesPendingUpload(document, entry, options) {
+  return document.scope === options.scope && document.needs_reupload
+    && document.filename === entry.file.name && document.file_size === entry.file.size
+    && (document.relative_path || null) === (entry.relativePath || null)
+    && (!options.folderName || document.folder_name === options.folderName)
+    && (!options.folderId || String(document.folder_id) === String(options.folderId));
+}
+
 export function preparationScopeBytes(documents, scope) {
   return documents.filter(doc => doc.scope === scope && doc.status !== 'cancelled')
     .reduce((total, doc) => total + (doc.file_size || 0), 0);

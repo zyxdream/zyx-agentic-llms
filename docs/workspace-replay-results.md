@@ -46,7 +46,7 @@ These deterministic checks cannot evaluate the reasoning quality of a real model
 | 13-file restoration, grouped transfer and 100/101 limits | Source-card readiness, staggered summaries, batched transfer and admission limits. Chip colors are replaced by explicit preparation status. |
 | Failed/partial source inclusion, prompt exclusions | Blocking while unavailable, ready partial coverage without approval, per-prompt exclusions, recovery and earlier-file context. |
 | Attachments restored after delayed/failing reads | Scope-aware restoration, reconnect, first prompt in a new conversation and delayed acceptance preserving another conversation's exclusions. |
-| Fast/Deep and long-running polling | Both modes, more than 200 polls, server timeout and one active status poller. The removed Doc Search product is not restored. |
+| Fast/Deep and long-running polling | The chooser is removed. Browser checks now verify backend-owned selection; more than 200 polls, server timeout and one active status poller remain covered. Legacy policy compatibility is checked on the backend. The removed Doc Search product is not restored. |
 | Saved evidence and file downloads | Source summaries/original text, staged document artifacts and generated Python files. |
 
 ## Issues exposed and corrected
@@ -80,3 +80,7 @@ The original five-pair benchmark samples are saved under `artifacts/workspace-re
 The local execution image was created by copying the current runtime code onto the already-installed local execution image, without network access. A clean rebuild from the Debian Dockerfile could not complete with networking disabled because its package layer was not cached. Runtime behavior was tested; a clean image build will be exercised by the configured CI workflow when it is run.
 
 The browser runner, backend commands, artifact locations and isolation details are documented in `tests/e2e/README.md`. GitHub Actions is configured to run the full backend/worker/Docker matrix and mocked browser suite; it has not been run remotely because no code was pushed.
+
+## Project documents and attachments follow-up
+
+The current input/output separation passes **501 backend tests**, including the real isolated Redis/Celery and Docker checks, **108 component tests**, **96 browser workflows**, and the production build. The browser count includes 18 new document-library/attachment cases. Existing cancel, reload, clarification, retry, version conflicts, downloads, polling and stale-response checks remain covered. See [the behavior and verification details](project-documents-and-attachments.md).

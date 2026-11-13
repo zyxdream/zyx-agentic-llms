@@ -162,7 +162,7 @@ class Backend {
         response: r.response,
         status: r.status,
         created_at: r.created_at,
-        metadata: {}
+        metadata: {prompt_attachments:r.attachments || []}
       })),
       active_run: active ? this.progress(active) : null
     };
@@ -307,6 +307,7 @@ class Backend {
       if (!r) {
         r = this.run(m[1], this.autoComplete ? 'completed' : 'running', body.run_id);
         r.query = body.query;
+        r.attachments = body.promptAttachments || [];
         r.response = this.autoComplete ? this.answer : '';
         this.lastSubmission = body;
         for (const d of this.sources) {
@@ -388,6 +389,9 @@ class Backend {
         clientUploadId: e.client_upload_id,
         group_id: id,
         scope: body.scope,
+        relative_path: e.relative_path || null,
+        folder_id: body.folderName ? id : null,
+        folder_name: body.folderName || null,
         project: body.scope === 'matter' ? +body.scopeId : this.chats[body.scopeId].project_id,
         needs_reupload: true
       }));
@@ -404,6 +408,7 @@ class Backend {
     if (m = path.match(/^upload-groups\/([^/]+)\/files$/)) {
       const group = this.groups[m[1]];
       for (const d of group.documents) {
+        if (d.status === 'cancelled') continue;
         d.status = this.uploadReady ? 'ready' : 'summarizing';
         d.stage = d.status;
         d.needs_reupload = false;
@@ -456,30 +461,32 @@ class Backend {
     return this.requests.filter(r => r.path === path && (!method || r.method === method)).length;
   }
 }
-async function open(page, backend, chat = 'a', {panel = 'sources'} = {}) {
+async function open(page, backend, chat = 'a', {panel = 'attachments'} = {}) {
   await page.addInitScript(({
-    chat
+    chat, panel
   }) => {
     if (!sessionStorage.getItem('replay-seeded')) {
       sessionStorage.setItem('workspace.project', chat === 'c' ? '2' : '1');
       sessionStorage.setItem('workspace.conversation', chat);
       localStorage.setItem('workspace.project', chat === 'c' ? '2' : '1');
       localStorage.setItem('workspace.conversation', chat);
+      if (panel) sessionStorage.setItem(`workspace.panel:${chat}`, JSON.stringify({open:true,tab:panel}));
       sessionStorage.setItem('replay-seeded', '1');
     }
   }, {
-    chat
+    chat, panel
   });
   await page.goto('/');
   await expect(page.getByRole('heading', {
     name: backend.chats[chat].name,
     exact: true
   })).toBeVisible();
-  if (panel) await showPanel(page,panel);
+  if (panel) await expect(page.locator('.workspace-inspector:not([hidden]) .inspector-heading h2')).toHaveText(panel === 'output' ? 'Output' : panel === 'project-documents' ? 'Project documents' : 'Attachments');
 }
 async function showPanel(page,tab) {
-  await page.getByRole('button',{name:tab==='document'?'Document':'Sources',exact:true}).click();
-  await expect(page.getByRole('tab',{name:tab==='document'?'Document':'Sources',exact:true})).toHaveAttribute('aria-selected','true');
+  const name = tab === 'output' ? 'Output' : tab === 'project-documents' ? 'Project documents' : 'Attachments';
+  await page.getByRole('button',{name,exact:true}).first().click();
+  await expect(page.locator('.workspace-inspector:not([hidden]) .inspector-heading h2')).toHaveText(name);
 }
 async function selectProject(page,name) {
   await page.getByRole('button',{name:`Open project ${name}`,exact:true}).click();
@@ -487,8 +494,10 @@ async function selectProject(page,name) {
   await expect(page.getByRole('button',{name:`Open project ${name}`,exact:true})).toHaveAttribute('aria-current','true');
 }
 async function choose(page, name) {
-  const tabs=page.getByRole('tab',{name:'Document',exact:true});
-  const panel=await tabs.count() ? (await tabs.getAttribute('aria-selected')==='true'?'document':'sources') : null;
+  const heading=page.locator('.workspace-inspector:not([hidden]) .inspector-heading h2');
+  const title=await heading.count() ? await heading.textContent() : null;
+  const panel=title === 'Output' ? 'output' : title === 'Project documents' ? 'project-documents' : title === 'Attachments' ? 'attachments' : null;
+  if (panel) await page.evaluate(panel=>{for(const chat of ['a','b','c']) if (!sessionStorage.getItem(`workspace.panel:${chat}`)) sessionStorage.setItem(`workspace.panel:${chat}`,JSON.stringify({open:true,tab:panel}));},panel);
   await page.getByRole('button', {
     name,
     exact: true
@@ -498,10 +507,10 @@ async function choose(page, name) {
     name,
     exact: true
   })).toBeVisible();
-  if (panel) await showPanel(page,panel);
+  if (panel) await expect(page.locator('.workspace-inspector:not([hidden]) .inspector-heading h2')).toHaveText(title);
 }
 async function send(page, text = 'Please summarize the source.') {
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill(text);
   await page.getByRole('button', {

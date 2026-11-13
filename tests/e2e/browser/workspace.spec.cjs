@@ -52,13 +52,14 @@ test('three uploads prepare, clarify across reload, publish and download DOCX', 
 }) => {
   backend.uploadReady = false;
   await open(page, backend);
+  await page.getByRole('button',{name:'Attach files',exact:true}).first().click();
   await page.getByLabel('Add files').setInputFiles(['one', 'two', 'three'].map(n => ({
     name: n + '.txt',
     mimeType: 'text/plain',
     buffer: Buffer.from('source ' + n)
   })));
-  await expect(page.locator('.source')).toHaveCount(3);
-  await page.getByLabel('Assignment', {
+  await expect(page.locator('.source:visible')).toHaveCount(3);
+  await page.getByLabel('Message', {
     exact: true
   }).fill('Draft a report');
   await expect(page.getByRole('button', {
@@ -88,7 +89,7 @@ test('three uploads prepare, clarify across reload, publish and download DOCX', 
     name: 'Continue',
     exact: true
   }).click();
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await expect(page.getByRole('heading', {
     name: 'Final source B report'
   })).toBeVisible();
@@ -96,17 +97,24 @@ test('three uploads prepare, clarify across reload, publish and download DOCX', 
   expect(backend.lastSubmission.promptAttachments).toHaveLength(3);
   const download = page.waitForEvent('download');
   await page.getByRole('button', {
-    name: 'Download document'
+    name: 'Download output'
   }).click();
-  expect((await download).suggestedFilename()).toBe('Document.docx');
+  expect((await download).suggestedFilename()).toBe('Output.docx');
 });
-for (const mode of ['fast', 'deep']) test(`reasoning mode ${mode} is sent to the agent`, async ({
-  page
-}) => {
-  await open(page, backend);
-  await page.getByLabel('Reasoning mode').selectOption(mode);
-  await send(page);
-  await expect.poll(() => backend.lastSubmission?.assistant_mode).toBe(mode);
+test('empty conversation uses minimal general-purpose wording and no model chooser', async ({page}) => {
+  await open(page,backend,'a',{panel:null});
+  await expect(page.getByRole('heading',{name:'What’s next?',exact:true})).toBeVisible();
+  await expect(page.getByRole('textbox',{name:'Message',exact:true})).toHaveAttribute('placeholder','Message Workspace…');
+  await expect(page.locator('.conversation-welcome')).toHaveText('What’s next?');
+  await expect(page.getByRole('combobox',{name:'Reasoning mode',exact:true})).toHaveCount(0);
+  await expect(page.getByText('Fast',{exact:true})).toHaveCount(0);
+  await expect(page.getByText('Deep',{exact:true})).toHaveCount(0);
+});
+test('frontend submissions leave all model selection to the backend', async ({page}) => {
+  await open(page,backend);
+  await send(page,'Hello Workspace');
+  await expect.poll(() => backend.lastSubmission?.query).toBe('Hello Workspace');
+  for(const key of ['assistant_mode','model','selected_model'])expect(backend.lastSubmission).not.toHaveProperty(key);
 });
 test('staged candidates stay out of the editor until publication', async ({
   page
@@ -128,9 +136,9 @@ test('staged candidates stay out of the editor until publication', async ({
   await expect(controls(page).getByRole('heading', {
     name: 'Staged candidate'
   })).toBeVisible();
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await expect(page.getByRole('region', {
-    name: 'Document',
+    name: 'Output',
     exact: true
   }).getByRole('heading', {
     name: 'Original a'
@@ -145,7 +153,7 @@ test('unnamed Markdown body, tables and safe source links survive reload', async
   };
   await open(page, backend);
   await page.reload();
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await expect(page.getByRole('cell', {
     name: '2',
     exact: true
@@ -318,7 +326,7 @@ test('delayed preflight in A cannot submit after switching to B', async ({
   h.release();
   await idle(page);
   expect(backend.requests.filter(q => q.path === 'conversations/a/runs')).toHaveLength(0);
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill('For B');
   await expect(page.getByRole('button', {
@@ -378,7 +386,7 @@ test('late Cancel cannot replace a newer assignment in the same chat', async ({
   }).click();
   await h.entered;
   backend.complete(r);
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill('A newer assignment');
   await expect(page.getByRole('button', {
@@ -396,14 +404,14 @@ test('manual save finishing after answer publication preserves the completed ans
   page
 }) => {
   await open(page, backend);
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
-  await page.getByLabel('Document Markdown').fill('# Manual content');
+  await page.getByLabel('Output Markdown').fill('# Manual content');
   const h = hold(q => q.path === 'documents/doc-a' && q.method === 'PATCH');
   await page.getByRole('button', {
-    name: 'Save document'
+    name: 'Save output'
   }).click();
   await h.entered;
   backend.run('a', 'completed').response = 'Concurrently saved answer';
@@ -420,19 +428,19 @@ test('document conflict preserves unsaved Markdown until explicit reload', async
   page
 }) => {
   await open(page, backend);
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
-  await page.getByLabel('Document Markdown').fill('# Keep my unsaved text');
+  await page.getByLabel('Output Markdown').fill('# Keep my unsaved text');
   backend.versions.a = 2;
   await page.getByRole('button', {
-    name: 'Save document'
+    name: 'Save output'
   }).click();
   await expect(page.getByRole('alert').filter({
     hasText: 'changed elsewhere'
   })).toBeVisible();
-  await expect(page.getByLabel('Document Markdown')).toHaveValue('# Keep my unsaved text');
+  await expect(page.getByLabel('Output Markdown')).toHaveValue('# Keep my unsaved text');
   await page.reload();
   await expect(page.getByRole('heading', {
     name: 'Original a'
@@ -442,28 +450,28 @@ test('explicit saves serialize and use the acknowledged document version', async
   page
 }) => {
   await open(page, backend);
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
-  await page.getByLabel('Document Markdown').fill('# First');
+  await page.getByLabel('Output Markdown').fill('# First');
   const h = hold(q => q.path === 'documents/doc-a' && q.method === 'PATCH');
   await page.getByRole('button', {
-    name: 'Save document'
+    name: 'Save output'
   }).click();
   await h.entered;
   await expect(page.getByRole('button', {
-    name: 'Save document'
+    name: 'Save output'
   })).toBeDisabled();
-  await expect(page.getByLabel('Document Markdown',{exact:true})).toBeDisabled();
+  await expect(page.getByLabel('Output Markdown',{exact:true})).toBeDisabled();
   h.release();
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
-  await page.getByLabel('Document Markdown').fill('# Second');
+  await page.getByLabel('Output Markdown').fill('# Second');
   await page.getByRole('button', {
-    name: 'Save document'
+    name: 'Save output'
   }).click();
   await expect(page.getByRole('heading', {
     name: 'Second'
@@ -480,29 +488,29 @@ test('save response for another document keeps local edits and reports the misma
     document: document('b'),
     document_version: 2
   })).release();
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
-  await page.getByLabel('Document Markdown').fill('# Preserve this edit');
+  await page.getByLabel('Output Markdown').fill('# Preserve this edit');
   await page.getByRole('button', {
-    name: 'Save document'
+    name: 'Save output'
   }).click();
   await expect(page.getByRole('alert')).toContainText(/document|conversation/i);
-  await expect(page.getByLabel('Document Markdown')).toHaveValue('# Preserve this edit');
+  await expect(page.getByLabel('Output Markdown')).toHaveValue('# Preserve this edit');
 });
 test('late document-save response cannot replace another conversation', async ({
   page
 }) => {
   await open(page, backend);
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
-  await page.getByLabel('Document Markdown').fill('# A saved edit');
+  await page.getByLabel('Output Markdown').fill('# A saved edit');
   const h = hold(q => q.path === 'documents/doc-a' && q.method === 'PATCH');
   await page.getByRole('button', {
-    name: 'Save document'
+    name: 'Save output'
   }).click();
   await h.entered;
   await choose(page, 'Chat B');
@@ -570,8 +578,8 @@ test('13 staggered uploads retain all source cards and readiness after reload', 
     length: 13
   }, (_, i) => source('file-' + i, 'a', i < 5 ? 'ready' : 'summarizing'));
   await open(page, backend);
-  await expect(page.locator('.source')).toHaveCount(13);
-  await page.getByLabel('Assignment', {
+  await expect(page.locator('.source:visible')).toHaveCount(13);
+  await page.getByLabel('Message', {
     exact: true
   }).fill('Read all files');
   await expect(page.getByRole('button', {
@@ -579,9 +587,9 @@ test('13 staggered uploads retain all source cards and readiness after reload', 
     exact: true
   })).toBeDisabled();
   await page.reload();
-  await expect(page.locator('.source')).toHaveCount(13);
+  await expect(page.locator('.source:visible')).toHaveCount(13);
   backend.sources.forEach(s => s.status = 'ready');
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill('Read all files');
   await expect(page.getByRole('button', {
@@ -594,6 +602,7 @@ for (const count of [100, 101]) test(`${count} selected files ${count === 100 ? 
 }) => {
   test.setTimeout(60000);
   await open(page, backend);
+  await page.getByRole('button',{name:'Attach files',exact:true}).first().click();
   await page.getByLabel('Add files').setInputFiles(Array.from({
     length: count
   }, (_, i) => ({
@@ -602,7 +611,7 @@ for (const count of [100, 101]) test(`${count} selected files ${count === 100 ? 
     buffer: Buffer.from('data')
   })));
   if (count === 100) {
-    await expect(page.locator('.source')).toHaveCount(100);
+    await expect(page.locator('.source:visible')).toHaveCount(100);
     await expect.poll(() => backend.sources.filter(s => s.status === 'ready').length).toBe(100);
     expect(backend.requests.filter(q => /^upload-groups\/.*\/files$/.test(q.path)).length).toBeGreaterThan(1);
   } else {
@@ -625,7 +634,7 @@ test('ready partial-coverage sources permit Send across reload without approval'
   })];
   await open(page, backend);
   await page.reload();
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill('Read partial source');
   await expect(page.getByRole('button', {
@@ -639,18 +648,18 @@ test('excluded failed sources remain scoped and persist through reload', async (
 }) => {
   backend.sources = [source('failed', 'a', 'failed'), source('ready')];
   await open(page, backend);
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill('Use ready source');
   await expect(page.getByRole('button', {
     name: 'Send',
     exact: true
   })).toBeDisabled();
-  await page.locator('.source').filter({
+  await page.locator('.source:visible').filter({
     hasText: 'failed.txt'
   }).getByRole('checkbox').uncheck();
   await page.reload();
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill('Use ready source');
   await page.getByRole('button', {
@@ -669,7 +678,7 @@ for (const failed of [false, true]) test(`late attachment ${failed ? 'failure' :
   await open(page, backend);
   await h.entered;
   await choose(page, 'Chat B');
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill('B only');
   await expect(page.getByRole('button', {
@@ -692,7 +701,7 @@ test('source restoration failure blocks Send and reconnects without losing the a
     msg: 'Temporary source failure'
   }, 503) : undefined);
   await open(page, backend);
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill('Keep this assignment');
   await expect(page.getByRole('button', {
@@ -708,7 +717,7 @@ test('source restoration failure blocks Send and reconnects without losing the a
   })).toBeEnabled({
     timeout: 20000
   });
-  await expect(page.getByLabel('Assignment', {
+  await expect(page.getByLabel('Message', {
     exact: true
   })).toHaveValue('Keep this assignment');
 });
@@ -737,11 +746,11 @@ test('late accepted submission in A preserves B source exclusions', async ({
   await send(page);
   await h.entered;
   await choose(page, 'Chat B');
-  await page.locator('.source').getByRole('checkbox').uncheck();
+  await page.locator('.source:visible').getByRole('checkbox').uncheck();
   h.release();
   await idle(page);
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('document-exclusions:1/b')))).toEqual(['bad-b']);
-  await page.getByLabel('Assignment', {
+  await page.getByLabel('Message', {
     exact: true
   }).fill('B request');
   await expect(page.getByRole('button', {
@@ -756,18 +765,19 @@ for (const interrupted of [false, true]) test(`cross-tab source upload is discov
   await open(page, backend);
   const second = await context.newPage();
   await open(second, backend);
+  await second.getByRole('button',{name:'Attach files',exact:true}).first().click();
   await second.getByLabel('Add files').setInputFiles({
     name: 'second-tab.txt',
     mimeType: 'text/plain',
     buffer: Buffer.from('data')
   });
-  await expect(second.locator('.source')).toHaveCount(1);
+  await expect(second.locator('.source:visible')).toHaveCount(1);
   let failures = interrupted ? 1 : 0;
   backend.hooks.push(q => q.path === 'document-preparation' && q.url.searchParams.get('conversation_id') === 'a' && failures-- > 0 ? backend.json(q, {
     msg: 'Temporary'
   }, 503) : undefined);
   await page.reload();
-  await expect(page.locator('.source')).toHaveCount(1, {
+  await expect(page.locator('.source:visible')).toHaveCount(1, {
     timeout: 20000
   });
 });
@@ -781,10 +791,10 @@ test('project sources appear in both conversations without including other proje
     scope: 'matter',
     project: 2
   })];
-  await open(page, backend);
-  await expect(page.locator('.source')).toContainText('project-one.txt');
+  await open(page, backend, 'a', {panel:'project-documents'});
+  await expect(page.locator('.source:visible')).toContainText('project-one.txt');
   await choose(page, 'Chat B');
-  await expect(page.locator('.source')).toContainText('project-one.txt');
+  await expect(page.locator('.source:visible')).toContainText('project-one.txt');
   await expect(page.getByText('project-two.txt')).toHaveCount(0);
 });
 test('original source inspection and saved summaries use source identity', async ({
@@ -793,11 +803,11 @@ test('original source inspection and saved summaries use source identity', async
   backend.sources = [source('readable')];
   await open(page, backend);
   await page.getByRole('button', {
-    name: 'Read source',
+    name: 'Read file',
     exact: true
   }).click();
   await expect(page.getByRole('region', {
-    name: 'Source text'
+    name: 'File text'
   })).toContainText('Original source text');
   await page.locator('.source summary').click();
   await expect(page.getByText('Detailed source evidence.')).toBeVisible();
@@ -873,7 +883,7 @@ test('excluding a failed source applies to one prompt and it returns when ready'
   backend.autoComplete = true;
   backend.sources = [source('ready'), source('later', 'a', 'failed')];
   await open(page, backend);
-  await page.locator('.source').filter({
+  await page.locator('.source:visible').filter({
     hasText: 'later.txt'
   }).getByRole('checkbox').uncheck();
   await send(page, 'First assignment');
@@ -883,7 +893,7 @@ test('excluding a failed source applies to one prompt and it returns when ready'
   expect(backend.lastSubmission.promptAttachments.map(f => f.file_id)).toEqual(['ready']);
   backend.sources.find(s => s.document_id === 'later').status = 'ready';
   await page.reload();
-  await expect(page.locator('.source').filter({
+  await expect(page.locator('.source:visible').filter({
     hasText: 'later.txt'
   }).getByRole('checkbox')).toBeChecked();
   await send(page, 'Next assignment');

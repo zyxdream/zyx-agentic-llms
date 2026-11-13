@@ -571,7 +571,7 @@ def _normalize_prompt_turn_meta(raw_prompt_turn_meta):
             if not isinstance(attachment, dict):
                 continue
             file_id_raw = attachment.get('file_id') or attachment.get('fileId')
-            file_name_raw = attachment.get('file_name') or attachment.get('fileName') or attachment.get('name')
+            file_name_raw = attachment.get('file_name') or attachment.get('fileName') or attachment.get('filename') or attachment.get('name')
             if not file_id_raw and not file_name_raw:
                 continue
             file_id = str(file_id_raw) if file_id_raw else ''

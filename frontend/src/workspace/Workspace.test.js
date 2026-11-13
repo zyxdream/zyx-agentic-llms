@@ -75,10 +75,10 @@ test('restores a conversation and preserves unsaved edits after a version confli
   await screen.findByRole('heading', {
     name: 'Review'
   });
-  await waitFor(() => expect(screen.getByRole('button', {name:'Document',exact:true})).toBeEnabled());
-  fireEvent.click(screen.getByRole('button', {name:'Document',exact:true}));
+  await waitFor(() => expect(screen.getByRole('button', {name:'Output',exact:true})).toBeEnabled());
+  fireEvent.click(screen.getByRole('button', {name:'Output',exact:true}));
   fireEvent.click(screen.getByText('Edit Markdown'));
-  const editor = screen.getByLabelText('Document Markdown');
+  const editor = screen.getByLabelText('Output Markdown');
   fireEvent.change(editor, {
     target: {
       value: '# My unsaved edits'
@@ -93,7 +93,7 @@ test('restores a conversation and preserves unsaved edits after a version confli
       }
     };
   });
-  fireEvent.click(screen.getByText('Save document'));
+  fireEvent.click(screen.getByText('Save output'));
   await screen.findByRole('alert');
   expect(editor.value).toBe('# My unsaved edits');
   const call = axios.mock.calls.at(-1)[0];
@@ -191,7 +191,7 @@ test('reuses a submission identity when the HTTP response is lost', async () => 
   await screen.findByRole('heading', {
     name: 'Review'
   });
-  fireEvent.change(await screen.findByLabelText('Assignment'), {
+  fireEvent.change(await screen.findByLabelText('Message'), {
     target: {
       value: 'Draft a summary'
     }
@@ -202,4 +202,18 @@ test('reuses a submission identity when the HTTP response is lost', async () => 
   await waitFor(() => expect(sent).toBe(2));
   const calls = axios.mock.calls.map(c => c[0]).filter(c => c.url.endsWith('/runs'));
   expect(calls[0].data.run_id).toBe(calls[1].data.run_id);
+  for (const call of calls) {
+    for (const key of ['assistant_mode','model','selected_model']) expect(call.data).not.toHaveProperty(key);
+  }
+});
+
+test('empty conversations show only the short welcome and generic Message input', async () => {
+  render(<Workspace/>);
+  const input=await screen.findByRole('textbox',{name:'Message',exact:true});
+  expect(input).toHaveAttribute('placeholder','Message Workspace…');
+  expect(screen.getByRole('heading',{name:'What’s next?',exact:true})).toBeVisible();
+  expect(document.querySelector('.conversation-welcome')).toHaveTextContent(/^What’s next\?$/);
+  expect(screen.queryByRole('combobox',{name:'Reasoning mode'})).toBeNull();
+  expect(screen.queryByText('Fast',{exact:true})).toBeNull();
+  expect(screen.queryByText('Deep',{exact:true})).toBeNull();
 });

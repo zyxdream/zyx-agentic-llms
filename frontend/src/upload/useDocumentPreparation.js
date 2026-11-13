@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { API_URL } from '../Constants';
 import { ensureHeaders } from '../auth/useSetHeaders';
-import { preparationBlockers, retryRequest, transferPreparationFiles, uploadId, validatePreparationTotalSize } from './documentPreparation';
+import { matchesPendingUpload, preparationBlockers, retryRequest, transferPreparationFiles, uploadId, validatePreparationTotalSize } from './documentPreparation';
 
 export function useDocumentPreparation({ draftId, projectId }) {
   const [catalog, setCatalog] = useState({ enabled: true, loaded: false, documents: [] });
@@ -116,8 +116,7 @@ export function useDocumentPreparation({ draftId, projectId }) {
       // A reselected, untransferred file resumes its durable manifest entry.
       const resumed = [], fresh = [];
       for (const entry of entries) {
-        const matches = pending.filter(doc => doc.filename === entry.file.name && doc.file_size === entry.file.size
-          && (doc.relative_path || null) === (entry.relativePath || null));
+        const matches = pending.filter(doc => matchesPendingUpload(doc, entry, {...options, scope:destination}));
         if (matches.length > 1) throw new Error('Multiple pending uploads have this name and size. Remove the ambiguous pending entries, then select the files again.');
         if (matches.length === 1) {
           const doc = matches[0]; pending.splice(pending.indexOf(doc), 1);
@@ -175,7 +174,7 @@ export function useDocumentPreparation({ draftId, projectId }) {
       if (updated.needs_reupload && file) {
         await transferPreparationFiles(axios, API_URL, updated.group_id,
           [{ file, clientUploadId: updated.clientUploadId }], catalog.policy);
-      } else if (updated.needs_reupload) throw new Error('Select this file again using Add Docs to resume the upload.');
+      } else if (updated.needs_reupload) throw new Error(`Select this file again using ${doc.scope === 'matter' ? `${doc.folder_id ? 'Upload folder' : 'Upload files'} in Project documents` : 'Attach files'} to resume the upload.`);
     } finally { await refresh(); wake(); }
   }, [catalog.policy, refresh, wake]);
 

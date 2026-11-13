@@ -18,18 +18,18 @@ async function projectMenu(page,name,action){
 
 test('chat-first layout has a 280px project tree and panels open only on demand',async({page},info)=>{
   await start(page);
-  await expect(page.getByLabel('Assignment',{exact:true})).toBeVisible();
-  await expect(page.getByRole('region',{name:'Document',exact:true})).toHaveCount(0);
+  await expect(page.getByLabel('Message',{exact:true})).toBeVisible();
+  await expect(page.getByRole('region',{name:'Output',exact:true})).toHaveCount(0);
   await expect(page.getByRole('combobox',{name:'Project',exact:true})).toHaveCount(0);
   expect((await page.getByLabel('Project navigation',{exact:true}).boundingBox()).width).toBe(280);
   const row=await page.getByRole('button',{name:'Chat A',exact:true}).boundingBox();
   const project=await page.getByRole('button',{name:'Open project Project One',exact:true}).boundingBox();
   expect(row.x).toBeGreaterThan(project.x);
   await page.screenshot({path:info.outputPath('chat-first.png')});
-  await showPanel(page,'document');
+  await showPanel(page,'output');
   await expect(page.getByRole('heading',{name:'Original a',exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Close panel',exact:true}).click();
-  await expect(page.getByRole('region',{name:'Document',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Hide right panel',exact:true}).click();
+  await expect(page.getByRole('region',{name:'Output',exact:true})).toHaveCount(0);
 });
 
 test('a manual project needs no folder and creates no upload or model request',async({page})=>{
@@ -181,58 +181,40 @@ test('a late conversation-list response cannot restore a deleted project',async(
 });
 
 test('document edits survive panel closing and tab changes; navigation requires confirmation',async({page})=>{
-  await start(page);await showPanel(page,'document');
+  await start(page);await showPanel(page,'output');
   await page.getByRole('button',{name:'Edit Markdown',exact:true}).click();
-  await page.getByLabel('Document Markdown',{exact:true}).fill('# Keep this draft');
-  await page.getByRole('button',{name:'Close panel',exact:true}).click();
-  await showPanel(page,'sources');await page.getByRole('tab',{name:'Document',exact:true}).click();
-  await expect(page.getByLabel('Document Markdown',{exact:true})).toHaveValue('# Keep this draft');
+  await page.getByLabel('Output Markdown',{exact:true}).fill('# Keep this draft');
+  await page.getByRole('button',{name:'Hide right panel',exact:true}).click();
+  await showPanel(page,'project-documents');await showPanel(page,'output');
+  await expect(page.getByLabel('Output Markdown',{exact:true})).toHaveValue('# Keep this draft');
   await page.getByRole('button',{name:'Chat B',exact:true}).click();
   await page.getByRole('button',{name:'Keep editing',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Chat A',exact:true})).toBeVisible();
-  await expect(page.getByLabel('Document Markdown',{exact:true})).toHaveValue('# Keep this draft');
+  await expect(page.getByLabel('Output Markdown',{exact:true})).toHaveValue('# Keep this draft');
   await page.getByRole('button',{name:'Chat B',exact:true}).click();
   await page.getByRole('button',{name:'Discard changes',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Chat B',exact:true})).toBeVisible();
 });
 
 test('panel visibility is restored per conversation and across reload',async({page})=>{
-  await start(page);await showPanel(page,'document');
+  await start(page);await showPanel(page,'output');
   await page.getByRole('button',{name:'Chat B',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Chat B',exact:true})).toBeVisible();
-  await expect(page.getByRole('region',{name:'Document',exact:true})).toHaveCount(0);
-  await showPanel(page,'sources');
+  await expect(page.getByRole('region',{name:'Output',exact:true})).toHaveCount(0);
+  await showPanel(page,'project-documents');
   await page.getByRole('button',{name:'Chat A',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Original a',exact:true})).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading',{name:'Original a',exact:true})).toBeVisible();
 });
 
-test('narrow sidebar stays inline and its toggle preserves the conversation',async({page},info)=>{
+test('narrow sidebar preserves the conversation and hides the right dock',async({page})=>{
   await page.setViewportSize({width:390,height:844});await start(page);
-  const sidebar=page.getByRole('complementary',{name:'Project navigation',exact:true});
-  await expect(sidebar).toBeVisible();
-  await expect(page.getByRole('button',{name:'Expand sidebar',exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Expand sidebar',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Collapse sidebar',exact:true})).toHaveAttribute('aria-expanded','true');
-  await expect.poll(async()=>(await sidebar.boundingBox()).width).toBe(220);
-  const bounds=await sidebar.boundingBox(),main=await page.locator('.workspace-main').boundingBox();
-  expect(main.x).toBe(bounds.width);
-  await expect(page.getByRole('dialog',{name:'Project navigation',exact:true})).toHaveCount(0);
-  await expect(page.locator('.sidebar-scrim')).toHaveCount(0);
-  await page.getByLabel('Assignment',{exact:true}).fill('Keep this assignment while toggling');
-  await page.getByRole('button',{name:'Collapse sidebar',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Expand sidebar',exact:true})).toBeFocused();
-  await expect.poll(async()=>(await sidebar.boundingBox()).width).toBe(56);
-  await expect(page.getByLabel('Assignment',{exact:true})).toHaveValue('Keep this assignment while toggling');
-  await showPanel(page,'sources');
-  const panel=page.getByRole('dialog',{name:'Workspace inspector',exact:true});
-  await expect(page.getByRole('tab',{name:'Sources',exact:true})).toBeFocused();
-  expect((await panel.boundingBox()).width).toBe(390);
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('button',{name:'Sources',exact:true})).toBeFocused();
+  await page.getByLabel('Message',{exact:true}).fill('Keep this message');
+  await page.getByRole('button',{name:'Project documents',exact:true}).click();
+  await expect(page.locator('.workspace-inspector:visible')).toHaveCount(0);
+  await expect(page.getByLabel('Message',{exact:true})).toHaveValue('Keep this message');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-  await page.screenshot({path:info.outputPath('mobile-chat.png')});
 });
 
 test('calm palette uses near-black text on light surfaces and keyboard menus work',async({page})=>{
@@ -268,14 +250,14 @@ test('rename dialog keeps focus while the narrow sidebar is expanded',async({pag
 test('desktop sidebar collapses to a persistent rail and remembers the choice',async({page},info)=>{
   await start(page);
   const sidebar=page.getByRole('complementary',{name:'Project navigation',exact:true});
-  await page.getByLabel('Assignment',{exact:true}).fill('Do not reset this text');
+  await page.getByLabel('Message',{exact:true}).fill('Do not reset this text');
   const reads=backend.count('conversations/a','GET');
   await page.getByRole('button',{name:'Collapse sidebar',exact:true}).click();
   await expect.poll(async()=>(await sidebar.boundingBox()).width).toBe(64);
   await expect(sidebar).toBeVisible();
   await expect(page.getByRole('button',{name:'New project',exact:true})).toBeVisible();
   expect((await page.locator('.workspace-main').boundingBox()).x).toBe(64);
-  await expect(page.getByLabel('Assignment',{exact:true})).toHaveValue('Do not reset this text');
+  await expect(page.getByLabel('Message',{exact:true})).toHaveValue('Do not reset this text');
   expect(backend.count('conversations/a','GET')).toBe(reads);
   await page.screenshot({path:info.outputPath('sidebar-collapsed.png')});
   await page.getByRole('button',{name:'Expand sidebar',exact:true}).press('Enter');
@@ -307,12 +289,12 @@ test('populated document and source panels fit the reading layout',async({page},
   run.response='## Renewal analysis\n\nThe policy summary is ready. Review the exclusions and the proposed wording before sharing it.\n\n- Compare renewal terms\n- Confirm the supporting documents';
   backend.documents.a={...backend.documents.a,title:'Renewal brief',markdown:'# Renewal brief\n\nA concise comparison of the proposed terms and supporting documents.\n\n| Item | Review |\n|---|---|\n| Coverage | Confirm limits |\n| Exclusions | Clarify wording |'};
   backend.sources=[source('policy-summary'),source('renewal-notes')];
-  await start(page);await showPanel(page,'document');
+  await start(page);await showPanel(page,'output');
   await expect(page.getByRole('heading',{name:'Renewal brief',level:2,exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
   await page.screenshot({path:info.outputPath('document-inspector.png')});
-  await page.getByRole('tab',{name:'Sources',exact:true}).click();
-  await expect(page.locator('.source')).toHaveCount(2);
+  await showPanel(page,'attachments');
+  await expect(page.locator('.source:visible')).toHaveCount(2);
   await page.screenshot({path:info.outputPath('sources-inspector.png')});
   await page.getByRole('button',{name:'New project',exact:true}).click();
   await expect(page.getByLabel('Choose project folder',{exact:true})).toBeHidden();

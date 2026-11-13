@@ -4,7 +4,7 @@
 
 This repository is a local development foundation. Production deployment and a second model provider remain separate work.
 
-The frontend has a collapsible project/conversation sidebar with a persistent icon rail, a chat-first composer, and an optional Document/Sources inspector. The new-project folder chooser supplies only a name; documents are added separately. See [the frontend redesign and validation](docs/frontend-redesign.md).
+The frontend has a collapsible project/conversation sidebar with a persistent icon rail and a chat-first composer. **Project documents** holds reusable files and imported folders; the paperclip adds **prompt attachments** retained within the conversation; **Output** opens the editable working document. Opened views stay in individually closable right-side tabs; draggable dividers resize the panels while preserving conversation space. The new-project folder chooser supplies only a name. See [document and attachment behavior](docs/project-documents-and-attachments.md) and [the frontend redesign](docs/frontend-redesign.md).
 
 ## Independent local application
 
@@ -57,6 +57,7 @@ Markdown, HTML and DOCX downloads work without Docker. Python execution and PDF 
 
 - `WORKSPACE_LEGAL_ENABLED=0` removes legal research tools and instructions; general source analysis and web research remain. Court export requests are rejected while disabled.
 - `MODEL_PROVIDER=openai` selects the supported adapter. `WORKSPACE_FAST_MODEL` and `WORKSPACE_DEEP_MODEL` change model identifiers; they do not add another provider.
+- Model selection is backend-owned. New requests without model fields use `WORKSPACE_DEFAULT_MODE=fast`, preserving the previous UI default. The resolved policy is saved per run; HTTP resubmissions and retries retain it. Existing legacy runs keep their historical policy. There is no frontend model selector. See [minimal copy and model policy](docs/minimal-copy-model-policy.md).
 - API routes use `/api/workspace` for projects, conversations, runs, sources, authored documents and revision downloads. Local account/session routes use `/api/auth`.
 - Private originals, Python runs and exports live under `instance/workspace/`. Workspace's web and worker processes share this application's durable storage and SQL database.
 - The frontend generator reads only public JSON, never backend `.env` credentials. Authentication uses same-origin `/api/` through the frontend proxy to port 5010.

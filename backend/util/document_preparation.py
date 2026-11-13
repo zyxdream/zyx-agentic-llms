@@ -358,6 +358,12 @@ def catalog(owner_id, draft_id=None, project_id=None):
                           'stage': 'failed', 'error_code': 'backfill_required',
                           'error': 'Re-upload this source to prepare it in Workspace.',
                           'metadata': parse_metadata(file.metadata_json)})
+    folder_ids = {d['folder_id'] for d in views if d.get('folder_id')}
+    folder_names = dict(db.session.query(FolderUpload.id, FolderUpload.folder_name).filter(
+        FolderUpload.project_id == project_id, FolderUpload.id.in_(folder_ids)).all()) if folder_ids else {}
+    for view in views:
+        if view.get('folder_id'):
+            view['folder_name'] = folder_names.get(view['folder_id'])
     views.sort(key=lambda d: d['document_id'])
     revision = hashlib.sha256(json.dumps(views, sort_keys=True).encode()).hexdigest()
     return {'enabled': True, 'owner_id': owner_id, 'documents': views, 'policy': policy(), 'revision': revision,

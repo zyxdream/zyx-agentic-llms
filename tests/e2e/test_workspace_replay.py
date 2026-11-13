@@ -68,7 +68,7 @@ class Replay:
         c=self.client.post(f"/api/workspace/projects/{p.json['id']}/conversations",json={'name':'Replay Conversation'});assert c.status_code==201
         self.chat=c.json['id'];self.url=f'/api/workspace/conversations/{self.chat}'
     def submit(self,query='Replay assignment',**extra):
-        value=self.client.post(self.url+'/runs',json={'query':query,'assistant_mode':'fast',**extra})
+        value=self.client.post(self.url+'/runs',json={'query':query,**extra})
         assert value.status_code==202,value.json
         self.run_id=value.json['run_id'];return value.json
     def progress(self):
