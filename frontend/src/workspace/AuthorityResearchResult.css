@@ -1,15 +1,15 @@
-.authority-research { color: #202939; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.authority-research { color: var(--text); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
 .authority-research h4, .authority-research h5, .authority-research h6 { font-weight: 650; margin: 1em 0 .5em; }
 .authority-research h4 { font-size: 17px; }
 .authority-research h5 { font-size: 15px; }
 .authority-research h6 { font-size: 14px; }
 .authority-research p { margin: .5em 0; }
 .authority-research ul, .authority-research ol { margin: .5em 0; padding-left: 1.5em; }
-.authority-research__authority { border-top: 1px solid #d8e0e8; margin-top: 12px; padding-top: 4px; }
+.authority-research__authority { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 4px; }
 .authority-research__fields { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(0, 3fr); gap: 3px 10px; margin: 8px 0; }
 .authority-research__fields dt { font-weight: 600; text-transform: capitalize; }
 .authority-research__fields dd { margin: 0; white-space: pre-wrap; }
-.authority-research blockquote { margin: 8px 0; padding-left: 12px; border-left: 3px solid #cdd5df; white-space: pre-wrap; }
+.authority-research blockquote { margin: 8px 0; padding-left: 12px; border-left: 3px solid var(--border); white-space: pre-wrap; }
 .authority-research__text, .authority-research__assessment { white-space: pre-wrap; }
-.authority-research__text { padding: 12px; background: #f8fafc; font-family: inherit; font-size: 14px; overflow-wrap: anywhere; }
+.authority-research__text { padding: 12px; background: var(--canvas); font-family: inherit; font-size: 14px; overflow-wrap: anywhere; }
 .authority-research button { margin: 4px 6px 4px 0; }

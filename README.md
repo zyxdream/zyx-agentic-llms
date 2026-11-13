@@ -4,6 +4,8 @@
 
 This repository is a local development foundation. Production deployment and a second model provider remain separate work.
 
+The frontend has a collapsible project/conversation sidebar with a persistent icon rail, a chat-first composer, and an optional Document/Sources inspector. The new-project folder chooser supplies only a name; documents are added separately. See [the frontend redesign and validation](docs/frontend-redesign.md).
+
 ## Independent local application
 
 | Resource | Workspace | LexIntel (left unchanged) |

@@ -5,62 +5,71 @@ import { ensureHeaders } from '../auth/useSetHeaders';
 import { useDocumentPreparation } from '../upload/useDocumentPreparation';
 import { uploadId } from '../upload/documentPreparation';
 import { WORKSPACE_ACCEPT } from '../upload/workspaceFileTypes';
-import PreparedDocumentSummary from '../upload/PreparedDocumentSummary';
-import AgentProgress from './AgentProgress';
-import RequestUserInputPanel from './RequestUserInputPanel';
-import { renderDocumentMarkdown } from './documentMarkdown';
+import ProjectSidebar from './ProjectSidebar';
+import ConversationView from './ConversationView';
+import WorkspaceComposer from './WorkspaceComposer';
+import WorkspaceInspector from './WorkspaceInspector';
+import {Icon, Modal} from './WorkspaceUI';
+import {useProjectNavigation} from './useProjectNavigation';
+import {workspaceApi as api, readChoice, rememberChoice} from './workspaceApi';
 const terminal = v => ['completed', 'failed', 'cancelled'].includes(v?.status);
-async function api(method, path, data) {
-  await ensureHeaders();
-  return (await axios({
-    method,
-    url: `${API_URL}workspace/${path}`,
-    data
-  })).data;
-}
-function choice(k) {
-  try {
-    return sessionStorage.getItem(k) || '';
-  } catch {
-    return '';
-  }
-}
-function remember(k, v) {
-  try {
-    sessionStorage.setItem(k, v);
-  } catch {/* optional */}
-}
 export default function Workspace({
   onSignOut
 }) {
   const [mode, setMode] = useState('fast'),
     [uploadScope, setUploadScope] = useState('chat'),
     [source, setSource] = useState(null);
-  const [projects, setProjects] = useState([]),
-    [project, setProject] = useState(choice('workspace.project'));
-  const [chats, setChats] = useState([]),
-    [chat, setChat] = useState(choice('workspace.conversation'));
   const [content, setContent] = useState(null),
     [run, setRun] = useState(null),
     [query, setQuery] = useState('');
-  const [name, setName] = useState(''),
-    [chatName, setChatName] = useState(''),
-    [error, setError] = useState(''),
+  const [error, setError] = useState(''),
     [activity, setActivity] = useState(null);
   const [editing, setEditing] = useState(false),
     [editor, setEditor] = useState(''),
     [baseVersion, setBaseVersion] = useState(null),
     [format, setFormat] = useState('docx');
-  const scope = useRef('');
-  scope.current = chat;
-  const navigation = useRef({
-    chat,
-    epoch: 0
+  const [discard, setDiscard] = useState(null);
+  const [sidebarExpanded, setSidebarExpanded] = useState(() => {
+    const saved = readChoice('workspace.sidebar');
+    return saved ? saved === 'expanded' : !window.matchMedia?.('(max-width: 767px)').matches;
   });
-  if (navigation.current.chat !== chat) navigation.current = {
-    chat,
-    epoch: navigation.current.epoch + 1
+  const toggleSidebar = () => setSidebarExpanded(value => {
+    rememberChoice('workspace.sidebar', value ? 'collapsed' : 'expanded');
+    return !value;
+  });
+  const [panel, setPanel] = useState({key:'',open:false,tab:'document'});
+  const fileInput = useRef(null), fileDestination = useRef(null), dirtyRef = useRef(false);
+  const markdown = content?.document?.markdown ?? (content?.document?.sections || []).map(s => `## ${s.section_name}\n\n${s.section_content}`).join('\n\n');
+  dirtyRef.current = editing && editor !== markdown;
+  const fail = useCallback(e => setError(e?.response?.data?.msg || e.message || 'The request could not be completed.'), []);
+  const beforeNavigate = useCallback(proceed => {
+    if (dirtyRef.current) setDiscard(() => proceed); else proceed();
+  }, []);
+  const nav = useProjectNavigation({beforeNavigate, onError:fail});
+  const {project,chat} = nav;
+  const panelKey = chat || `project:${project}`;
+  const panelOpen = panel.key === panelKey && panel.open;
+  const showPanel = tab => {
+    const next = {key:panelKey,open:true,tab}; setPanel(next);
+    rememberChoice(`workspace.panel:${panelKey}`,JSON.stringify(next));
   };
+  const closePanel = () => {
+    const next = {...panel,key:panelKey,open:false};setPanel(next);
+    rememberChoice(`workspace.panel:${panelKey}`,JSON.stringify(next));
+  };
+  useEffect(() => {
+    let saved; try { saved = JSON.parse(readChoice(`workspace.panel:${panelKey}`,'null')); } catch { /* optional */ }
+    setPanel({key:panelKey,open:!!saved?.open,tab:saved?.tab === 'sources' ? 'sources' : 'document'});
+  },[panelKey]);
+  useEffect(() => {
+    const warn = event => { if (dirtyRef.current) { event.preventDefault(); event.returnValue = ''; } };
+    window.addEventListener('beforeunload',warn);
+    return () => window.removeEventListener('beforeunload',warn);
+  },[]);
+  const scope = useRef('');
+  scope.current = `${project}/${chat}`;
+  const navigation = useRef({project,chat,epoch:0});
+  if (navigation.current.chat !== chat || navigation.current.project !== project) navigation.current = {project,chat,epoch:navigation.current.epoch + 1};
   const activitySequence = useRef(0);
   const controlSequence = useRef(0);
   const busy = !!activity && activity.epoch === navigation.current.epoch && !(activity.runId && activity.wasActive && run?.run_id === activity.runId && terminal(run));
@@ -74,7 +83,6 @@ export default function Workspace({
     draftId: chat || null,
     projectId: project || null
   });
-  const fail = useCallback(e => setError(e?.response?.data?.msg || e.message || 'The request could not be completed.'), []);
   async function action(fn, metadata = {}) {
     const id = ++activitySequence.current;
     const current = navigationGuard();
@@ -93,35 +101,8 @@ export default function Workspace({
     }
   }
   useEffect(() => {
-    let alive = true;
-    api('get', 'projects').then(v => {
-      if (!alive) return;
-      setProjects(v.projects);
-      setProject(p => v.projects.some(x => String(x.id) === p) ? p : String(v.projects[0]?.id || ''));
-    }).catch(e => alive && fail(e));
-    return () => {
-      alive = false;
-    };
-  }, [fail]);
-  useEffect(() => {
-    let alive = true;
-    remember('workspace.project', project);
-    setChats([]);
-    setContent(null);
-    setRun(null);
-    if (project) api('get', `projects/${project}/conversations`).then(v => {
-      if (!alive) return;
-      setChats(v.conversations);
-      setChat(c => v.conversations.some(x => x.id === c) ? c : v.conversations[0]?.id || '');
-    }).catch(e => alive && fail(e));else setChat('');
-    return () => {
-      alive = false;
-    };
-  }, [project, fail]);
-  useEffect(() => {
     let alive = true,
       timer;
-    remember('workspace.conversation', chat);
     setContent(null);
     setRun(null);
     setEditing(false);
@@ -151,7 +132,7 @@ export default function Workspace({
       alive = false;
       clearTimeout(timer);
     };
-  }, [chat, fail]);
+  }, [project, chat, fail]);
   const runId = run?.run_id,
     runState = run?.status;
   useEffect(() => {
@@ -303,70 +284,35 @@ export default function Workspace({
       URL.revokeObjectURL(url);
     });
   }
-  const markdown = content?.document?.markdown ?? (content?.document?.sections || []).map(s => `## ${s.section_name}\n\n${s.section_content}`).join('\n\n');
-  return <div className="workspace-shell"><header><div><strong>Workspace</strong><small>zyx-agentic-llms</small></div><button onClick={onSignOut}>Sign out</button></header>
- <aside><h2>Projects</h2><select aria-label="Project" value={project} onChange={e => {
-        setChat('');
-        setProject(e.target.value);
-      }}><option value="">Choose a project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
- <form onSubmit={e => {
-        e.preventDefault();
-        action(async () => {
-          const p = await api('post', 'projects', {
-            name
-          });
-          setProjects(v => [...v, p]);
-          setProject(String(p.id));
-          setChat('');
-          setName('');
-        });
-      }}><input aria-label="New project name" placeholder="Project name" value={name} onChange={e => setName(e.target.value)} /><button disabled={busy || !name.trim()}>Add project</button></form>
- <h2>Conversations</h2><nav>{chats.map(c => <button key={c.id} aria-current={chat === c.id ? 'page' : undefined} onClick={() => setChat(c.id)}>{c.name}</button>)}</nav>
- <form onSubmit={e => {
-        e.preventDefault();
-        action(async () => {
-          const c = await api('post', `projects/${project}/conversations`, {
-            name: chatName || 'New conversation'
-          });
-          setChats(v => [c, ...v]);
-          setChat(c.id);
-          setChatName('');
-        });
-      }}><input aria-label="New conversation name" placeholder="Conversation name" value={chatName} onChange={e => setChatName(e.target.value)} /><button disabled={!project || busy}>New conversation</button></form></aside>
- <main>{error && <p role="alert">{error}</p>}{!content ? <p>Create or select a conversation to begin.</p> : <><h1>{content.name}</h1><div className="workspace-columns"><section aria-label="Conversation"><div className="history">{content.history.map(t => <article key={t.id}><h3>You</h3><p className="user-message">{t.query}</p><h3>Workspace</h3><div dangerouslySetInnerHTML={{
-                  __html: renderDocumentMarkdown(t.response || t.status || 'Working…')
-                }} />{t.run_id && <><AgentProgress workflowId={t.run_id} draftId={content.document_id} />{['failed', 'cancelled'].includes(t.status) && !active && <button disabled={busy} onClick={() => runAction('retry', undefined, t.run_id)}>Retry request</button>}</>}</article>)}</div>
- {active && <section role="status"><p>{run.info?.status}</p><AgentProgress workflowId={run.run_id} draftId={content.document_id} value={run.info?.agent} /><button disabled={controlBusy} onClick={() => runAction('cancel')}>Cancel request</button></section>}
- {run?.status === 'awaiting_user_confirmation' && <RequestUserInputPanel key={run.run_id} request={run.value?.confirmation || run.value || {}} loading={controlBusy} onSubmit={decision => runAction('confirm', {
-              decision
-            })} onCancel={() => runAction('cancel')} />}
- <form onSubmit={submit}><label>Reasoning mode<select value={mode} onChange={e => setMode(e.target.value)}><option value="fast">Fast</option><option value="deep">Deep</option></select></label><label>Assignment<textarea aria-label="Assignment" value={query} onChange={e => {
-                  setQuery(e.target.value);
-                  pending.current = null;
-                }} placeholder="Analyze documents, research a question, or draft something…" /></label><button disabled={busy || active || !query.trim() || preparation.blocked}>Send</button></form>
- <section aria-label="Sources"><h2>Sources</h2><label>Upload to<select value={uploadScope} onChange={e => setUploadScope(e.target.value)}><option value="chat">This conversation</option><option value="matter">This project</option></select></label><label>Add files<input type="file" multiple accept={WORKSPACE_ACCEPT} onChange={e => {
-                  const entries = Array.from(e.target.files || []).map(file => ({
-                    file
-                  }));
-                  e.target.value = '';
-                  action(() => preparation.upload(entries, {
-                    scope: uploadScope,
-                    scopeId: uploadScope === 'chat' ? chat : project
-                  }));
-                }} /></label>{preparation.error && <p role="alert">{preparation.error}</p>}{preparation.documents.map(d => <div className="source" key={d.document_id}><label><input type="checkbox" checked={!preparation.excludedIds.has(d.document_id)} onChange={() => preparation.toggleExcluded(d.document_id)} />{d.filename} — {d.status}</label><PreparedDocumentSummary documentId={d.document_id} artifactId={d.artifact_id} metadata={d.metadata} filename={d.filename} /><button disabled={busy} onClick={() => action(async () => {
-                  const origin = chat,
-                    v = await api('get', `sources/${d.document_id}/content`);
-                  if (scope.current === origin) setSource(v);
-                })}>Read source</button>{(d.status === 'failed' || d.needs_reupload) && <button onClick={() => action(() => preparation.retry(d))}>Retry preparation</button>}<button disabled={busy || active} onClick={() => action(() => preparation.remove(d))}>Remove source</button></div>)}{source && <section aria-label="Source text"><h3>{source.filename}</h3><p>Characters {source.start}–{source.end} of {source.total_characters}</p><pre>{source.text}</pre><button onClick={() => setSource(null)}>Close source</button>{source.end < source.total_characters && <button onClick={() => action(async () => {
-                  const origin = chat,
-                    v = await api('get', `sources/${source.id}/content?start=${source.end}`);
-                  if (scope.current === origin) setSource(v);
-                })}>Next source range</button>}</section>}</section></section>
- <section aria-label="Document"><h2>{content.document?.title || 'Document'}</h2>{editing ? <><textarea className="document-editor" aria-label="Document Markdown" value={editor} onChange={e => setEditor(e.target.value)} /><button disabled={busy || active} onClick={save}>Save document</button><button onClick={() => setEditing(false)}>Discard edits</button></> : <><div className="document-preview" dangerouslySetInnerHTML={{
-                __html: renderDocumentMarkdown(markdown)
-              }} /><button disabled={busy || active} onClick={() => {
-                setEditor(markdown);
-                setBaseVersion(content.document_version);
-                setEditing(true);
-              }}>Edit Markdown</button></>}<label>Download format<select value={format} onChange={e => setFormat(e.target.value)}>{['docx', 'pdf', 'markdown', 'html'].map(f => <option key={f}>{f}</option>)}</select></label><button disabled={busy || !markdown || editing} onClick={download}>Download document</button></section></div></>}</main></div>;
+  function attachFiles(destination) {
+    fileDestination.current = {project,chat,scope:destination};
+    setUploadScope(destination); fileInput.current?.click();
+  }
+  async function readSource(path) {
+    const origin = scope.current;
+    await action(async () => { const value = await api('get',path); if (scope.current === origin) setSource(value); });
+  }
+  const selectedProject = nav.projects.find(p => String(p.id) === project);
+  const title = nav.lists[project]?.find(c => c.id === chat)?.name || content?.name || selectedProject?.name || 'Workspace';
+  return <div className={`workspace-shell ${sidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'} ${panelOpen ? 'with-inspector' : ''}`}>
+    <ProjectSidebar navigation={nav} beforeNavigate={beforeNavigate} onSignOut={() => beforeNavigate(onSignOut)} expanded={sidebarExpanded} onToggle={toggleSidebar}/>
+    <main className="workspace-main"><header className="workspace-toolbar"><div className="conversation-heading">{selectedProject && chat && <span>{selectedProject.name}</span>}<h1 tabIndex={-1}>{title}</h1></div><div className="toolbar-actions"><button aria-label="Sources" aria-pressed={panelOpen && panel.tab === 'sources'} disabled={!project} onClick={() => showPanel('sources')}><Icon name="attach"/><span>Sources</span>{preparation.documents.length > 0 && <span className="count-badge">{preparation.documents.length}</span>}</button><button aria-label="Document" aria-pressed={panelOpen && panel.tab === 'document'} disabled={!content} onClick={() => showPanel('document')}><Icon name="document"/><span>Document</span></button></div></header>
+      {error && <p className="workspace-error" role="alert">{error}</p>}
+      {!content ? <div className="workspace-empty"><span className="empty-mark"><Icon name="document"/></span><h2>{chat ? 'Opening your conversation…' : project ? 'A fresh place to work' : 'Welcome to Workspace'}</h2><p>{chat ? 'Your saved messages and documents will be here shortly.' : 'Create or select a conversation to begin.'}</p>{project && !chat && <button className="primary-button" onClick={() => nav.createChat(project)} disabled={nav.creating[project]}><Icon name="plus"/>New conversation</button>}</div> : <>
+        <ConversationView content={content} run={run} active={active} busy={busy} controlBusy={controlBusy} runAction={runAction} onOpenDocument={() => showPanel('document')}/>
+        <WorkspaceComposer query={query} onQuery={value => {setQuery(value);pending.current=null;}} mode={mode} setMode={setMode} onSubmit={submit} onAttach={attachFiles} disabled={!chat} busy={busy} active={active} controlBusy={controlBusy} onStop={() => runAction('cancel')} preparation={preparation} onSources={() => showPanel('sources')} showPreparationError={!(panelOpen && panel.tab === 'sources')}/>
+      </>}
+      <input ref={fileInput} type="file" hidden multiple aria-label="Add files" accept={WORKSPACE_ACCEPT} onChange={event => {
+        const entries = Array.from(event.target.files || []).map(file => ({file})); event.target.value='';
+        const destination = fileDestination.current || {project,chat,scope:chat ? uploadScope : 'matter'};
+        fileDestination.current = null;
+        if (!entries.length) return;
+        if (destination.project !== project || destination.chat !== chat) {setError('Select the files again for the current conversation.');return;}
+        showPanel('sources');
+        action(() => preparation.upload(entries,{scope:destination.scope,scopeId:destination.scope === 'chat' ? chat : project}));
+      }}/>
+    </main>
+    <WorkspaceInspector open={panelOpen} tab={panel.tab} onTab={showPanel} onClose={closePanel} content={content} markdown={markdown} editing={editing} editor={editor} setEditor={setEditor} busy={busy} active={active} onSave={save} onEdit={() => {setEditor(markdown);setBaseVersion(content.document_version);setEditing(true);}} onDiscard={() => setEditing(false)} format={format} setFormat={setFormat} onDownload={download} preparation={preparation} chat={chat} uploadScope={uploadScope} setUploadScope={setUploadScope} onAttach={attachFiles} source={source} onRead={document => readSource(`sources/${document.document_id}/content`)} onCloseSource={() => setSource(null)} onNextSource={() => readSource(`sources/${source.id}/content?start=${source.end}`)} onRetry={document => action(() => preparation.retry(document))} onRemove={document => action(() => preparation.remove(document))}/>
+    {discard && <Modal title="Unsaved document changes" onClose={() => setDiscard(null)}><p>Your document has unsaved changes. Discard them before leaving this conversation?</p><div className="dialog-actions"><button data-autofocus onClick={() => setDiscard(null)}>Keep editing</button><button className="danger-button" onClick={() => {const proceed=discard;dirtyRef.current=false;setEditing(false);setDiscard(null);proceed();}}>Discard changes</button></div></Modal>}
+  </div>;
 }

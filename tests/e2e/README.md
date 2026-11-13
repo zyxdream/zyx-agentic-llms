@@ -26,6 +26,8 @@ The Playwright server bundles a separate test entry under `tests/e2e/browser/`. 
 
 The browser matrix covers cancellation outcomes, confirmation/reload, retry, connection failures, late responses across conversations/projects, two-tab isolation, staged artifacts, version conflicts and wrong-document responses, uploads and source exclusions, 100/101-file limits, more than 200 status polls, source inspection, downloads and safe output rendering. It also checks that active runs have one status poller rather than repeated conversation metadata reads.
 
+The redesigned interface retains all 54 previous scenarios and adds 24 navigation/layout scenarios: optional folder naming and fallback without file upload, creation/rename/name conflicts, project deletion and busy responses, lazy lists and late responses, per-conversation inspector state, unsaved edits, an inline sidebar toggle and persistent icon rail, remembered sidebar state, keyboard dialog focus, menus and rendered desktop/mobile panels. Helpers explicitly open Sources or Document as user actions; production defaults remain chat-first.
+
 Results, traces on failure, screenshots on failure and JSON/HTML reports are written under ignored `artifacts/workspace-replay/`.
 
 ## Matched performance comparison

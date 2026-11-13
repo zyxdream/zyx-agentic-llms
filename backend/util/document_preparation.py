@@ -86,7 +86,11 @@ def owned_scope(owner_id, scope, scope_id):
 def _lock_scope(project_id):
     # A write before quota reads serializes SQLite too; SELECT FOR UPDATE alone
     # is ignored there. No parsing, source I/O or provider request holds this lock.
-    Project.query.filter_by(id=project_id).update({Project.id: Project.id})
+    from backend.workspace.project_access import lock_project, ProjectMissing
+    try:
+        lock_project(project_id)
+    except ProjectMissing as exc:
+        raise PreparationError('not_found', 'Project no longer exists.', 404) from exc
 
 
 def _canonical_filter(project_id, draft_id):
@@ -134,6 +138,7 @@ def admit_group(owner_id, scope, scope_id, request_key, manifest, folder_id=None
     # End any ownership-read transaction before taking the admission write lock.
     db.session.commit()
     _lock_scope(project_id)
+    owned_scope(owner_id, scope, scope_id)
     existing = UploadGroup.query.filter_by(owner_id=owner_id, request_key=request_key).first()
     if existing:
         if existing.manifest_hash != digest:
@@ -360,7 +365,11 @@ def catalog(owner_id, draft_id=None, project_id=None):
 
 
 def build_snapshot(owner_id, draft_id, data):
-    view = catalog(owner_id, draft_id)
+    try:
+        resolved_draft_id = ChatThread.resolve_id(draft_id)
+    except (ValueError, TypeError) as exc:
+        raise PreparationError('not_found', 'Conversation no longer exists.', 404) from exc
+    view = catalog(owner_id, resolved_draft_id)
     raw_exclusions = data.get('excludedDocumentIds') or []
     if not isinstance(raw_exclusions, list) or not all(isinstance(x, str) for x in raw_exclusions):
         raise PreparationError('invalid_scope', 'Invalid document exclusions.', 400)
@@ -386,7 +395,7 @@ def build_snapshot(owner_id, draft_id, data):
     # Legacy clients may still send acceptedCoverageGaps. Readiness depends on
     # preparation, not approval of best-effort extraction; ignore that field.
     rows = {d.id: d for d in DocumentPreparation.query.filter(DocumentPreparation.id.in_([d['document_id'] for d in selected])).all()}
-    return {'version': 2, 'owner_id': owner_id, 'draft_id': str(ChatThread.resolve_id(draft_id)), 'excluded_ids': sorted(exclusions),
+    return {'version': 2, 'owner_id': owner_id, 'draft_id': str(resolved_draft_id), 'excluded_ids': sorted(exclusions),
             'files': [
         {'file_id': d['document_id'], 'generation': rows[d['document_id']].generation,
          'source_hash': rows[d['document_id']].source_hash, 'scope': d['scope'],
@@ -422,10 +431,11 @@ def validate_snapshot(owner_id, draft_id, snapshot):
     return view
 
 
-def lock_document(document_id):
+def lock_document(document_id, *, commit_reads=True):
     # End authorization reads, then acquire a write lock before reading mutable
     # state. This also fences retries/cancellation on SQLite, not only MySQL.
-    db.session.commit()
+    if commit_reads:
+        db.session.commit()
     count = DocumentPreparation.query.filter_by(id=document_id).update({DocumentPreparation.id: DocumentPreparation.id})
     if not count:
         raise PreparationError('not_found', 'Document no longer exists.', 404)
@@ -433,7 +443,12 @@ def lock_document(document_id):
 
 
 def retry_document(doc, expected_generation=None):
-    doc = lock_document(doc.id)
+    db.session.commit()
+    group = db.session.get(UploadGroup, doc.group_id)
+    if group is None:
+        raise PreparationError('not_found', 'Document scope no longer exists.', 404)
+    _lock_scope(group.project_id)
+    doc = lock_document(doc.id, commit_reads=False)
     if expected_generation is not None:
         if not isinstance(expected_generation, int) or isinstance(expected_generation, bool):
             raise PreparationError('invalid_request', 'Invalid document generation.', 400)

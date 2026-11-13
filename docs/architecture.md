@@ -40,7 +40,9 @@ flowchart LR
 - `backend/documents/revisions.py`, `backend/util/document_drafts.py`, `backend/util/document_exports.py`: uploaded-original revisions, Markdown authoring and export.
 - `backend/domains/legal/`: optional legal tools, source readers, citation handling and court formatting.
 - `backend/util/python_execution.py`, `backend/python_runtime/`: the existing container execution boundary.
-- `frontend/src/workspace/`, `frontend/src/upload/`: shell, saved result views and source preparation.
+- `frontend/src/workspace/`: chat-first shell, per-project navigation, project dialogs, conversation, composer, optional inspector, and saved-result views.
+- `frontend/src/upload/`: source preparation, transport, admission limits, and prompt-scoped exclusions.
+- `backend/workspace/project_access.py`: shared project write lock for deletion versus new work/admission/retries.
 
 ## Request lifecycle
 
@@ -49,3 +51,5 @@ The API authorizes conversation ownership, captures an immutable prepared-source
 Clarification saves the question and releases execution until the user answers. Completion atomically saves an optional selected document candidate and the durable conversation turn. Explicit retry resumes saved history; cancellation invalidates the worker lease so late results cannot publish. Beat recovers jobs whose SQL dispatch remains pending.
 
 Source preparations have their own independent checkpointed workers and queue. Those continuations are ingestion infrastructure, not the removed version-0 agent pipeline.
+
+The sidebar and inspector hold only presentation state in per-tab session storage. Folder selection during project naming does not establish a filesystem connection. Project deletion refuses active runs or preparations and serializes with admission using a short project write lock. See [frontend behavior and validation](frontend-redesign.md).

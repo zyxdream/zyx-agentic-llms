@@ -10,6 +10,7 @@ from flask import Blueprint, request, send_file
 from backend.auth import auth_required, current_user
 from sqlalchemy.exc import OperationalError, IntegrityError
 from backend.database import db
+from backend.workspace.project_access import ProjectMissing
 from backend.models import WorkspaceRun as Workflow, UploadedFiles, DocumentPreparedArtifact
 from backend.util import workspace_service as service
 from backend.util.document_preparation import PreparationError, validate_snapshot, owned_scope
@@ -28,7 +29,7 @@ def guarded(fn):
     def call(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
-        except service.WorkflowNotFound:
+        except (service.WorkflowNotFound, ProjectMissing):
             db.session.rollback()
             return ({'msg': 'Request not found'}, 404)
         except PreparationError as exc:

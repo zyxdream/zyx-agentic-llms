@@ -42,6 +42,7 @@ const state = {
 beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
+  sessionStorage.clear();
   axios.mockImplementation(async ({
     url,
     method,
@@ -74,6 +75,8 @@ test('restores a conversation and preserves unsaved edits after a version confli
   await screen.findByRole('heading', {
     name: 'Review'
   });
+  await waitFor(() => expect(screen.getByRole('button', {name:'Document',exact:true})).toBeEnabled());
+  fireEvent.click(screen.getByRole('button', {name:'Document',exact:true}));
   fireEvent.click(screen.getByText('Edit Markdown'));
   const editor = screen.getByLabelText('Document Markdown');
   fireEvent.change(editor, {
@@ -188,14 +191,14 @@ test('reuses a submission identity when the HTTP response is lost', async () => 
   await screen.findByRole('heading', {
     name: 'Review'
   });
-  fireEvent.change(screen.getByLabelText('Assignment'), {
+  fireEvent.change(await screen.findByLabelText('Assignment'), {
     target: {
       value: 'Draft a summary'
     }
   });
-  fireEvent.click(screen.getByText('Send'));
+  fireEvent.click(screen.getByRole('button',{name:'Send',exact:true}));
   await screen.findByRole('alert');
-  fireEvent.click(screen.getByText('Send'));
+  fireEvent.click(screen.getByRole('button',{name:'Send',exact:true}));
   await waitFor(() => expect(sent).toBe(2));
   const calls = axios.mock.calls.map(c => c[0]).filter(c => c.url.endsWith('/runs'));
   expect(calls[0].data.run_id).toBe(calls[1].data.run_id);

@@ -197,6 +197,9 @@ class Backend {
     return wait;
   }
   async mount(context) {
+    const dialogs = page => page.on('dialog', dialog => dialog.accept());
+    context.pages().forEach(dialogs);
+    context.on('page', dialogs);
     await context.route('**/*', async route => {
       const req = route.request(),
         url = new URL(req.url());
@@ -253,19 +256,38 @@ class Backend {
       projects: this.projects
     });
     if (path === 'projects' && method === 'POST') {
+      if (this.projects.some(p => p.name === body.name)) return this.json(q,{code:'project_name_conflict',msg:'You already have a project with this name.'},409);
       const p = {
-        id: 3,
+        id: Math.max(0,...this.projects.map(p => p.id)) + 1,
         name: body.name
       };
       this.projects.push(p);
       return this.json(q, p, 201);
+    }
+    if (m = path.match(/^projects\/(\d+)$/)) {
+      const project=this.projects.find(p => p.id===+m[1]);
+      if (!project) return this.json(q,{msg:'Project not found'},404);
+      if (method==='PATCH') {
+        if (this.projects.some(p => p!==project && p.name===body.name)) return this.json(q,{code:'project_name_conflict',msg:'You already have a project with this name.'},409);
+        project.name=body.name;
+      }
+      if (method==='DELETE') {
+        const ids=Object.values(this.chats).filter(c=>c.project_id===project.id).map(c=>c.id);
+        const active_runs=Object.values(this.runs).filter(r=>ids.includes(r.chat)&&!terminal(r)).length;
+        const active_preparations=this.sources.filter(s=>(s.scope==='matter'?s.project===project.id:ids.includes(s.chat))&&!['ready','failed','cancelled'].includes(s.status)).length;
+        if (active_runs||active_preparations) return this.json(q,{code:'project_busy',msg:'Stop active work first.',active_runs,active_preparations},409);
+        this.projects=this.projects.filter(p=>p!==project);
+        ids.forEach(id=>{delete this.chats[id];delete this.documents[id];delete this.versions[id];});
+        return this.json(q,{deleted:true});
+      }
+      return this.json(q,project);
     }
     if (m = path.match(/^projects\/(\d+)\/conversations$/)) {
       if (method === 'GET') return this.json(q, {
         conversations: Object.values(this.chats).filter(c => c.project_id === +m[1])
       });
       const c = {
-        id: 'new-chat',
+        id: this.chats['new-chat'] ? `new-chat-${Object.keys(this.chats).length}` : 'new-chat',
         project_id: +m[1],
         name: body.name
       };
@@ -274,7 +296,11 @@ class Backend {
       this.versions[c.id] = 1;
       return this.json(q, c, 201);
     }
-    if (m = path.match(/^conversations\/([^/]+)$/)) return this.json(q, this.chat(m[1]));
+    if (m = path.match(/^conversations\/([^/]+)$/)) {
+      if (!this.chats[m[1]]) return this.json(q,{msg:'Conversation not found'},404);
+      if (method==='PATCH') this.chats[m[1]].name=body.name;
+      return this.json(q, this.chat(m[1]));
+    }
     if (path === 'document-preparation') return this.json(q, this.catalog(url.searchParams.get('conversation_id'), url.searchParams.get('projectId')));
     if ((m = path.match(/^conversations\/([^/]+)\/runs$/)) && method === 'POST') {
       let r = this.runs[body.run_id];
@@ -430,7 +456,7 @@ class Backend {
     return this.requests.filter(r => r.path === path && (!method || r.method === method)).length;
   }
 }
-async function open(page, backend, chat = 'a') {
+async function open(page, backend, chat = 'a', {panel = 'sources'} = {}) {
   await page.addInitScript(({
     chat
   }) => {
@@ -449,16 +475,30 @@ async function open(page, backend, chat = 'a') {
     name: backend.chats[chat].name,
     exact: true
   })).toBeVisible();
+  if (panel) await showPanel(page,panel);
+}
+async function showPanel(page,tab) {
+  await page.getByRole('button',{name:tab==='document'?'Document':'Sources',exact:true}).click();
+  await expect(page.getByRole('tab',{name:tab==='document'?'Document':'Sources',exact:true})).toHaveAttribute('aria-selected','true');
+}
+async function selectProject(page,name) {
+  await page.getByRole('button',{name:`Open project ${name}`,exact:true}).click();
+  if (await page.getByRole('button',{name:'Discard changes',exact:true}).isVisible()) await page.getByRole('button',{name:'Discard changes',exact:true}).click();
+  await expect(page.getByRole('button',{name:`Open project ${name}`,exact:true})).toHaveAttribute('aria-current','true');
 }
 async function choose(page, name) {
+  const tabs=page.getByRole('tab',{name:'Document',exact:true});
+  const panel=await tabs.count() ? (await tabs.getAttribute('aria-selected')==='true'?'document':'sources') : null;
   await page.getByRole('button', {
     name,
     exact: true
   }).click();
+  if (await page.getByRole('button',{name:'Discard changes',exact:true}).isVisible()) await page.getByRole('button',{name:'Discard changes',exact:true}).click();
   await expect(page.getByRole('heading', {
     name,
     exact: true
   })).toBeVisible();
+  if (panel) await showPanel(page,panel);
 }
 async function send(page, text = 'Please summarize the source.') {
   await page.getByLabel('Assignment', {
@@ -477,6 +517,8 @@ module.exports = {
   deferred,
   open,
   choose,
+  showPanel,
+  selectProject,
   send,
   expect
 };

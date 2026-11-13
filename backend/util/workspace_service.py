@@ -48,7 +48,10 @@ def resolve_chat_identity(data):
         raise ValueError('No conversation_id or chat_thread_id in request')
     if any((isinstance(value, bool) or not isinstance(value, (str, int)) or (not str(value).strip()) for value in supplied)):
         raise ValueError('Invalid chat identity')
-    resolved = [ChatThread.resolve_id(value) for value in supplied]
+    try:
+        resolved = [ChatThread.resolve_id(value) for value in supplied]
+    except ValueError as exc:
+        raise WorkflowNotFound('Conversation not found') from exc
     if len(set(resolved)) != 1:
         raise ValueError('chat_thread_id and draftId refer to different chats')
     return resolved[0]
@@ -111,6 +114,11 @@ def submit(user_id, data):
     """
     from backend.util.document_preparation import validate_snapshot
     draft_id = resolve_chat_identity(data)
+    from backend.workspace.project_access import lock_project
+    chat = db.session.get(ChatThread, draft_id)
+    if chat is None:
+        raise WorkflowNotFound('Conversation not found')
+    lock_project(chat.projectId, user_id)
     validate_snapshot(user_id, draft_id, data['document_snapshot'])
     data = {k: v for (k, v) in data.items() if not k.startswith('_')}
     data['user_id'] = user_id
@@ -135,6 +143,7 @@ def submit(user_id, data):
     active = Workflow.query.filter_by(active_chat_thread_id=draft_id).first()
     if active:
         check_failure(active)
+        lock_project(chat.projectId, user_id)
         db.session.query(ChatThread).filter_by(id=draft_id).with_for_update().one()
     if Workflow.query.filter_by(active_chat_thread_id=draft_id).first():
         raise ValueError('Another request is still active in this chat. Cancel it before sending another.')
@@ -354,6 +363,11 @@ def cancel(row):
 def retry(row):
     from backend.util.document_preparation import validate_snapshot
     from backend.models import AgentStep
+    from backend.workspace.project_access import lock_project
+    chat = db.session.get(ChatThread, row.chat_thread_id)
+    if chat is None:
+        raise WorkflowNotFound('Conversation not found')
+    lock_project(chat.projectId, row.user_id)
     db.session.query(ChatThread).filter_by(id=row.chat_thread_id).with_for_update().one()
     row = Workflow.query.filter_by(id=row.id).populate_existing().with_for_update().one()
     validate_snapshot(row.user_id, row.chat_thread_id, json.loads(row.data_json)['document_snapshot'])

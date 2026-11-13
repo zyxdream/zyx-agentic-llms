@@ -7,6 +7,8 @@ const {
   document,
   open,
   choose,
+  showPanel,
+  selectProject,
   send,
   expect
 } = require('./backend.cjs');
@@ -86,6 +88,7 @@ test('three uploads prepare, clarify across reload, publish and download DOCX', 
     name: 'Continue',
     exact: true
   }).click();
+  await showPanel(page,'document');
   await expect(page.getByRole('heading', {
     name: 'Final source B report'
   })).toBeVisible();
@@ -125,6 +128,7 @@ test('staged candidates stay out of the editor until publication', async ({
   await expect(controls(page).getByRole('heading', {
     name: 'Staged candidate'
   })).toBeVisible();
+  await showPanel(page,'document');
   await expect(page.getByRole('region', {
     name: 'Document',
     exact: true
@@ -141,6 +145,7 @@ test('unnamed Markdown body, tables and safe source links survive reload', async
   };
   await open(page, backend);
   await page.reload();
+  await showPanel(page,'document');
   await expect(page.getByRole('cell', {
     name: '2',
     exact: true
@@ -164,7 +169,7 @@ for (const outcome of ['cancelled', 'failed', 'completed']) test(`Cancel shows a
   backend.cancelOutcome = outcome;
   backend.run();
   await open(page, backend);
-  await controls(page).getByRole('button', {
+  await page.locator('.workspace-composer').getByRole('button', {
     name: 'Cancel request'
   }).click();
   await expect(controls(page)).toHaveCount(0);
@@ -353,7 +358,7 @@ for (const operation of ['cancel', 'confirm', 'retry', 'poll']) test(`late ${ope
     }).click();
   } else if (operation === 'retry') await page.getByRole('button', {
     name: 'Retry request'
-  }).click();else if (operation === 'cancel') await controls(page).getByRole('button', {
+  }).click();else if (operation === 'cancel') await page.locator('.workspace-composer').getByRole('button', {
     name: 'Cancel request'
   }).click();
   await h.entered;
@@ -368,7 +373,7 @@ test('late Cancel cannot replace a newer assignment in the same chat', async ({
   const r = backend.run();
   await open(page, backend);
   const h = hold(q => q.path === 'runs/wf_a/cancel');
-  await controls(page).getByRole('button', {
+  await page.locator('.workspace-composer').getByRole('button', {
     name: 'Cancel request'
   }).click();
   await h.entered;
@@ -391,6 +396,7 @@ test('manual save finishing after answer publication preserves the completed ans
   page
 }) => {
   await open(page, backend);
+  await showPanel(page,'document');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
@@ -414,6 +420,7 @@ test('document conflict preserves unsaved Markdown until explicit reload', async
   page
 }) => {
   await open(page, backend);
+  await showPanel(page,'document');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
@@ -435,6 +442,7 @@ test('explicit saves serialize and use the acknowledged document version', async
   page
 }) => {
   await open(page, backend);
+  await showPanel(page,'document');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
@@ -447,7 +455,9 @@ test('explicit saves serialize and use the acknowledged document version', async
   await expect(page.getByRole('button', {
     name: 'Save document'
   })).toBeDisabled();
+  await expect(page.getByLabel('Document Markdown',{exact:true})).toBeDisabled();
   h.release();
+  await showPanel(page,'document');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
@@ -470,6 +480,7 @@ test('save response for another document keeps local edits and reports the misma
     document: document('b'),
     document_version: 2
   })).release();
+  await showPanel(page,'document');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
@@ -484,6 +495,7 @@ test('late document-save response cannot replace another conversation', async ({
   page
 }) => {
   await open(page, backend);
+  await showPanel(page,'document');
   await page.getByRole('button', {
     name: 'Edit Markdown'
   }).click();
@@ -506,16 +518,12 @@ for (const empty of [false, true]) test(`switching to a ${empty ? 'empty' : 'pop
 }) => {
   if (empty) delete backend.chats.c;
   await open(page, backend);
-  await page.getByLabel('Project', {
-    exact: true
-  }).selectOption('2');
+  await selectProject(page,'Project Two');
   if (empty) await expect(page.getByText('Create or select a conversation to begin.')).toBeVisible();else await expect(page.getByRole('heading', {
     name: 'Chat C',
     exact: true
   })).toBeVisible();
-  await expect(page.getByLabel('Project', {
-    exact: true
-  })).toHaveValue('2');
+  await expect(page.getByRole('button',{name:'Open project Project Two',exact:true})).toHaveAttribute('aria-current','true');
 });
 test('late conversation metadata cannot undo a project switch', async ({
   page
@@ -523,18 +531,14 @@ test('late conversation metadata cannot undo a project switch', async ({
   const h = hold(q => q.path === 'conversations/a');
   await page.goto('/');
   await h.entered;
-  await page.getByLabel('Project', {
-    exact: true
-  }).selectOption('2');
+  await selectProject(page,'Project Two');
   await expect(page.getByRole('heading', {
     name: 'Chat C',
     exact: true
   })).toBeVisible();
   h.release();
   await idle(page);
-  await expect(page.getByLabel('Project', {
-    exact: true
-  })).toHaveValue('2');
+  await expect(page.getByRole('button',{name:'Open project Project Two',exact:true})).toHaveAttribute('aria-current','true');
   await expect(page.getByRole('heading', {
     name: 'Chat C',
     exact: true
@@ -547,9 +551,7 @@ test('two tabs preserve independent project and conversation selections on reloa
   await open(page, backend);
   const second = await context.newPage();
   await open(second, backend);
-  await second.getByLabel('Project', {
-    exact: true
-  }).selectOption('2');
+  await selectProject(second,'Project Two');
   await expect(second.getByRole('heading', {
     name: 'Chat C',
     exact: true
@@ -559,9 +561,7 @@ test('two tabs preserve independent project and conversation selections on reloa
     name: 'Chat A',
     exact: true
   })).toBeVisible();
-  await expect(page.getByLabel('Project', {
-    exact: true
-  })).toHaveValue('1');
+  await expect(page.getByRole('button',{name:'Open project Project One',exact:true})).toHaveAttribute('aria-current','true');
 });
 test('13 staggered uploads retain all source cards and readiness after reload', async ({
   page
@@ -717,13 +717,9 @@ test('newly created conversation admits its first empty-source assignment', asyn
 }) => {
   backend.autoComplete = true;
   await open(page, backend);
-  await page.getByLabel('New conversation name').fill('New replay chat');
-  await page.getByRole('button', {
-    name: 'New conversation',
-    exact: true
-  }).click();
+  await page.getByRole('button',{name:'New conversation in Project One',exact:true}).click();
   await expect(page.getByRole('heading', {
-    name: 'New replay chat',
+    name: 'New conversation',
     exact: true
   })).toBeVisible();
   await send(page, 'First new-chat assignment');
@@ -849,10 +845,10 @@ test('accepted run can be cancelled while its transcript refresh is delayed', as
   const h = hold(q => q.path === 'conversations/a' && Object.keys(backend.runs).length > 0);
   await send(page);
   await h.entered;
-  await expect(controls(page).getByRole('button', {
+  await expect(page.locator('.workspace-composer').getByRole('button', {
     name: 'Cancel request'
   })).toBeEnabled();
-  const cancel = controls(page).getByRole('button', {
+  const cancel = page.locator('.workspace-composer').getByRole('button', {
     name: 'Cancel request'
   }).click();
   await expect.poll(() => backend.count(Object.keys(backend.runs).map(id => 'runs/' + id + '/cancel')[0], 'POST')).toBe(1);

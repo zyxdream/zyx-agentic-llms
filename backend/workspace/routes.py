@@ -3,12 +3,14 @@ import json
 import uuid
 from pathlib import Path
 from flask import Blueprint, request, send_file, current_app
+from sqlalchemy.exc import IntegrityError
 from backend.auth import auth_required, current_user
 from backend.database import db
-from backend.models import Project, ChatThread, DraftDocument, WorkspaceRun, AgentArtifact, DocumentPreparation, UploadedFiles
+from backend.models import Project, ChatThread, DraftDocument, WorkspaceRun, AgentArtifact, DocumentPreparation, UploadedFiles, UploadGroup
 from backend.util import workspace_store, workspace_service as runs, document_preparation as preparation
 from backend.util.account_access import require_enabled_account
 from backend.workspace_runs import guarded
+from backend.workspace.project_access import lock_project
 bp = Blueprint('workspace', __name__, url_prefix='/api/workspace')
 
 def owned_project(project_id):
@@ -37,6 +39,13 @@ def name_input(default=None):
     if not isinstance(value,str) or not value.strip() or len(value.strip()) > 250: raise ValueError('Enter a name of 1 to 250 characters')
     return value.strip()
 
+def commit_project_name():
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return {'code':'project_name_conflict','msg':'You already have a project with this name.'},409
+
 @bp.route('/projects', methods=['GET','POST'])
 @auth_required
 @guarded
@@ -44,7 +53,9 @@ def projects():
     if request.method=='GET': return {'projects':[project_view(p) for p in Project.query.filter_by(userId=current_user.id).order_by(Project.id).all()]}
     require_enabled_account(current_user.id)
     value = Project(name=name_input(), userId=current_user.id)
-    db.session.add(value);db.session.commit()
+    db.session.add(value)
+    conflict=commit_project_name()
+    if conflict:return conflict
     return project_view(value),201
 
 @bp.route('/projects/<int:project_id>',methods=['GET','PATCH','DELETE'])
@@ -53,8 +64,20 @@ def projects():
 def project(project_id):
     value=owned_project(project_id)
     if request.method=='DELETE':
+        value=lock_project(project_id,current_user.id)
+        active_runs=WorkspaceRun.query.join(ChatThread,WorkspaceRun.chat_thread_id==ChatThread.id).filter(
+            ChatThread.projectId==project_id,WorkspaceRun.active_chat_thread_id.isnot(None)).count()
+        active_preparations=DocumentPreparation.query.join(UploadGroup,DocumentPreparation.group_id==UploadGroup.id).filter(
+            UploadGroup.project_id==project_id,DocumentPreparation.status.in_(preparation.ACTIVE)).count()
+        if active_runs or active_preparations:
+            db.session.rollback()
+            return {'code':'project_busy','msg':'Finish or cancel active requests and document preparation before deleting this project.',
+                'active_runs':active_runs,'active_preparations':active_preparations},409
         db.session.delete(value);db.session.commit();return {'deleted':True}
-    if request.method=='PATCH':value.name=name_input();db.session.commit()
+    if request.method=='PATCH':
+        value.name=name_input()
+        conflict=commit_project_name()
+        if conflict:return conflict
     return project_view(value)
 
 @bp.route('/projects/<int:project_id>/conversations', methods=['GET','POST'])
@@ -63,6 +86,7 @@ def project(project_id):
 def conversations(project_id):
     owned_project(project_id)
     if request.method=='GET':return {'conversations':[conversation_view(c) for c in ChatThread.query.filter_by(projectId=project_id).order_by(ChatThread.date.desc(),ChatThread.id.desc()).all()]}
+    lock_project(project_id,current_user.id)
     value=ChatThread(display_name=name_input('New conversation'),projectId=project_id)
     db.session.add(value);db.session.flush();workspace_store.initialize(value.id);db.session.commit()
     return conversation_view(value),201
@@ -72,6 +96,9 @@ def conversations(project_id):
 @guarded
 def conversation(conversation_id):
     value=owned_chat(conversation_id)
+    if request.method in {'PATCH','DELETE'}:
+        lock_project(value.projectId,current_user.id)
+        value=owned_chat(conversation_id)
     if request.method=='DELETE':
         active=WorkspaceRun.query.filter_by(active_chat_thread_id=value.id).first()
         if active:runs.cancel(active)
