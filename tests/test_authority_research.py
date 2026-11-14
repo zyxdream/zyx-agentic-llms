@@ -518,14 +518,18 @@ def test_read_returns_exact_passage_and_reuses_cached_body_across_pages(ops, mon
     first = research.read(ops, read_args(rid, sid))
     assert first['text'] == body[:12_000]
     assert first['next_start'] == 12_000
+    assert first['match_start'] is None and first['match_end'] is None
     material = record(first['passage_artifact_id'])
     assert material['role'] == 'passage' and material['research_id'] == rid
+    assert material['match_start'] is None and material['match_end'] is None
     assert first['source_artifact_id'] == material['source_artifact_id']
     cache = record(first['source_artifact_id'])
     assert cache['role'] == 'source_cache' and cache['text'] == body
     assert material['locations'][0]['page'] == 1
     second = research.read(ops, read_args(first['research_id'], sid, query='important holding', start=12_000))
     assert 'Important holding.' in second['text']
+    assert second['match_start'] == body.index('Important holding')
+    assert second['match_end'] == second['match_start'] + len('Important holding')
     assert second['source_artifact_id'] == first['source_artifact_id']
     assert record(second['passage_artifact_id'])['source_artifact_id'] == second['source_artifact_id']
     assert len(calls) == 1
@@ -548,6 +552,7 @@ def test_opinion_metadata_does_not_read_all_opinions_or_claim_support(ops, monke
     monkeypatch.setattr(sources, 'fetch_source', fetch)
     metadata = research.read(ops, read_args(initial['research_id'], sid))
     assert len(metadata['opinions']) == 2 and 'passage_artifact_id' not in metadata
+    assert metadata['match_start'] is None and metadata['match_end'] is None
     assert not record(metadata['research_id'])['authorities'][0]['checking']['opinion_read']
     selected = research.read(ops, read_args(metadata['research_id'], sid, opinion_id=8))
     assert calls == [None, 8]
@@ -752,12 +757,15 @@ def test_tolerant_read_preserves_original_passages_locations_and_cache(ops, monk
     monkeypatch.setattr(sources, 'fetch_source', fetch)
     first = research.read(ops, read_args(rid, sid, query='§ 778.110 Hourly rate employee'))
     assert first['match_found']
+    assert first['match_start'] == len(prefix)
+    assert first['match_end'] == len(prefix) + len(heading) - 1
     assert first['start'] == len(prefix) - 1000
     assert first['end'] == first['start'] + research.PAGE_CHARACTERS
     assert first['text'] == body[first['start']:first['end']]
     assert heading in first['text']
     saved = record(first['passage_artifact_id'])
     assert saved['source_sha256'] == 'original-hash'
+    assert (saved['match_start'], saved['match_end']) == (first['match_start'], first['match_end'])
     assert saved['locations'] == [
         {'start': first['start'], 'end': len(prefix), 'page': 1},
         {'start': len(prefix), 'end': first['end'], 'page': 2}]
@@ -771,6 +779,56 @@ def test_tolerant_read_preserves_original_passages_locations_and_cache(ops, monk
     page = research.read(ops, read_args(empty['research_id'], sid, start=first['next_start']))
     assert page['text'] == body[page['start']:page['end']]
     assert calls == [1]
+    for outcome in (missed, empty, page):
+        assert outcome['match_start'] is None and outcome['match_end'] is None
+
+
+@pytest.mark.parametrize('gap', [30, 14_000])
+def test_match_end_finds_next_occurrence_inside_or_beyond_returned_chunk(ops, monkeypatch, gap):
+    rid, sid = add_web_source(ops, monkeypatch)
+    phrase = 'Hourly rate employee'
+    later = 'Hourly\nrate employee'
+    body = phrase + '\nTable of contents\n' + '.' * gap + later + '\nActual section\n' + '.' * 13_000
+    calls = []
+    def fetch(*args, **kwargs):
+        calls.append(1)
+        return {'status': 'read', 'text': body}
+    monkeypatch.setattr(sources, 'fetch_source', fetch)
+    first = research.read(ops, read_args(rid, sid, query=phrase))
+    assert (first['match_start'], first['match_end']) == (0, len(phrase))
+    assert first['next_start'] == research.PAGE_CHARACTERS
+    position = body.index(later)
+    assert (position < first['next_start']) is (gap == 30)
+    second = research.read(ops, read_args(first['research_id'], sid, query=phrase, start=first['match_end']))
+    assert (second['match_start'], second['match_end']) == (position, position + len(later))
+    assert body[second['match_start']:second['match_end']] == later
+    assert second['text'] == body[second['start']:second['end']]
+    assert second['source_artifact_id'] == first['source_artifact_id']
+    db.session.commit()
+    db.session.expire_all()
+    saved = record(second['passage_artifact_id'])
+    assert (saved['match_start'], saved['match_end']) == (position, position + len(later))
+    restarted = research.read(ops, read_args(second['research_id'], sid, query=phrase))
+    assert restarted['match_start'] == 0  # No automatic table-of-contents skipping.
+    assert calls == [1]
+
+
+@pytest.mark.parametrize('query', ['', 'absent', 'source'])
+def test_search_with_no_match_or_match_at_end_returns_unambiguous_positions(ops, monkeypatch, query):
+    rid, sid = add_web_source(ops, monkeypatch)
+    body = 'Short source'
+    monkeypatch.setattr(sources, 'fetch_source', lambda *a, **kw: {'status': 'read', 'text': body})
+    found = research.read(ops, read_args(rid, sid, query=query))
+    if query == 'source':
+        assert (found['match_start'], found['match_end']) == (6, len(body))
+        assert found['next_start'] is None
+        exhausted = research.read(ops, read_args(found['research_id'], sid, query=query, start=found['match_end']))
+        assert exhausted['end_of_source']
+        assert exhausted['match_start'] is None and exhausted['match_end'] is None
+    else:
+        assert found['match_found'] is False
+        assert found['match_start'] is None and found['match_end'] is None
+        assert 'passage_artifact_id' not in found
 
 
 def test_source_read_errors_and_query_misses_are_saved_observations(ops, monkeypatch):
@@ -778,10 +836,12 @@ def test_source_read_errors_and_query_misses_are_saved_observations(ops, monkeyp
     monkeypatch.setattr(sources, 'fetch_source', lambda *a, **kw: {'status': 'unavailable', 'error': 'Official page requires JavaScript.'})
     failed = research.read(ops, read_args(rid, sid))
     assert failed['error'] and 'JavaScript' in failed['read_error']
+    assert failed['match_start'] is None and failed['match_end'] is None
     monkeypatch.setattr(sources, 'fetch_source', lambda *a, **kw: {'status': 'read', 'text': 'Some readable source text.'})
     missed = research.read(ops, read_args(failed['research_id'], sid, query='not in this text'))
     assert missed['match_found'] is False and 'passage_artifact_id' not in missed
     assert record(missed['research_id'])['sources'][0]['read_errors']
+    assert missed['match_start'] is None and missed['match_end'] is None
 
 
 def test_unlocatable_provider_citation_remains_a_lead_without_an_invented_occurrence(ops, monkeypatch):
@@ -809,6 +869,10 @@ def test_empty_end_of_source_is_not_marked_as_a_read_passage(ops, monkeypatch):
     rid, sid = add_web_source(ops, monkeypatch)
     monkeypatch.setattr(sources, 'fetch_source', lambda *a, **kw: {'status': 'read', 'text': 'Short source.'})
     result = research.read(ops, read_args(rid, sid, start=len('Short source.')))
+    assert result['match_start'] is None and result['match_end'] is None
+    searched = research.read(ops, read_args(result['research_id'], sid, query='source', start=len('Short source.')))
+    assert searched['match_start'] is None and searched['match_end'] is None
+    assert searched['end_of_source']
     assert result['end_of_source'] and 'passage_artifact_id' not in result
     saved = record(result['research_id'])
     assert saved['sources'][0]['passage_artifact_ids'] == []

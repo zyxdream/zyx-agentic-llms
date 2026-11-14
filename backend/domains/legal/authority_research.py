@@ -783,6 +783,7 @@ def read(ops, args):
     if source is None:
         raise ValueError('Source ID must come from this research record.')
     _check(ops)
+    match_positions = {'match_start': None, 'match_end': None}
     opinion = args.opinion_id
     caches = source.setdefault('cached_sources', [])
     cache = next((value for value in caches if value.get('requested_opinion_id') == opinion
@@ -796,13 +797,13 @@ def read(ops, args):
         if fetched.get('status') == 'metadata':
             source['opinions'] = fetched.get('opinions') or []
             uid = _persist(ops, record, args.research_id)
-            return _observation(uid, record, source_id=source['id'], opinions=source['opinions'],
+            return _observation(uid, record, **match_positions, source_id=source['id'], opinions=source['opinions'],
                 message='Available opinions saved. Choose an opinion ID to read; no opinion text was read.')
         if fetched.get('status') != 'read' or not isinstance(fetched.get('text'), str):
             source.setdefault('read_errors', []).append({'error': fetched.get('error') or 'Source text is unavailable.',
                 'opinion_id': opinion, 'retrieved_at': fetched.get('retrieved_at')})
             uid = _persist(ops, record, args.research_id)
-            return _observation(uid, record, source_id=source['id'], error=True,
+            return _observation(uid, record, **match_positions, source_id=source['id'], error=True,
                 read_error=fetched.get('error') or 'Source text is unavailable.')
         fetched = {**fetched, 'kind': SOURCE_KIND, 'role': 'source_cache', 'source_id': source['id']}
         cache_id = ops.save(SOURCE_KIND, fetched)
@@ -822,7 +823,7 @@ def read(ops, args):
         raise ValueError('Source text offset is outside the saved text.')
     if args.start == len(body):
         uid = _persist(ops, record, args.research_id)
-        return _observation(uid, record, source_id=source['id'], text='', start=args.start,
+        return _observation(uid, record, **match_positions, source_id=source['id'], text='', start=args.start,
             end=args.start, total_characters=len(body), next_start=None, end_of_source=True,
             message='There are no source characters at this offset; no passage was marked read.')
     lo = args.start
@@ -830,11 +831,12 @@ def read(ops, args):
         match = _find_source_phrase(body, args.query, args.start)
         if match is None:
             uid = _persist(ops, record, args.research_id)
-            return _observation(uid, record, source_id=source['id'], total_characters=len(body),
+            return _observation(uid, record, **match_positions, source_id=source['id'], total_characters=len(body),
                 query=args.query, match_found=False, message='The phrase was not found after allowing for capitalization, whitespace, quotes, dashes and soft hyphens. Other phrases or paginated reading remain available.')
+        match_positions.update(match_start=match[0], match_end=match[1])
         lo = max(args.start, match[0] - 1000)
     hi = min(len(body), lo + PAGE_CHARACTERS)
-    passage = {'kind': SOURCE_KIND, 'role': 'passage', 'source_id': source['id'],
+    passage = {'kind': SOURCE_KIND, 'role': 'passage', 'source_id': source['id'], **match_positions,
         'research_id': args.research_id,
         'source_artifact_id': cache_id, 'text': body[lo:hi], 'url': fetched.get('url') or source.get('url'),
         **{key: copy.deepcopy(source[key]) for key in ('viewer_url', 'cluster_id', 'case_name', 'citations') if key in source},
@@ -864,7 +866,7 @@ def read(ops, args):
     uid = _persist(ops, record, args.research_id)
     # Give the controller the same passage-to-cache provenance supplied to analysis.
     # The cache identity does not extend the returned passage's reading scope.
-    return _observation(uid, record, source_id=source['id'], passage_artifact_id=passage_id,
+    return _observation(uid, record, **match_positions, source_id=source['id'], passage_artifact_id=passage_id,
         source_artifact_id=passage['source_artifact_id'],
         text=passage['text'], start=lo, end=hi, next_start=passage['next_start'],
         **{key: passage[key] for key in ('url', 'viewer_url', 'cluster_id', 'case_name', 'citations') if key in passage},

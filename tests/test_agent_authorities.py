@@ -10,7 +10,7 @@ from backend.ai import agent_tools, base
 from backend.database import db
 from backend.models import AgentArtifact
 from backend.util import document_drafts, workspace_service
-from tests.test_agent_controller import agent, operation, last_result, state
+from tests.test_agent_controller import agent, operation, last_result, state, call, tick
 from tests.test_document_preparation import app
 from tests.test_agent_uploaded_result_contract import uploaded_revision
 
@@ -144,3 +144,71 @@ def test_writer_source_reading_principle_is_in_the_existing_call(monkeypatch):
         conversation={}, materials=[], target=None, answers=[], model='gpt-6.1-sol', reasoning_effort='medium')
     assert 'relevant retrieved source passages' in seen['sys_prompt']
     assert 'metadata, search previews' in seen['sys_prompt']
+
+
+def test_match_positions_survive_reload_and_drive_next_controller_search(agent, app, monkeypatch):
+    from backend.domains.legal import authority_research, authority_sources
+    phrase = 'Hourly rate employee'
+    body = ('Contents\n' + phrase + '\n' + 'Context. ' * 20
+            + '\n§ 778.110\n' + phrase + '\n' + 'Remaining explanation. ' * 1000)
+    url = 'https://official.example/part778.pdf'
+    monkeypatch.setattr(authority_sources, 'lookup_citations', lambda *a, **kw: ([], None))
+    monkeypatch.setattr(authority_research, '_discover_mentions', lambda *a, **kw: [])
+    operation(agent, monkeypatch, 'lookup_authorities', {
+        'targets': [{'file_id': None, 'draft_id': None, 'text': 'Find the hourly rate rule.',
+                     'start': None, 'end': None}],
+        'mode': 'overview', 'purpose': 'Read the relevant provision.', 'research_id': None})
+    initial_id = last_result(agent)['research_id']
+    searches, fetches = [], []
+
+    def search(*args, **kwargs):
+        searches.append(1)
+        return {'results': [{'type': 'web', 'provider': 'web', 'url': url, 'title': 'Part 778'}],
+                'error': None}
+
+    def fetch(*args, **kwargs):
+        fetches.append(1)
+        return {'status': 'read', 'text': body, 'url': url, 'sha256': 'original-source-hash'}
+
+    monkeypatch.setattr(authority_sources, 'search_sources', search)
+    monkeypatch.setattr(authority_sources, 'fetch_source', fetch)
+    operation(agent, monkeypatch, 'search_legal_sources', {
+        'research_id': initial_id, 'authority_ids': [], 'query': phrase, 'provider': 'web'})
+    found = last_result(agent)
+    source_id = found['sources'][0]['id']
+    operation(agent, monkeypatch, 'read_authority', {
+        'research_id': found['research_id'], 'source_id': source_id,
+        'opinion_id': None, 'query': phrase, 'start': 0})
+    first = last_result(agent)
+    assert first['match_start'] == body.index(phrase)
+    assert first['match_end'] == first['match_start'] + len(phrase)
+    second_position = body.index(phrase, first['match_end'])
+    assert first['match_end'] < second_position < first['next_start']
+
+    db.session.expire_all()
+    response = app.test_client().get(
+        f'/api/workspace/runs/{agent.id}/artifacts/{first["passage_artifact_id"]}')
+    assert response.status_code == 200
+    saved = response.json['content']
+    for field in ('match_start', 'match_end', 'start', 'end', 'next_start'):
+        assert saved[field] == first[field]
+    assert saved['text'] == body[first['start']:first['end']]
+
+    requests = []
+    def controller(request):
+        requests.append(request)
+        return call('read_authority', {
+            'research_id': first['research_id'], 'source_id': source_id,
+            'opinion_id': None, 'query': phrase, 'start': first['match_end']})
+
+    monkeypatch.setattr(base, 'responses_completion', controller)
+    assert tick(agent) == {'continued': True}
+    history = [json.loads(item['output']) for item in requests[0]['input']
+               if item.get('type') == 'function_call_output']
+    assert history[-1] == first
+    assert tick(agent) == {'continued': True}
+    second = last_result(agent)
+    assert second['match_start'] == second_position
+    assert second['match_end'] == second_position + len(phrase)
+    assert second['source_artifact_id'] == first['source_artifact_id']
+    assert searches == [1] and fetches == [1]
