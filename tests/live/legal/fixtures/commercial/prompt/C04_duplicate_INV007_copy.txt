@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+COPY ONLY: INV-007, originalfeeUSD7,625, due2026-10-01. Same batch7, same invoiceID as originalP11. Emailed again2026-10-05 as a reminder. Do not treat this copy as a second invoice.

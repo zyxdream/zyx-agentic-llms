@@ -44,7 +44,10 @@ def get_openai_client():
     from backend.util.account_access import check_current_account
     check_current_account()
     if client is None:
-        client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'), max_retries=0)
+        # The installed Brotli binding cannot satisfy httpx's bounded decoder
+        # interface. Negotiate the supported compression formats explicitly.
+        client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'), max_retries=0,
+                        default_headers={'Accept-Encoding': 'gzip, deflate'})
     from backend.util.workspace_service import current_execution, validate_execution
     if current_execution():
         from backend.database import db
@@ -321,7 +324,7 @@ def responses_completion(request_kwargs, *, token_counter=None):
         except (SoftTimeLimitExceeded, WorkflowStopped, WorkPending):
             raise
         except Exception as error:
-            logger.warning('chat_completion unexpected_error model=%s attempt=%s error_type=%s', model, attempt, type(error).__name__)
+            logger.warning('chat_completion unexpected_error model=%s attempt=%s error_type=%s', model, attempt, type(error).__name__, exc_info=True)
             return None
         if attempt == CHAT_COMPLETION_MAX_ATTEMPTS:
             break

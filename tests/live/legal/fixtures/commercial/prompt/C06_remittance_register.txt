@@ -1,0 +1,7 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+REMIT-2026 final cash register. All payments cleared BEFORE common due date.
+PAY-001 date2026-09-25 clearedUSD20,000; allocations INV-001=USD5,375, INV-002=USD5,750, INV-003=USD6,125, INV-005=USD2,750
+PAY-002 date2026-09-28 clearedUSD12,500; allocations INV-006=USD7,250, INV-008=USD5,250
+PAY-003 date2026-09-30 clearedUSD17,500; allocations INV-009=USD8,375, INV-010=USD8,750, INV-011=USD375
+No additional cash receipts before2026-11-13.

@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+CertificatesACC-017,ACC-019,ACC-020: customer accepted batches17,19,20 on2026-09-26. Batch18 delivered2026-09-24 but remains under documented dispute C08. Acceptance of batches17,19,20 is independent of batch18.

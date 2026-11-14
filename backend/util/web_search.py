@@ -14,29 +14,60 @@ def _value(value, key, default=None):
     return value.get(key, default) if isinstance(value, dict) else getattr(value, key, default)
 
 
+def _observed_url(item):
+    url = _value(item, 'url')
+    if not isinstance(url, str):
+        return None
+    try:
+        parsed = urlsplit(url)
+    except ValueError:
+        return None
+    if parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username or parsed.password:
+        return None
+    return url
+
+
+def _observed_web_citations(metadata):
+    """Retain provider citation occurrences, distinct from consulted source URLs."""
+    citations = []
+    for annotation in _value(metadata, 'annotations', []) or []:
+        item = _value(annotation, 'url_citation') or annotation
+        url = _observed_url(item)
+        if url is None:
+            continue
+        citation = {'url': url}
+        title = _value(item, 'title')
+        if title:
+            citation['title'] = str(title)
+        start, end = _value(item, 'start_index'), _value(item, 'end_index')
+        if type(start) is int and type(end) is int and 0 <= start < end:
+            citation.update(start_index=start, end_index=end)
+        citations.append(citation)
+    return citations
+
+
 def _observed_web_results(metadata):
     observed = list(_value(metadata, 'sources', []) or [])
     for annotation in _value(metadata, 'annotations', []) or []:
         nested = _value(annotation, 'url_citation')
         observed.append(nested or annotation)
-    results, seen = [], set()
+    results, by_url = [], {}
     for item in observed:
-        url = _value(item, 'url')
-        if not isinstance(url, str):
+        url = _observed_url(item)
+        if url is None:
             continue
-        try:
-            parsed = urlsplit(url)
-        except ValueError:
+        if url in by_url:
+            existing = by_url[url]
+            title = _value(item, 'title')
+            if existing['title'] == url and title:
+                existing['title'] = str(title)
             continue
-        if parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username or parsed.password:
-            continue
-        if url in seen:
-            continue
-        seen.add(url)
-        results.append({'type': 'web', 'provider': 'web', 'url': url,
-                        'title': str(_value(item, 'title') or url),
-                        'snippet': str(_value(item, 'snippet') or ''),
-                        'snippet_is_source_text': False})
+        result = {'type': 'web', 'provider': 'web', 'url': url,
+                  'title': str(_value(item, 'title') or url),
+                  'snippet': str(_value(item, 'snippet') or ''),
+                  'snippet_is_source_text': False}
+        by_url[url] = result
+        results.append(result)
     return results
 
 
@@ -52,7 +83,8 @@ def search(query, *, model, reasoning_effort, check_execution=None, sys_prompt=N
     if check_execution:
         check_execution()
     if not isinstance(query, str) or not query.strip():
-        return {'results': [], 'error': 'Supply a search query.', 'provider': 'web', 'query': query}
+        return {'results': [], 'citations': [], 'error': 'Supply a search query.',
+                'provider': 'web', 'query': query}
     if sys_prompt is None:
         sys_prompt = (
             f'Current UTC date: {datetime.now(timezone.utc).date().isoformat()}. '
@@ -65,13 +97,14 @@ def search(query, *, model, reasoning_effort, check_execution=None, sys_prompt=N
         output, metadata = web_search_completion(query, model=model, reasoning_effort=reasoning_effort,
             return_meta=True, sys_prompt=sys_prompt)
     except (OpenAIError, requests.RequestException, ValueError, RuntimeError) as exc:
-        return {'results': [], 'error': f'Web search unavailable ({type(exc).__name__}).',
+        return {'results': [], 'citations': [], 'error': f'Web search unavailable ({type(exc).__name__}).',
                 'provider': 'web', 'query': query}
     # A cancelled/deadline-expired execution must not become a provider failure.
     if check_execution:
         check_execution()
     results = _observed_web_results(metadata)
-    result = {'results': results, 'error': None, 'provider': 'web', 'query': query,
+    result = {'results': results, 'citations': _observed_web_citations(metadata),
+              'error': None, 'provider': 'web', 'query': query,
               'retrieved_at': datetime.now(timezone.utc).isoformat(),
               'generated_summary': output or '', 'summary_is_source_text': False}
     limitations = []

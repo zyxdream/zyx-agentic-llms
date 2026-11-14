@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+Timeline: Jan02MSAexecuted; Feb01SOWexecuted; Sep01all20invoicesissued; Sep15AM-01executed; Sep20/21credits; Sep25/28/30payments; Oct01commonduedate; Oct05INV007copyemailed; Oct12INV018dispute; Nov01unsigned24%proposal; Nov13analysisdate. DatesareISOcalendar dates. Do notstartinterestfrominvoiceissue or duplicateemail.

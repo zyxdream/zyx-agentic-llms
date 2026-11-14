@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+Bonusplan2025-12-15: fixedpublishedproductionmetricearnedweekly. Weeklyamountisnotdiscretionaryandmustbelongtoitsownweek. Employer payrolladmission2026-03-05: base_rate*actual_hours plus each listedbonusalready paidinfull; no 0.5premiumandno1.5premiumwaspaid. Do notpaystraight-timeagain. Sourceactualhoursandbonus in E04_payroll.xlsx; recomputeearnedregularrateandadditionalovertimeforeachweek.

@@ -249,7 +249,7 @@ def owned(workflow_id, user_id):
     owned_scope(user_id, 'chat', row.chat_thread_id)
     return row
 
-def stage_publication(row, response, draft):
+def stage_publication(row, response, draft, *, output_files=None):
     """Stage workflow completion with its draft and conversation writes.
 
     The publication caller owns the single commit; helpers must not publish a
@@ -258,7 +258,7 @@ def stage_publication(row, response, draft):
     from backend.util import workspace_store
     document = workspace_store.document_for_chat(row.chat_thread_id, row.draft_document_id)
     chat = db.session.get(ChatThread, row.chat_thread_id)
-    row.result_json = encode({'response': response, 'text': draft, 'chat_thread_id': chat.public_id, 'draft_document_id': document.public_id})
+    row.result_json = encode({'response': response, 'text': draft, 'output_files': output_files or [], 'chat_thread_id': chat.public_id, 'draft_document_id': document.public_id})
     (row.status, row.phase, row.active_chat_thread_id) = ('completed', 'finalize', None)
     row.lease_token = row.lease_until = None
     (row.error_message, row.dispatch_pending, row.updated_at) = (None, False, now())
@@ -275,13 +275,13 @@ def complete_published_answer(row):
     if turn is None:
         return False
     result = json.loads(row.result_json or '{}')
+    metadata = json.loads(turn.metadata_json or '{}')
     draft = result.get('text')
     if not isinstance(draft, dict):
-        metadata = json.loads(turn.metadata_json or '{}')
         from backend.models import AgentArtifact
         candidate = db.session.get(AgentArtifact, metadata.get('candidate_id')) if metadata.get('candidate_id') else None
         draft = json.loads(candidate.content_json)['draft'] if candidate and candidate.kind == 'draft' else workspace_store.load(row.chat_thread_id)['draft']
-    stage_publication(row, turn.assistant_text, draft)
+    stage_publication(row, turn.assistant_text, draft, output_files=metadata.get('output_files', []))
     db.session.commit()
     return True
 

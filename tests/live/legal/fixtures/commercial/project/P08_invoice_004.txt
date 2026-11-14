@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+INVOICE INV-004. Issued2026-09-01. Provider Alder Analytics LLC; billto Beacon Field Services Inc. Batch4. Gross service fee USD6,500.00. Due2026-10-01. This is an original invoice. Credits/cash shown in separate records must be applied before demand. No extra tax/fee.

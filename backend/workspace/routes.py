@@ -117,7 +117,7 @@ def conversation(conversation_id):
         result=json.loads(run.result_json) if run.result_json else {}
         overlays.append({'id':run.id,'run_id':run.id,'query':original.get('display_user_message') or original['query'],
             'response':result.get('response') or run.error_message or '', 'status':run.status,
-            'created_at':run.created_at.isoformat(), 'metadata':{'prompt_attachments':original.get('promptAttachments',[])}})
+            'created_at':run.created_at.isoformat(), 'metadata':{'prompt_attachments':original.get('promptAttachments',[]), 'output_files':result.get('output_files',[])}})
     history=sorted(history+overlays,key=lambda t:(t['created_at'],t['id']))
     active=next((r for r in saved_runs if r.active_chat_thread_id==value.id),None)
     result={**conversation_view(value),'document_id':document.public_id,'document':state['draft'],

@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+Sales estimateEST-010, unsigned2026-08-15, predictsbatch10priceUSD11,750. FinalinvoiceINV-010isUSD8,750 in P14 and governs billing. Estimate is not a second invoice or a signed changeorder.

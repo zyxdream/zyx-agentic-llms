@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+From Beacon2026-10-12: We dispute INV-018 in full, USD11,750, because fieldmapping for batch18 switched two source columns. We accept every other batch. Pending retest, we do not authorize interest on this disputed invoice. No final credit or settlement of this invoice has been signed.

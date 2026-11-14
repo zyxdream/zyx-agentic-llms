@@ -249,3 +249,25 @@ def test_real_queue_optional_legal_research_snapshot_is_saved(replay,monkeypatch
         record=db.session.get(AgentArtifact,result['research_id'])
         assert record.kind=='authority_research'
         assert json.loads(record.content_json)['purpose']=='Identify applicable sources; disclose uncertainty'
+
+
+@pytest.mark.skipif(os.getenv('ZYX_PYTHON_LIVE')!='1',reason='Set ZYX_PYTHON_LIVE=1 for real generated-file delivery.')
+def test_real_queue_python_file_selection_publication_and_download(replay):
+    replay.actions=[('python_run',{
+        'code':"from pathlib import Path\np=Path(output_dir)/'payroll.csv'\np.write_text('item,value\\novertime,455\\n')\nresult={'total':455}",
+        'file_ids':[],'artifact_ids':[]}),
+        lambda req:('complete_task',{'response':'The calculated file is attached.', 'candidate_id':None,
+                                    'output_file_ids':[outputs(req)[-1]['files'][0]['id']]})]
+    replay.submit('Calculate a synthetic total and deliver the generated CSV.')
+    replay.wait('completed',timeout=45)
+    first=replay.history()
+    selected=first['history'][0]['metadata']['output_files']
+    assert len(selected)==1 and selected[0]['filename']=='payroll.csv'
+    file=selected[0]
+    assert set(file)=={'file_id','execution_id','filename','file_size'}
+    assert replay.progress()['value']['output_files']==selected
+    assert replay.history()['history'][0]['metadata']['output_files']==selected
+    url=f"/api/workspace/runs/{replay.run_id}/artifacts/{file['execution_id']}/files/{file['file_id']}"
+    downloaded=replay.client.get(url)
+    assert downloaded.status_code==200 and downloaded.data==b'item,value\novertime,455\n'
+    downloaded.close()

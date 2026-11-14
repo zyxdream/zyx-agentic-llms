@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+SOW-001 executed2026-02-01. Twenty batches, INV-001 through INV-020. Fee for batch i is USD5000+USD375*i. Each invoice is one batch, not a payment request in addition to that batch. All batch invoices share due date2026-10-01. Signed completion certificates control acceptance. Invoice copies with the same invoiceID are duplicates, not new debt. Cash payments apply according to REMIT-2026 register, and credit notes apply once to named invoices. Batch18 is factually disputed; do not determine liability from the mere invoice.

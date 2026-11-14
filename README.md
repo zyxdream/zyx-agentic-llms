@@ -4,6 +4,8 @@
 
 This repository is a local development foundation. Production deployment and a second model provider remain separate work.
 
+New completed answers can deliver explicitly selected generated files as download cards. File identity and version selection use saved IDs, while private storage stays behind the existing authenticated API. See [file delivery](docs/file-delivery.md).
+
 The frontend has a collapsible project/conversation sidebar with a persistent icon rail and a chat-first composer. **Project documents** holds reusable files and imported folders; the paperclip adds **prompt attachments** retained within the conversation; **Output** opens the editable working document. Opened views stay in individually closable right-side tabs; draggable dividers resize the panels while preserving conversation space. The new-project folder chooser supplies only a name. See [document and attachment behavior](docs/project-documents-and-attachments.md) and [the frontend redesign](docs/frontend-redesign.md).
 
 ## Independent local application

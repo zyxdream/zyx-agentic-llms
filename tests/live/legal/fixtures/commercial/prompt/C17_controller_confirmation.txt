@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+Controller confirmation2026-11-13: C01_reconciliation.xlsx is an administrative compilation of original invoices, C05credits and C06cashallocations. Recalculate independently. Exclude duplicatecopies, salesestimates and unsignedpenalties. As-ofdate2026-11-13; interestaccrual starts after2026-10-01; actualcalendar-daydifference43. No receipt/credit after due date. Round aggregate interest only at final cents, not each invoice first.

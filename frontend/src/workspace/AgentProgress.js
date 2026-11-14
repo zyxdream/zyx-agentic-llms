@@ -6,6 +6,7 @@ import FlexibleDocumentPreview from './FlexibleDocumentPreview';
 import { isMarkdownDraft } from './documentMarkdown';
 import { downloadDocumentRevision } from './documentDownload';
 import { getDraftDownloadErrorMessage } from './downloadError';
+import { downloadGeneratedFile } from './generatedFileDownload';
 import AuthorityResearchResult, { AuthoritySourceResult } from './AuthorityResearchResult';
 
 export default function AgentProgress({ workflowId, draftId, value }) {
@@ -61,24 +62,9 @@ export default function AgentProgress({ workflowId, draftId, value }) {
     const artifactId = artifact.id;
     setDownloading(file.id);
     try {
-      await ensureHeaders();
-      const response = await axios.get(
-        `${API_URL}workspace/runs/${encodeURIComponent(workflowId)}/artifacts/${encodeURIComponent(artifactId)}/files/${encodeURIComponent(file.id)}`,
-        { responseType: 'blob' },
-      );
-      if (current !== version.current) return;
-      const url = window.URL.createObjectURL(response.data);
-      const link = document.createElement('a');
-      try {
-        link.href = url;
-        link.download = file.filename;
-        document.body.appendChild(link);
-        link.click();
-      } finally {
-        link.remove();
-        window.URL.revokeObjectURL(url);
-      }
-      setError('');
+      await downloadGeneratedFile({runId:workflowId, executionId:artifactId, fileId:file.id, filename:file.filename,
+        isCurrent: () => current === version.current});
+      if (current === version.current) setError('');
     } catch (_) { if (current === version.current) setError('Could not download this saved file.'); }
     finally { if (current === version.current) setDownloading(null); }
   };

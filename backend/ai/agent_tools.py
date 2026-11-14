@@ -79,6 +79,7 @@ class Question(Arguments):
 class Complete(Arguments):
     response: str = Field(min_length=1)
     candidate_id: str | None = Field(description='Candidate draft to publish; null leaves the editor draft unchanged.')
+    output_file_ids: list[str] = Field(description='Exact derived-file IDs from successful python_run files results to deliver with the answer; [] for no files. Select the final recalculated version explicitly, even when filenames match. Never invent sandbox links, host paths or download URLs.')
 
 
 class PythonRun(Arguments):
@@ -115,7 +116,7 @@ class ReadAuthority(Arguments):
     research_id: str = Field(description='The authority_research snapshot to extend.')
     source_id: str = Field(description='Source ID returned by legal lookup/search, not an invented URL or a local path.')
     opinion_id: int | None = Field(description='Specific available CourtListener opinion ID; null for a webpage/PDF or to obtain opinion choices.')
-    query: str | None = Field(description='Optional literal phrase to locate within the source; null reads a page of text.')
+    query: str | None = Field(description='Optional phrase to locate, ignoring capitalization, whitespace/line wrapping, typographic quotes/dashes and soft hyphens. Words, order and numbers must match; null reads a page of original text.')
     start: int = Field(ge=0, description='Source character offset for reading/continuation, initially 0. Source offsets are not positions in the uploaded document.')
 
 
@@ -130,12 +131,12 @@ TOOL_TYPES = {
     'python_run': (PythonRun, 'Write and execute Python to inspect spreadsheet structure or analyze full selected data. Returns saved results or Python errors so you can adjust the code. Workbook previews/header guesses are navigation hints: inspect real sheet layouts and use full data for calculations. Input files stay unchanged; requested new CSV/XLSX files are separate artifacts. recalculate_workbook(input_path) evaluates workbook formulas on a working copy when needed.'),
     'lookup_authorities': (LookupAuthorities, 'Discover authorities in explicitly selected text and look up case citations in CourtListener. Choose overview for reference variants and recorded examples, or audit for every occurrence in that scope. Returns saved candidates, original-source context, conflicts, coverage and unresolved references. Missing database coverage is not invalidity. Does not automatically search the web or read every opinion.'),
     'search_legal_sources': (SearchLegalSources, 'Search CourtListener or the web for selected authorities or the research question. Adds observed sources to the combined research record. Search previews are not source passages; read sources before relying on their legal reasoning.'),
-    'read_authority': (ReadAuthority, 'Read a selected opinion, official webpage or PDF into saved source-passage artifacts. Returns a new research snapshot plus passage_artifact_id for material_ids and source_artifact_id for its backing cache. Reading coverage is limited to the returned passage. Choose relevant opinions; a case identity match alone does not establish a holding. Supports literal passage search and continuation.'),
+    'read_authority': (ReadAuthority, 'Read a selected opinion, official webpage or PDF into saved source-passage artifacts. Returns a new research snapshot plus passage_artifact_id for material_ids and source_artifact_id for its backing cache. Reading coverage is limited to the returned passage. Choose relevant opinions; a case identity match alone does not establish a holding. Supports formatting-tolerant phrase search and continuation; returned text and locations remain original.'),
     'create_draft': (Analyze, 'Create a saved Markdown document candidate from instructions and selected materials. Supports headings, lists, tables and fenced code. Does not change the editor.'),
     'revise_draft': (Revise, 'Revise a saved candidate, current draft, or uploaded draft into a new Markdown document revision. Use general_revision for current_draft/candidates; preserve_original is only for uploaded file_id targets and retains source editing. Saves a new candidate without changing the editor.'),
     'verify_draft': (Verify, 'Check a target and save findings without editing it. The report describes that target; a later revision is a separate candidate. Choose whether to verify again; no mandatory cycle.'),
     'request_user_input': (Question, 'Pause the assignment for clarification and resume the same call with the answer.'),
-    'complete_task': (Complete, 'Publish the final response and optional candidate once the requested assignment is complete. Disclose unresolved issues.'),
+    'complete_task': (Complete, 'Publish the final response, optional candidate and explicitly selected generated files once the requested assignment is complete. Use output_file_ids for working application download cards, not sandbox or filesystem links. Disclose unresolved issues.'),
 }
 
 
@@ -170,6 +171,10 @@ def arguments(name, value):
     # strict schema still requires a mode on newly generated lookup calls.
     if name == 'lookup_authorities' and isinstance(value, dict) and 'mode' not in value:
         value = {**value, 'mode': 'overview'}
+    # The strict schema requires explicit file selection in new model calls;
+    # previously saved completion calls predate this field and select no files.
+    if name == 'complete_task' and isinstance(value, dict) and 'output_file_ids' not in value:
+        value = {**value, 'output_file_ids': []}
     return TOOL_TYPES[name][0].model_validate(value)
 
 

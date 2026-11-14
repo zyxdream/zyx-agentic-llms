@@ -1,0 +1,73 @@
+{
+  "commercial": {
+    "project_name": "Live legal quality \u2014 commercial 40 files \u2014 Nov13",
+    "project_files": [
+      "commercial/project/P01_executed_master_services_agreement.txt",
+      "commercial/project/P02_signed_statement_of_work.txt",
+      "commercial/project/P03_billing_and_cash_application_policy.txt",
+      "commercial/project/P04_acceptance_protocol.txt",
+      "commercial/project/P05_invoice_001.txt",
+      "commercial/project/P06_invoice_002.txt",
+      "commercial/project/P07_invoice_003.txt",
+      "commercial/project/P08_invoice_004.txt",
+      "commercial/project/P09_invoice_005.txt",
+      "commercial/project/P10_invoice_006.txt",
+      "commercial/project/P11_invoice_007.txt",
+      "commercial/project/P12_invoice_008.txt",
+      "commercial/project/P13_invoice_009.txt",
+      "commercial/project/P14_invoice_010.txt",
+      "commercial/project/P15_invoice_011.txt",
+      "commercial/project/P16_invoice_012.txt",
+      "commercial/project/P17_invoice_013.txt",
+      "commercial/project/P18_invoice_014.txt",
+      "commercial/project/P19_invoice_015.txt",
+      "commercial/project/P20_invoice_016.txt"
+    ],
+    "prompt_files": [
+      "commercial/prompt/C01_reconciliation.xlsx",
+      "commercial/prompt/C02_executed_amendment_interest.txt",
+      "commercial/prompt/C03_unsigned_counterproposal.txt",
+      "commercial/prompt/C04_duplicate_INV007_copy.txt",
+      "commercial/prompt/C05_credit_notes.txt",
+      "commercial/prompt/C06_remittance_register.txt",
+      "commercial/prompt/C07_bank_confirmation_duplicate_cash.txt",
+      "commercial/prompt/C08_customer_dispute_notice.txt",
+      "commercial/prompt/C09_delivery_acceptance_late_batches.txt",
+      "commercial/prompt/C10_purchase_order_hierarchy.txt",
+      "commercial/prompt/C11_invoice_017.txt",
+      "commercial/prompt/C12_invoice_018.txt",
+      "commercial/prompt/C13_invoice_019.txt",
+      "commercial/prompt/C14_invoice_020.txt",
+      "commercial/prompt/C15_obsolete_demand_draft.txt",
+      "commercial/prompt/C16_sales_estimate_not_an_invoice.txt",
+      "commercial/prompt/C17_controller_confirmation.txt",
+      "commercial/prompt/C18_counsel_scope_and_privilege.txt",
+      "commercial/prompt/C19_communication_timeline.txt",
+      "commercial/prompt/C20_negotiation_instructions.txt"
+    ],
+    "initial_prompt": "Act as counsel for the provider in this fictional commercial dispute. Use all relevant Project documents and these prompt attachments. Inventory the full40-file set by identity, then independently reconcile the twenty unique invoices against credits and cash; identify duplicate/obsolete/unsigned records and apply the controlling executed amendment. Use Python to inspect and recalculate the attached XLSX rather than trusting cached totals. Give a per-invoice reconciliation with auditable totals, current debt, disputed versus undisputed portions, and interest asof2026-11-13 using the supplied contract method. Draft an editable demand letter per C20 and provide a downloadable reconciliation spreadsheet. Ground all material figures and terms in named record IDs. No external legal research is needed for this contract-first task. Do not contact anyone.",
+    "revision_prompt": "Revise the currently saved demand letter. Exclude INV-018 principal entirely pending investigation; preserve all correct credits, cash, and the6%undisputedinterest calculation. Keep deadline2026-11-27 and add a clearly separate optionalsettlement offer of10%offundisputedprincipal withallinterestwaived. Show exact old/new demand totals and explain changes. Preserve the previous draft as a version that remains retrievable, and save this revised editable Output. Do not silently overwrite the old downloadable version."
+  },
+  "employment": {
+    "project_name": "Live legal quality \u2014 overtime spreadsheet \u2014 Nov13",
+    "project_files": [
+      "employment/project/E01_employment_facts.txt",
+      "employment/project/E02_bonus_plan_and_payroll_admission.txt"
+    ],
+    "prompt_files": [
+      "employment/prompt/E04_payroll.xlsx",
+      "employment/prompt/E03_attorney_assignment.txt"
+    ],
+    "initial_prompt": "Analyze the fictionalFLSA matter in Project documents and promptattachments. Use websearch for currentofficialDOL guidance and legalresearch for governingprimarylaw on nondiscretionarybonus regularrate and overtimewhenstraight-timealready paid. Use Python to read and independently calculate the XLSX inputs, weeklyregularrates, overtimehours, additionalpremiums, totalunpaidwages and conditionalequal-liquidateddamages scenario. Deliver an updated spreadsheet with auditableformulas and aneditableinternalassessment plus shortdemandletter. Do notdoublecountalready-paidstraight-time; explainassumptions and conditionalremedies. Use actualretrievedcitations and separate legalresearchfrom arithmetic."
+  },
+  "research": {
+    "project_name": "Live legal quality \u2014 diversity jurisdiction \u2014 Nov13",
+    "project_files": [
+      "research/project/R01_research_facts.txt"
+    ],
+    "prompt_files": [
+      "research/prompt/R02_research_assignment.txt"
+    ],
+    "initial_prompt": "Complete the research assignment in R02 using the fictionalfacts in R01. Use both generalwebresearch and the legalresearch tool. Verify fulltextprimaryauthority wherepossible, including controllingSeventhCircuit/SupremeCourt authority and28USC1332. Explain LLCmembershiplook-through, corporatedualcitizenship, completeness, missingfacts and theknownIllinoisoverlap. Provide a conciseclientintakememo, namedfactchecklist and precise sources. Do notinventunknowncitizenships orassertjurisdictionexistsbecauseclaimexceedsUSD75k."
+  }
+}

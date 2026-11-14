@@ -1,0 +1,75 @@
+{
+  "synthetic": true,
+  "commercial": {
+    "file_count": 40,
+    "project_count": 20,
+    "prompt_count": 20,
+    "unique_invoices": 20,
+    "invoice_gross": 178750,
+    "credits": 7250,
+    "payments": 50000,
+    "net_principal": 121500,
+    "disputed_invoice": "INV-018",
+    "disputed_principal": 11750,
+    "undisputed_principal": 109750,
+    "interest_rate_annual": 0.06,
+    "interest_days": 43,
+    "interest_undisputed": 775.77,
+    "initial_demand": 122275.77,
+    "revised_demand": 110525.77,
+    "settlement_discount_principal_only": 98775,
+    "critical_traps": [
+      "INV007duplicatecountonce",
+      "PAY001bankconfirmationnotfourthpayment",
+      "signedAM01sixpercentoverMSA18/PO1percentmonthly/unsigned24",
+      "EST010notfinalinvoice",
+      "aggregateinterestonlyfinalrounding",
+      "INV018disputeexcludeinterestbutinitialprincipalincluded"
+    ]
+  },
+  "employment": {
+    "weeks": 8,
+    "hours": 353,
+    "overtime_hours": 35,
+    "base_rate": 24,
+    "base_wages_paid": 8472,
+    "bonuses_paid": 706,
+    "total_paid": 9178,
+    "regular_rate_each_week": 26,
+    "additional_ot_premium": 455,
+    "conditional_additional_liquidated": 455,
+    "conditional_total": 910,
+    "weekly_overtime_hours": [
+      5,
+      0,
+      10,
+      2,
+      0,
+      8,
+      6,
+      4
+    ],
+    "weekly_unpaid_premium": [
+      65,
+      0,
+      130,
+      26,
+      0,
+      104,
+      78,
+      52
+    ]
+  },
+  "research": {
+    "known_corporation_citizenships": [
+      "Delaware",
+      "Illinois"
+    ],
+    "known_plaintiff_member_citizenship": "Illinois",
+    "complete_diversity_on_stated_facts": false,
+    "missing_nested_llc_membership": true,
+    "amount_alone_sufficient": false,
+    "section_1332_corporate_principal_place_of_business_relevant": true,
+    "governing_law_does_not_establish_subject_matter_jurisdiction": true
+  }
+}

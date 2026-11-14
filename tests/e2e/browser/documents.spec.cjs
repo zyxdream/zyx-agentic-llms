@@ -272,3 +272,28 @@ test('Enter adds a new line and Shift+Enter sends with a compact button hint',as
   await expect.poll(()=>backend.lastSubmission?.query).toBe('First line\na');
   expect(backend.count('conversations/a/runs','POST')).toBe(1);
 });
+
+test('final answer downloads exactly the selected same-name workbook after reload',async({page})=>{
+  const r=backend.run('a','completed');r.response='The recalculated workbook is ready.';
+  r.outputFiles=[{file_id:'recalculated-file',execution_id:'successful-execution',filename:'payroll.csv',file_size:15}];
+  await start(page);
+  await expect(page.getByRole('list',{name:'Output files',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Download payroll.csv',exact:true})).toHaveCount(1);
+  await expect(page.getByText('Steps and saved results',{exact:true})).toBeVisible();
+  await page.reload();
+  const pending=page.waitForEvent('download');await page.getByRole('button',{name:'Download payroll.csv',exact:true}).click();
+  expect((await pending).suggestedFilename()).toBe('payroll.csv');
+  expect(backend.count('runs/wf_a/artifacts/successful-execution/files/recalculated-file','GET')).toBe(1);
+});
+
+test('a failed final-file download preserves the answer and allows retry',async({page})=>{
+  const r=backend.run('a','completed');r.response='A saved result.';
+  r.outputFiles=[{file_id:'chosen',execution_id:'execution',filename:'report.csv',file_size:15}];
+  let failures=1;
+  backend.hooks.push(q=>q.path==='runs/wf_a/artifacts/execution/files/chosen'&&failures-->0?backend.json(q,{msg:'Unavailable'},503):undefined);
+  await start(page);await page.getByRole('button',{name:'Download report.csv',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('Could not download this file');
+  await expect(page.getByText('A saved result.',{exact:true})).toBeVisible();
+  const pending=page.waitForEvent('download');await page.getByRole('button',{name:'Download report.csv',exact:true}).click();
+  await pending;await expect(page.getByRole('alert')).toHaveCount(0);
+});

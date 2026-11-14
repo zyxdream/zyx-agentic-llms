@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+Policy FIN-09 adopted2026-01-05. Reconcile invoiceID, not filename. A bank confirmation and remittance entry with the same payment reference represent the SAME cash. Use named credit notes and cash allocations. Deduct payments and credits from principal before calculating interest. The interest clause excludes bona fide disputed balances from the interest base. No sales tax, collection surcharge or attorney-fee accrual is part of these records. Amounts in USD.

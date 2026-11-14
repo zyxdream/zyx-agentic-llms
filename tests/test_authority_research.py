@@ -440,6 +440,71 @@ def test_search_appends_all_observed_sources_without_overwriting_prior_snapshot(
     assert db.session.get(AgentArtifact, initial['research_id']).content_json == before
 
 
+def test_search_preserves_findings_and_readable_citation_outside_source_preview(ops, monkeypatch):
+    initial = research.lookup(ops, lookup_args('Research the overtime calculation.'))
+    before = db.session.get(AgentArtifact, initial['research_id']).content_json
+    urls = [f'https://official.example/section/{i}' for i in range(14)]
+    summary = 'The bonus changes the regular rate; read section 12 for the rule.'
+    citation = {'url': urls[12], 'title': 'Hourly rate employee', 'start_index': 43, 'end_index': 53}
+    retrieved_at = '2026-11-14T15:00:00+00:00'
+    limitations = ['Generated search synthesis; underlying pages have not been read.']
+    calls = []
+
+    def search_sources(*args, **kwargs):
+        calls.append(args)
+        return {'results': [web_result(url) for url in urls], 'error': None,
+                'generated_summary': summary, 'summary_is_source_text': False,
+                'citations': [citation], 'retrieved_at': retrieved_at, 'limitations': limitations}
+
+    monkeypatch.setattr(sources, 'search_sources', search_sources)
+    result = research.search(ops, SimpleNamespace(research_id=initial['research_id'],
+        authority_ids=[], query='regular rate and overtime', provider='web'))
+    db.session.commit()
+    db.session.expire_all()
+    saved = record(result['research_id'])
+    cited_source = next(item for item in saved['sources'] if item['url'] == urls[12])
+    expected = {'generated_summary': summary, 'summary_is_source_text': False,
+                'citations': [{**citation, 'source_id': cited_source['id']}],
+                'retrieved_at': retrieved_at, 'limitations': limitations}
+    for key, value in expected.items():
+        assert result[key] == saved['queries'][-1][key] == value
+    assert len(calls) == 1
+    assert result['source_count'] == 14 and result['sources_truncated']
+    assert urls[12] not in {item['url'] for item in result['sources']}
+    assert cited_source['passage_artifact_ids'] == [] and not cited_source.get('cached_sources')
+    assert db.session.get(AgentArtifact, initial['research_id']).content_json == before
+
+    # The returned citation is a usable reading handle, not a claim of a read.
+    fetched = []
+    def fetch_source(source, **kwargs):
+        fetched.append(source['id'])
+        return {'status': 'read', 'text': 'The actual source passage.', 'url': source['url'],
+                'sha256': 'sourcehash', 'retrieved_at': retrieved_at}
+
+    monkeypatch.setattr(sources, 'fetch_source', fetch_source)
+    passage = research.read(ops, read_args(result['research_id'], result['citations'][0]['source_id']))
+    assert fetched == [cited_source['id']]
+    assert passage['text'] == 'The actual source passage.'
+    assert passage['passage_artifact_id']
+
+
+@pytest.mark.parametrize('provider', ['web', 'courtlistener'])
+@pytest.mark.parametrize('error', [None, 'Search provider unavailable.'])
+def test_search_without_summary_metadata_preserves_provider_outcome(ops, monkeypatch, provider, error):
+    initial = research.lookup(ops, lookup_args('Research a question.'))
+    monkeypatch.setattr(sources, 'search_sources', lambda *a, **kw: {
+        'results': [] if error else [web_result()], 'error': error})
+    result = research.search(ops, SimpleNamespace(research_id=initial['research_id'],
+        authority_ids=[], query='research question', provider=provider))
+    saved = record(result['research_id'])['queries'][-1]
+    expected = {'generated_summary': '', 'summary_is_source_text': False,
+                'citations': [], 'retrieved_at': None, 'limitations': []}
+    for key, value in expected.items():
+        assert result[key] == saved[key] == value
+    assert result['error'] is bool(error)
+    assert result['search_error'] == saved['error'] == error
+
+
 def test_read_returns_exact_passage_and_reuses_cached_body_across_pages(ops, monkeypatch):
     rid, sid = add_web_source(ops, monkeypatch)
     body = 'First page. ' * 1500 + 'Important holding.' + ' More text.' * 1500
@@ -645,7 +710,70 @@ def test_same_chat_research_and_linked_assessments_survive_new_request(ops, monk
             research.resolve_artifact(unauthorized, assessed)
 
 
-def test_source_read_errors_and_literal_query_misses_are_saved_observations(ops, monkeypatch):
+@pytest.mark.parametrize('text,query', [
+    ('§ 778.110\nHourly rate employee.', '§ 778.110 Hourly rate employee'),
+    ('hours worked in excess \nof 40', 'Hours worked in excess of 40'),
+    ('A\t \r\nB\u00a0C', 'a b c'),
+    ('“Employee’s” hourly—rate', '"Employee\'s" hourly-rate'),
+    ('hourly‐rate and non‑discretionary pay', 'hourly-rate and non-discretionary pay'),
+    ('compen\u00adsation', 'compensation'),
+    ('Straße rate', 'STRASSE RATE'),
+])
+def test_source_phrase_matches_formatting_at_original_positions(text, query):
+    prefix = 'Unrelated introduction. '
+    body = prefix + text + ' Trailing material.'
+    assert research._find_source_phrase(body, query, 0) == (len(prefix), len(prefix) + len(text.rstrip('.')))
+
+
+@pytest.mark.parametrize('text,query', [
+    ('§ 778.109', '§ 778.110'),
+    ('hourly rate employee', 'hourly rate employer'),
+    ('hourly rate employee', 'employee hourly rate'),
+    ('non-discretionary', 'nondiscretionary'),
+    ('hourly rate', 'houry rate'),
+    ('anything', ' \t\n\u00ad'),
+    ('anything', ''),
+])
+def test_source_phrase_does_not_guess_words_numbers_or_empty_queries(text, query):
+    assert research._find_source_phrase(text, query, 0) is None
+
+
+def test_tolerant_read_preserves_original_passages_locations_and_cache(ops, monkeypatch):
+    rid, sid = add_web_source(ops, monkeypatch)
+    prefix = 'Introductory material. ' * 700
+    heading = '§ 778.110\nHourly\u00a0rate employee.'
+    body = prefix + heading + '\n' + 'Further explanation. ' * 700
+    calls = []
+    def fetch(*args, **kwargs):
+        calls.append(1)
+        return {'status': 'read', 'text': body, 'sha256': 'original-hash',
+                'blocks': [{'start': 0, 'end': len(prefix), 'page': 1},
+                           {'start': len(prefix), 'end': len(body), 'page': 2}]}
+    monkeypatch.setattr(sources, 'fetch_source', fetch)
+    first = research.read(ops, read_args(rid, sid, query='§ 778.110 Hourly rate employee'))
+    assert first['match_found']
+    assert first['start'] == len(prefix) - 1000
+    assert first['end'] == first['start'] + research.PAGE_CHARACTERS
+    assert first['text'] == body[first['start']:first['end']]
+    assert heading in first['text']
+    saved = record(first['passage_artifact_id'])
+    assert saved['source_sha256'] == 'original-hash'
+    assert saved['locations'] == [
+        {'start': first['start'], 'end': len(prefix), 'page': 1},
+        {'start': len(prefix), 'end': first['end'], 'page': 2}]
+    second = research.read(ops, read_args(first['research_id'], sid, query='hourly rate employee'))
+    assert second['source_artifact_id'] == first['source_artifact_id'] and calls == [1]
+    missed = research.read(ops, read_args(second['research_id'], sid,
+        query='hourly rate employee', start=len(prefix) + len(heading)))
+    assert missed['match_found'] is False and 'passage_artifact_id' not in missed
+    empty = research.read(ops, read_args(missed['research_id'], sid, query=' \t\u00ad'))
+    assert empty['match_found'] is False and 'passage_artifact_id' not in empty
+    page = research.read(ops, read_args(empty['research_id'], sid, start=first['next_start']))
+    assert page['text'] == body[page['start']:page['end']]
+    assert calls == [1]
+
+
+def test_source_read_errors_and_query_misses_are_saved_observations(ops, monkeypatch):
     rid, sid = add_web_source(ops, monkeypatch)
     monkeypatch.setattr(sources, 'fetch_source', lambda *a, **kw: {'status': 'unavailable', 'error': 'Official page requires JavaScript.'})
     failed = research.read(ops, read_args(rid, sid))

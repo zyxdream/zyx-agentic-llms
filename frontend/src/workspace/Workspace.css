@@ -252,3 +252,10 @@ summary { cursor:pointer; font-size:13px; color:var(--muted); padding:7px 0; }
 .panel-divider { width:4px; flex:0 0 4px; cursor:col-resize; touch-action:none; background:var(--border); }
 .panel-divider:hover,.panel-divider:focus-visible { background:var(--accent); outline-offset:-1px; }
 .panel-width-notice { color:var(--muted); font-size:12px; margin:4px 12px; }
+.generated-files { margin:12px 0 16px; }
+.generated-files ul { list-style:none; padding:0; margin:0; display:flex; flex-wrap:wrap; gap:8px; }
+.generated-files li { max-width:100%; min-width:0; }
+.generated-files li button { max-width:100%; justify-content:flex-start; padding:10px 12px; background:var(--canvas); font-size:13px; text-align:left; }
+.generated-file-name { min-width:0; overflow-wrap:anywhere; }
+.generated-file-action { color:var(--accent); font-size:11px; flex-shrink:0; }
+.generated-files [role=alert] { margin:8px 0 0; }

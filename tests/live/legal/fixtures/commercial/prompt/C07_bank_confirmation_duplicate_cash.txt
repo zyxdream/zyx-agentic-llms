@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+Bank confirmationBANK-771: PAY-001 USD20,000 cleared2026-09-25. This confirms the SAME PAY-001 already in C06_remittance_register. This is evidence of that payment, NOT a fourth payment.

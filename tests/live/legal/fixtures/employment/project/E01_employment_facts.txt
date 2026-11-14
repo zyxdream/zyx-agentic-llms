@@ -1,0 +1,3 @@
+SYNTHETIC ACCEPTANCE-TEST MATTER. All people and organizations are fictional.
+
+Fictional worker Morgan Cedar worked for Cedar Workshop LLC in Illinois. For this exercise assume covered byFLSA, employee nonexempt, fixedMonday-Sundayworkweek, ageover18, and allworkperformedinIllinois. Base hourlyrateUSD24. Payroll paidstraight-timeforALLactualhours in the attached8weeks, includinghoursover40. Nondiscretionaryweeklyproductionbonuses werepaidandallocatedtothecorrespondingweek. No overtimepremiumpaid. No exclusions, othercompensation, salary, exemption, tipcredit or ratechange. These stipulations are deliberate; identify any conclusions dependingonthem.

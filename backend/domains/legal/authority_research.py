@@ -691,7 +691,8 @@ def _selected(record, authority_ids):
 def search(ops, args):
     """Search CourtListener or the web for the agent's query and add the returned sources to saved research.
 
-    Retain earlier candidates and search errors so the agent can assess conflicts and choose what to read next.
+    Retain generated search findings separately from passages actually read, so
+    the agent can choose sources without repeating the search.
     """
     from backend.domains.legal import authority_sources
     record = copy.deepcopy(resolve_artifact(ops, args.research_id, RESEARCH_KIND))
@@ -712,12 +713,20 @@ def search(ops, args):
                          **{key: source.get(key) for key in ('cluster_id', 'case_name', 'title', 'citations', 'court', 'date', 'url', 'viewer_url')}}
             if candidate not in authority['candidates']:
                 authority['candidates'].append(candidate)
+    sources_by_url = {item['url']: item for item in found if item.get('url')}
+    findings = {'generated_summary': result.get('generated_summary') or '',
+        'summary_is_source_text': False,
+        'citations': [{**citation, 'source_id': sources_by_url[citation['url']]['id']}
+                      for citation in result.get('citations') or []
+                      if citation.get('url') in sources_by_url],
+        'retrieved_at': result.get('retrieved_at'),
+        'limitations': copy.deepcopy(result.get('limitations') or [])}
     record['queries'].append({'provider': args.provider, 'query': args.query,
         'authority_ids': args.authority_ids, 'source_ids': [item['id'] for item in found],
-        'error': result.get('error')})
+        'error': result.get('error'), **copy.deepcopy(findings)})
     uid = _persist(ops, record, args.research_id)
     previews = [{key: value[key] for key in ('id', 'provider', 'url', 'viewer_url', 'title', 'snippet', 'cluster_id', 'case_name', 'opinions') if key in value} for value in found[:5]]
-    return _observation(uid, record, sources=previews, source_count=len(found),
+    return _observation(uid, record, **findings, sources=previews, source_count=len(found),
         sources_truncated=len(found) > 5, search_error=result.get('error'), error=bool(result.get('error')))
 
 
@@ -728,6 +737,39 @@ def _passage_locations(blocks, lo, hi):
             result.append({**block, 'start': max(lo, block.get('start', lo)),
                            'end': min(hi, block.get('end', hi))})
     return result or [{'start': lo, 'end': hi}]
+
+
+_SEARCH_TYPOGRAPHY = str.maketrans({
+    '‘': "'", '’': "'", '“': '"', '”': '"',
+    '‐': '-', '‑': '-', '‒': '-', '–': '-', '—': '-', '―': '-',
+})
+
+
+def _normalized_source_search(text):
+    """Normalize formatting for search only, retaining original character positions."""
+    characters, positions = [], []
+    for index, character in enumerate(text):
+        if character == '\u00ad':  # Invisible discretionary hyphen, not an ordinary hyphen.
+            continue
+        value = ' ' if character.isspace() else character.translate(_SEARCH_TYPOGRAPHY).casefold()
+        for normalized in value:
+            if normalized == ' ' and characters and characters[-1] == ' ':
+                continue
+            characters.append(normalized)
+            positions.append(index)
+    return ''.join(characters), positions
+
+
+def _find_source_phrase(body, query, start):
+    phrase, _ = _normalized_source_search(query)
+    phrase = phrase.strip()
+    if not phrase:
+        return None
+    searchable, positions = _normalized_source_search(body[start:])
+    match = searchable.find(phrase)
+    if match == -1:
+        return None
+    return start + positions[match], start + positions[match + len(phrase) - 1] + 1
 
 
 def read(ops, args):
@@ -784,13 +826,13 @@ def read(ops, args):
             end=args.start, total_characters=len(body), next_start=None, end_of_source=True,
             message='There are no source characters at this offset; no passage was marked read.')
     lo = args.start
-    if args.query:
-        match = re.search(re.escape(args.query), body[args.start:], flags=re.IGNORECASE)
+    if args.query is not None:
+        match = _find_source_phrase(body, args.query, args.start)
         if match is None:
             uid = _persist(ops, record, args.research_id)
             return _observation(uid, record, source_id=source['id'], total_characters=len(body),
-                query=args.query, match_found=False, message='The literal phrase was not found in this source. Other phrases or paginated reading remain available.')
-        lo = max(args.start, args.start + match.start() - 1000)
+                query=args.query, match_found=False, message='The phrase was not found after allowing for capitalization, whitespace, quotes, dashes and soft hyphens. Other phrases or paginated reading remain available.')
+        lo = max(args.start, match[0] - 1000)
     hi = min(len(body), lo + PAGE_CHARACTERS)
     passage = {'kind': SOURCE_KIND, 'role': 'passage', 'source_id': source['id'],
         'research_id': args.research_id,

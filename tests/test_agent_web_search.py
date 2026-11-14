@@ -12,7 +12,7 @@ from backend.util import document_drafts
 from backend.domains.legal import authority_sources
 from backend.domains.legal import authority_research
 from backend.util import workspace_service as workflow
-from tests.test_agent_controller import agent, operation, last_result, state, choose, tick
+from tests.test_agent_controller import agent, operation, last_result, state, choose, tick, call
 from tests.test_document_preparation import app
 
 
@@ -182,3 +182,77 @@ def test_controller_context_supplies_current_utc_date_and_available_search(no_do
     guidance = ' '.join(agent_tasks.system_instructions().lower().split())
     assert 'web_search' in guidance and 'news' in guidance and 'case developments' in guidance
     assert 'citation' in guidance and 'search_legal_sources' in guidance
+
+
+def test_legal_search_findings_survive_reload_and_reach_the_next_controller_step(agent, app, monkeypatch):
+    monkeypatch.setattr(authority_sources, 'lookup_citations', lambda *args, **kwargs: ([], None))
+    monkeypatch.setattr(authority_research, '_discover_mentions', lambda *args, **kwargs: [])
+    monkeypatch.setattr(authority_sources, 'fetch_source',
+                        lambda *args, **kwargs: pytest.fail('Search fetched a source passage'))
+    operation(agent, monkeypatch, 'lookup_authorities', {
+        'targets': [{'file_id': None, 'draft_id': None, 'text': QUERY, 'start': None, 'end': None}],
+        'mode': 'overview', 'purpose': QUERY, 'research_id': None})
+    initial_id = last_result(agent)['research_id']
+    initial_bytes = db.session.get(AgentArtifact, initial_id).content_json
+    initial_source_ids = {item.id for item in AgentArtifact.query.filter_by(
+        run_id=agent.id, kind='authority_source').all()}
+    sources = [{'type': 'web', 'provider': 'web', 'url': f'https://court.example/research/{index}',
+                'title': f'Research page {index}', 'snippet': '', 'snippet_is_source_text': False}
+               for index in range(1, 14)]
+    cited_url = sources[-1]['url']
+    summary = f'Generated research findings: see the hearing announcement at {cited_url}.'
+    citation = {'url': cited_url, 'title': 'Hearing announcement',
+                'start_index': summary.index(cited_url), 'end_index': len(summary) - 1}
+    provider_calls = []
+
+    def search(query, provider, **kwargs):
+        provider_calls.append((query, provider))
+        kwargs['check_execution']()
+        return search_result(generated_summary=summary, results=sources, citations=[citation],
+                             limitations=['Underlying page text has not been read.'])
+
+    monkeypatch.setattr(authority_sources, 'search_sources', search)
+    operation(agent, monkeypatch, 'search_legal_sources', {
+        'research_id': initial_id, 'authority_ids': [], 'query': QUERY, 'provider': 'web'})
+    result = last_result(agent)
+    assert result['generated_summary'] == summary
+    assert result['summary_is_source_text'] is False
+    assert result['source_count'] == 13 and result['sources_truncated']
+    assert len(result['sources']) == 5 and cited_url not in [source['url'] for source in result['sources']]
+    assert len(result['citations']) == 1
+    cited_source_id = result['citations'][0]['source_id']
+    assert result['citations'] == [{**citation, 'source_id': cited_source_id}]
+    assert 'passage_artifact_id' not in result
+    assert {item.id for item in AgentArtifact.query.filter_by(
+        run_id=agent.id, kind='authority_source').all()} == initial_source_ids
+
+    # Reload through the ordinary owned-artifact API, independent of the provider response.
+    db.session.expire_all()
+    response = app.test_client().get(f'/api/workspace/runs/{agent.id}/artifacts/{result["artifact_id"]}')
+    assert response.status_code == 200
+    saved = response.json['content']
+    query = saved['queries'][-1]
+    for field in ('generated_summary', 'summary_is_source_text', 'citations', 'retrieved_at', 'limitations'):
+        assert query[field] == result[field]
+    cited_source = next(source for source in saved['sources'] if source['id'] == cited_source_id)
+    assert cited_source['url'] == cited_url and cited_source['passage_artifact_ids'] == []
+    assert saved['authorities'] == []
+    assert db.session.get(AgentArtifact, initial_id).content_json == initial_bytes
+
+    requests = []
+
+    def controller(request):
+        requests.append(request)
+        return call('list_documents', {})
+
+    monkeypatch.setattr(base, 'responses_completion', controller)
+    assert tick(agent) == {'continued': True}
+    assert len(requests) == 1
+    history = [json.loads(item['output']) for item in requests[0]['input']
+               if item.get('type') == 'function_call_output']
+    assert history[-1] == result
+    assert history[-1]['generated_summary'] == summary
+    assert history[-1]['summary_is_source_text'] is False
+    assert history[-1]['citations'][0]['source_id'] == cited_source_id
+    assert provider_calls == [(QUERY, 'web')]
+    assert agent_tasks.steps(agent).filter_by(name='read_authority').count() == 0

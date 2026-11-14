@@ -3,6 +3,7 @@ import AgentProgress from './AgentProgress';
 import RequestUserInputPanel from './RequestUserInputPanel';
 import {renderDocumentMarkdown} from './documentMarkdown';
 import {promptAttachments} from './promptAttachments';
+import GeneratedFiles from './GeneratedFiles';
 
 export default function ConversationView({content, run, active, busy, controlBusy, runAction, onOpenDocument, onOpenAttachment}) {
   const viewport = useRef(null), atBottom = useRef(true);
@@ -15,6 +16,7 @@ export default function ConversationView({content, run, active, busy, controlBus
     <div className="history">{content.history.map(turn => <article className="conversation-turn" key={turn.id}>
       <div className="user-bubble"><h3 className="sr-only">You</h3><p className="user-message">{turn.query}</p>{promptAttachments(turn.metadata).length > 0 && <div className="message-attachments" aria-label="Message attachments">{promptAttachments(turn.metadata).map((file, index) => <button key={`${file.id}:${index}`} title={file.name} disabled={!file.id} onClick={() => onOpenAttachment(file.id)}>{file.name}</button>)}</div>}</div>
       <div className="assistant-message"><h3>Workspace</h3><div className="markdown-body" dangerouslySetInnerHTML={{__html: renderDocumentMarkdown(turn.response || turn.status || 'Working…')}}/>
+        <GeneratedFiles runId={turn.run_id} files={turn.metadata?.output_files} scope={`${content.id}:${turn.id}`}/>
         {turn.run_id && <><AgentProgress workflowId={turn.run_id} draftId={content.document_id}/>{['failed','cancelled'].includes(turn.status) && !active && <button className="subtle-button" disabled={busy} onClick={() => runAction('retry', undefined, turn.run_id)}>Retry request</button>}</>}
       </div>
     </article>)}</div>

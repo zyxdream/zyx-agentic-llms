@@ -162,7 +162,7 @@ class Backend {
         response: r.response,
         status: r.status,
         created_at: r.created_at,
-        metadata: {prompt_attachments:r.attachments || []}
+        metadata: {prompt_attachments:r.attachments || [], output_files:r.outputFiles || []}
       })),
       active_run: active ? this.progress(active) : null
     };
