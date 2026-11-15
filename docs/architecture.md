@@ -37,7 +37,7 @@ flowchart LR
 - `backend/ai/providers/`: provider contract and current decision adapter. `backend/ai/base.py` retains the current transport and structured helper calls.
 - `backend/workspace/state.py`, `backend/util/workspace_store.py`: auxiliary state and canonical document/conversation persistence.
 - `backend/document_preparation_tasks.py`, `backend/util/attachment_parser.py`, `backend/util/prepared_retrieval.py`: durable source preparation and versioned retrieval.
-- `backend/documents/revisions.py`, `backend/util/document_drafts.py`, `backend/util/document_exports.py`: uploaded-original revisions, Markdown authoring and export.
+- `backend/util/document_drafts.py`, `backend/util/document_exports.py`: shared uploaded/Workspace patch and rewrite authoring and export. `backend/documents/revisions.py` retains legacy helpers outside agent dispatch.
 - `backend/domains/legal/`: optional legal tools, source readers, citation handling and court formatting.
 - `backend/util/python_execution.py`, `backend/python_runtime/`: the existing container execution boundary.
 - `frontend/src/workspace/`: chat-first shell, per-project navigation, project dialogs, conversation, composer, optional inspector, and saved-result views.
@@ -53,3 +53,20 @@ Clarification saves the question and releases execution until the user answers. 
 Source preparations have their own independent checkpointed workers and queue. Those continuations are ingestion infrastructure, not the removed version-0 agent pipeline.
 
 The sidebar and inspector hold only presentation state in per-tab session storage. Folder selection during project naming does not establish a filesystem connection. Project deletion refuses active runs or preparations and serializes with admission using a short project write lock. See [frontend behavior and validation](frontend-redesign.md).
+
+## Continuous working draft and confirmed versions
+
+Drafting now follows one application-owned working candidate per request. Immutable
+candidates remain saved, while only final publication changes Output. Explicit
+manual saves and final publications retain confirmed snapshots for chat-requested
+rollback. See [4A behavior, storage and boundaries](draft-versions.md).
+
+Workspace revisions use the existing writer call to return text replacements or a
+complete rewrite. The application validates and assembles a full immutable candidate
+before 4A advances the working reference. Unchanged revisions save no candidate.
+See [4B editing and failure behavior](draft-edits.md).
+
+The controller receives explicit per-operation material purposes and is guided to
+assess the actual saved result before completion. Uploaded-first revisions use
+accepted prepared text through the same editing engine. There is no mandatory
+reviewer stage or task-specific drafting pipeline. See [general drafting](general-drafting.md).

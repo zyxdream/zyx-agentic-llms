@@ -26,8 +26,11 @@ def assignment(row, text, **options):
 def candidate(row, monkeypatch, title='Private candidate'):
     result = document_drafts.MarkdownDraftResult(title=title, markdown='PRIVATE_CANDIDATE_WORDS', update_court_format=False)
     monkeypatch.setattr(document_drafts, 'write_document', lambda **kw: result)
-    assert operation(row, monkeypatch, 'create_draft', {'instructions': 'GENERATED_DRAFT_INSTRUCTIONS',
-        'material_ids': []}) == {'continued': True}
+    head = json.loads(row.payload_json or '{}').get('agent_context', {}).get('working_candidate_id')
+    args = {'instructions': 'GENERATED_DRAFT_INSTRUCTIONS', 'material_ids': []}
+    if head:
+        args.update(target='working_draft', revision_mode='general_revision')
+    assert operation(row, monkeypatch, 'revise_draft' if head else 'create_draft', args) == {'continued': True}
     return last_result(row)['artifact_id']
 
 

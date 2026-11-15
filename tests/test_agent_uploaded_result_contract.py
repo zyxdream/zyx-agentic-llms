@@ -1,68 +1,80 @@
-"""Exercise uploaded revision results through the real phase-2 agent bridge."""
-import copy
+"""Uploaded-first revisions use the shared engine; provider boundaries are mocked."""
 import json
 
-from backend.documents import revisions as everything
+import pytest
+
+from backend import agent_tasks
+from backend.ai import base
 from backend.database import db
-from backend.models import AgentArtifact
+from backend.models import AgentArtifact, UploadedFiles
+from backend.util import document_drafts, workspace_service as service, source_context
 from tests.test_agent_controller import agent, last_result, operation, state
 from tests.test_document_preparation import app
 
 
-def uploaded_revision(agent, monkeypatch, preserve_result):
-    """Stub the existing revision helper, keeping run_draft_operation real."""
-    target = json.loads(agent.data_json)['document_snapshot']['files'][0]['file_id']
+def uploaded_revision(agent, monkeypatch, revision, mode='preserve_original'):
+    uid = json.loads(agent.data_json)['document_snapshot']['files'][0]['file_id']
     calls = []
-    def preserve(**kwargs):
-        calls.append(kwargs)
-        return copy.deepcopy(preserve_result)
-    monkeypatch.setattr(everything, 'run_preserve_original_uploaded_revision', preserve)
-    # Draft normalization may make a provider call for blocks. The helper's
-    # already structured draft is sufficient for this result-contract test.
-    operation(agent, monkeypatch, 'revise_draft', {
-        'instructions': 'Correct only the identified source passage.',
-        'material_ids': [], 'target': target, 'revision_mode': 'preserve_original',
-    })
+    def parse(prompt, schema, **kwargs):
+        assert schema is document_drafts.MarkdownRevisionResult
+        calls.append(json.loads(prompt))
+        return revision
+    monkeypatch.setattr(base, 'chat_completion_parse', parse)
+    operation(agent, monkeypatch, 'revise_draft', {'instructions': 'Correct the source text as requested.',
+        'material_ids': [], 'target': uid, 'revision_mode': mode})
     assert len(calls) == 1
-    assert calls[0]['primary_draft_file_id'] == target
     return last_result(agent)
 
 
-def test_real_uploaded_bridge_retains_nested_rejections_and_truthful_status(agent, monkeypatch):
-    rejected = [{'anchor': 'p_9999', 'reason': 'unknown_anchor'}]
-    operations = [
-        {'op': 'preserve_original_target_selection', 'anchors': ['p_0001']},
-        {'op': 'preserve_original_edit', 'edits_applied': 1, 'edits_rejected': rejected},
-    ]
+@pytest.mark.parametrize('mode', ['general_revision', 'preserve_original'])
+def test_uploaded_modes_use_same_atomic_revision_and_preserve_source(agent, monkeypatch, mode):
+    from backend.documents import revisions
+    monkeypatch.setattr(revisions, 'run_preserve_original_uploaded_revision',
+        lambda **kw: pytest.fail('Retired agent path was called'))
     before = state(agent)
-    result = uploaded_revision(agent, monkeypatch, {
-        'error': False, 'blocked': False,
-        'message': 'I changed the current draft to the right. One proposed edit was rejected.',
-        'draft': {'title': 'Uploaded candidate', 'sections': [
-            {'section_id': '1', 'section_name': 'Facts', 'section_content': 'Corrected source facts.'},
-        ]},
-        'operations': operations,
-    })
-    assert result['message'] == 'Draft candidate saved; editor unchanged. Some requested edits were not applied.'
-    assert result['rejected_operations'] == rejected
-    saved = db.session.get(AgentArtifact, result['artifact_id'])
-    body = json.loads(saved.content_json)
-    assert body['operations'] == operations
-    assert body['rejected_operations'] == rejected
-    assert body['generation_notes'].startswith('I changed the current draft to the right.')
-    assert body['draft']['sections'][0]['section_content'] == 'Corrected source facts.'
-    assert state(agent) == before
-    assert AgentArtifact.query.filter_by(run_id=agent.id, kind='draft').count() == 1
+    snapshot = json.loads(agent.data_json)['document_snapshot']
+    uid = snapshot['files'][0]['file_id']
+    original = db.session.query(UploadedFiles).filter_by(unique_id=uid).one().content
+    prepared = source_context.document(snapshot, uid)
+    revision = document_drafts.MarkdownRevisionResult(mode='patch', title=None, markdown=None,
+        replacements=[{'old_text':'middle event','new_text':'corrected event','replace_all':False}], update_court_format=False)
+    result = uploaded_revision(agent, monkeypatch, revision, mode)
+    value = json.loads(db.session.get(AgentArtifact, result['artifact_id']).content_json)
+    assert result['editing_method'] == 'patch' and result['base_candidate_id'] == uid
+    assert value['draft']['markdown'] == prepared['manifest']['text'].replace('middle event','corrected event')
+    assert '[Source:' not in value['draft']['markdown'] and '[Original extraction:' not in value['draft']['markdown']
+    assert value['draft']['source_format'] == 'markdown' and value['draft']['parent_revision_id'] is None
+    assert value['references'] == [{'file_id':uid,'filename':prepared['filename'],'prepared_artifact_id':prepared['artifact_id']}]
+    assert db.session.query(UploadedFiles).filter_by(unique_id=uid).one().content == original
+    assert state(agent) == before and AgentArtifact.query.filter_by(kind='draft').count() == 1
 
 
-def test_real_uploaded_bridge_reports_blocked_revision_without_candidate_or_publication(agent, monkeypatch):
-    message = 'I need a narrower instruction before preserving and revising the uploaded draft. Specify the passage.'
+def test_uploaded_invalid_batch_saves_nothing_and_returns_recoverable_error(agent, monkeypatch):
     before = state(agent)
-    result = uploaded_revision(agent, monkeypatch, {
-        'error': False, 'blocked': True, 'message': message, 'draft': None,
-        'operations': [{'op': 'preserve_original_target_selection', 'needs_confirmation': True}],
-    })
-    assert result == {'error': True, 'message': message}
-    assert AgentArtifact.query.filter_by(run_id=agent.id, kind='draft').count() == 0
-    assert state(agent) == before
+    result = uploaded_revision(agent, monkeypatch, document_drafts.MarkdownRevisionResult(
+        mode='patch', title=None, markdown=None, update_court_format=False,
+        replacements=[{'old_text':'middle event','new_text':'changed','replace_all':False},
+                      {'old_text':'missing passage','new_text':'new','replace_all':False}]))
+    assert result['error'] and 'Replacement 2' in result['message']
+    assert AgentArtifact.query.filter_by(kind='draft').count() == 0 and state(agent) == before
     assert agent.status == 'running'
+
+
+def test_unchanged_upload_is_imported_once_as_the_result_candidate(agent, monkeypatch):
+    result = uploaded_revision(agent, monkeypatch, document_drafts.MarkdownRevisionResult(
+        mode='patch', title=None, markdown=None, replacements=[], update_court_format=False))
+    assert result.get('artifact_id') and not result.get('unchanged')
+    assert AgentArtifact.query.filter_by(kind='draft').count() == 1
+
+
+def test_cancelled_first_uploaded_revision_cannot_advance_working_draft(agent, monkeypatch):
+    uid = json.loads(agent.data_json)['document_snapshot']['files'][0]['file_id']
+    def parse(prompt, schema, **kwargs):
+        service.stop(agent, cancelled=True)
+        return document_drafts.MarkdownRevisionResult(mode='rewrite', title=None,
+            markdown='Late content.', replacements=[], update_court_format=False)
+    monkeypatch.setattr(base, 'chat_completion_parse', parse)
+    assert operation(agent, monkeypatch, 'revise_draft', {'target':uid,'revision_mode':'preserve_original',
+        'instructions':'Revise.','material_ids':[]}) == {'stopped':True}
+    assert AgentArtifact.query.filter_by(kind='draft').count() == 0
+    assert json.loads(agent.payload_json)['agent_context']['working_candidate_id'] is None

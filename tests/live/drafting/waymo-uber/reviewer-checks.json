@@ -1,0 +1,305 @@
+{
+  "evaluator_only": true,
+  "never_upload": true,
+  "status": "not_executed",
+  "source_identity": {
+    "complaint": {
+      "document_no": 1,
+      "filed": "2017-02-23",
+      "pdf_pages": 28,
+      "causes_of_action": 6,
+      "patents": [
+        "8,836,922",
+        "9,368,936",
+        "9,086,273"
+      ]
+    },
+    "fac": {
+      "document_no": 23,
+      "filed": "2017-03-10",
+      "pdf_pages": 31,
+      "causes_of_action": 7,
+      "patents": [
+        "8,836,922",
+        "9,285,464",
+        "9,368,936",
+        "9,086,273"
+      ]
+    },
+    "answer": {
+      "signed": "2017-06-22",
+      "pdf_pages": 24,
+      "responds_to": "FAC",
+      "answering_parties": [
+        "Uber Technologies, Inc.",
+        "Ottomotto LLC"
+      ],
+      "not_answering_for": [
+        "Otto Trucking LLC"
+      ]
+    },
+    "rfp": {
+      "signed": "2017-05-12",
+      "filed": "2017-06-21",
+      "pdf_pages": 27,
+      "advertised_requests": 146,
+      "ecf_document": "684-3",
+      "pdf_to_docket_page_offset": 1,
+      "low_text_image_body_pdf_pages": [
+        9,
+        10
+      ]
+    }
+  },
+  "checks_by_scenario": {
+    "pleading_change_brief": {
+      "must_include": [
+        "Six original causes versus seven FAC causes",
+        "Added standalone claim for Patent 9,285,464; FAC fourth cause, PDF pp.23-25",
+        "Answer is to FAC and filed on behalf of Uber and Ottomotto only",
+        "Sources are allegations and responses, not liability findings"
+      ],
+      "source_anchors": {
+        "complaint_causes_pdf_pages": [
+          16,
+          19,
+          21,
+          23,
+          25,
+          27
+        ],
+        "fac_causes_pdf_pages": [
+          16,
+          19,
+          21,
+          23,
+          25,
+          27,
+          29
+        ],
+        "answer_identity_pdf_pages": [
+          1,
+          2,
+          24
+        ]
+      },
+      "follow_up": "Executive email preserves these material identities/changes while meeting audience and approximate length instructions."
+    },
+    "fac_answer_alignment": {
+      "fac_paragraphs": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "fac_pdf_pages": [
+        7,
+        8
+      ],
+      "answer_pdf_pages": [
+        8,
+        9
+      ],
+      "mapping": [
+        {
+          "fac_paragraph": 21,
+          "answer_paragraph": 37
+        },
+        {
+          "fac_paragraph": 22,
+          "answer_paragraph": 38
+        },
+        {
+          "fac_paragraph": 23,
+          "answer_paragraph": 39
+        },
+        {
+          "fac_paragraph": 24,
+          "answer_paragraph": 40
+        },
+        {
+          "fac_paragraph": 25,
+          "answer_paragraph": 41
+        },
+        {
+          "fac_paragraph": 26,
+          "answer_paragraph": 42
+        },
+        {
+          "fac_paragraph": 27,
+          "answer_paragraph": 43
+        },
+        {
+          "fac_paragraph": 28,
+          "answer_paragraph": 44
+        },
+        {
+          "fac_paragraph": 29,
+          "answer_paragraph": 45
+        },
+        {
+          "fac_paragraph": 30,
+          "answer_paragraph": 46
+        }
+      ],
+      "response_types": {
+        "21": "denial",
+        "22-27": "lack of knowledge/information and on that basis denial",
+        "28-30": "specific partial admissions, lack of knowledge/denial for remaining allegations"
+      },
+      "fail_if": [
+        "Same-number FAC/Answer alignment",
+        "An unqualified admission substituted for partial admission",
+        "Omitted or duplicated requested FAC paragraph"
+      ]
+    },
+    "style_with_new_facts": {
+      "facts_file": "fictional-client-facts.txt",
+      "must_preserve": [
+        "Meridian letter June 4 2026",
+        "Lena Park end April 30 / start May 18 2026",
+        "Northstar development began January 2024",
+        "Review started June 8 and remains incomplete"
+      ],
+      "fail_if": [
+        "Copied Waymo/Uber case facts, LiDAR, patents or old statistics into the fictional statement",
+        "Invented audit findings or certainty about transfer/use",
+        "Style example treated as factual authority"
+      ],
+      "human_review": [
+        "Firm and organized prose",
+        "Qualifications preserved without repetitive boilerplate",
+        "Purpose descriptions distinguish style from new matter facts"
+      ]
+    },
+    "new_discovery_document": {
+      "requests": 8,
+      "period": [
+        "2026-01-01",
+        "2026-06-30"
+      ],
+      "must_use": [
+        "Cedar Systems",
+        "Meridian Analytics",
+        "Northstar"
+      ],
+      "fail_if": [
+        "Copied source case caption, names, confidentiality classification, deadline, trial date or signature",
+        "Unsupported production/search/privilege facts",
+        "Missing or repeated request numbering"
+      ],
+      "human_review": [
+        "Requests are distinct and intelligible",
+        "Defined terms used consistently",
+        "Scope tied to the fictional assignment, not every topic in the example"
+      ]
+    },
+    "rfp_response_working_draft": {
+      "requests": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "rfp_pdf_pages": [
+        11
+      ],
+      "subjects": {
+        "16": "advantages/benefits of alleged trade secrets",
+        "17": "third-party components in current-generation design",
+        "18": "public aspects of Waymo LiDAR design",
+        "19": "reverse engineering third-party LiDAR",
+        "20": "acquisition or use of third-party LiDAR",
+        "21": "support for alleged Uber use / first notice",
+        "22": "review/analysis/reverse engineering defendants LiDAR and PCB email",
+        "23": "development of alleged trade secrets"
+      },
+      "fail_if": [
+        "Claims completed searches, production, withholding or privilege determinations without facts",
+        "Treats all requests as identical",
+        "Invents missing client facts"
+      ],
+      "note": "Evaluate source fidelity and drafting qualifications; do not present reviewer notes as current procedural-law advice."
+    },
+    "uploaded_rfp_patch_and_restore": {
+      "source_request_pdf_page": 11,
+      "expected_confirmed_results": [
+        "Request17 expansion only",
+        "Request17 expansion retained plus Request20 licensing expansion",
+        "Restored Request17 expansion with Request20 original wording"
+      ],
+      "checks": [
+        "Compare candidate Markdown to the app accepted prepared-source text, not a different PDF extractor",
+        "Unselected text must remain identical",
+        "Source PDF hash unchanged",
+        "Parent/current candidate references consistent",
+        "Earlier confirmed versions remain retrievable",
+        "DOCX export contains requested current content; exact original PDF layout is outside scope"
+      ]
+    },
+    "mixed_pdf_and_redactions": {
+      "requests": [
+        3,
+        4,
+        5,
+        9,
+        12
+      ],
+      "rfp_pdf_pages": [
+        9,
+        10
+      ],
+      "visible_subjects": {
+        "3": "frequency of downloads to laptops/personal devices/flash drives",
+        "4": "instances of more than 10000 files downloaded",
+        "5": "alleged trade-secret documents without a visible confidential/proprietary legend",
+        "9": "partially redacted request about laser diodes in GBr3 system",
+        "12": "partially redacted design configuration / benefits request"
+      },
+      "checks": [
+        "Text-only extraction returns essentially court stamps on these two pages; a normal complete result needs image/OCR coverage",
+        "Never recover blacked-out text by guesswork",
+        "If preparation cannot read the requested bodies, record blocked_by_extraction separately from whether the agent honestly disclosed it"
+      ]
+    }
+  },
+  "run_evidence": [
+    "Project/conversation/run IDs and exact app commit plus working-tree diff identifier",
+    "Resolved backend model/effort policy",
+    "Source file/preparation IDs, hashes and project vs prompt scope",
+    "Preparation and run timing, token usage and provider calls",
+    "Material purposes and actual retrieved passages",
+    "Controller inspection, optional verification and revisions with exact candidate IDs",
+    "Final editable Markdown and DOCX downloads",
+    "Failures/retries/repeated searches with whether they added useful evidence"
+  ],
+  "scoring": {
+    "factual_and_source_fidelity": [
+      0,
+      3
+    ],
+    "fulfillment_and_preservation": [
+      0,
+      3
+    ],
+    "material_use_and_uncertainty": [
+      0,
+      2
+    ],
+    "writing_quality": [
+      0,
+      2
+    ],
+    "policy": "Score each dimension against the requested task. A critical fabricated fact, wrong pleading mapping, invented redacted text or lost unrelated edit is a failure regardless of total. Controller self-assessment is evidence, not the scoring key. Record latency/cost without claiming a performance regression without a matched baseline."
+  }
+}

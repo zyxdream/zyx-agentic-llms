@@ -92,6 +92,22 @@ class DraftDocument(db.Model):
     legacy_snapshot_json = db.Column(Text().with_variant(LONGTEXT(), 'mysql'), nullable=True)
     migration_report_json = db.Column(Text().with_variant(LONGTEXT(), 'mysql'), nullable=True)
     updated_at = db.Column(db.DateTime(), nullable=False, default=func.now())
+    versions = db.relationship('PublishedDraftVersion', cascade='all, delete-orphan')
+
+
+class PublishedDraftVersion(db.Model):
+    """Confirmed editor snapshots, separate from intermediate agent candidates."""
+    __tablename__ = 'published_draft_versions'
+    __table_args__ = (db.UniqueConstraint('document_id', 'draft_version', name='uq_published_document_version'),)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    document_id = db.Column(db.Integer, db.ForeignKey('draft_documents.id', ondelete='CASCADE'), nullable=False, index=True)
+    draft_version = db.Column(db.Integer, nullable=False)
+    draft_json = db.Column(Text().with_variant(LONGTEXT(), 'mysql'), nullable=False)
+    source = db.Column(db.String(20), nullable=False)
+    candidate_id = db.Column(db.String(36), nullable=True)
+    created_at = db.Column(db.DateTime(), nullable=False, default=func.now())
+
+
 Drafts = ChatThread
 
 class ConversationTurn(db.Model):

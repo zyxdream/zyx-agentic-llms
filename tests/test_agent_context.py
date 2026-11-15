@@ -22,7 +22,9 @@ def context_row(agent, monkeypatch):
     choose(monkeypatch, 'list_documents', {})
     assert tick(agent) == {'continued': True}
     assert tick(agent) == {'continued': True}
-    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'context-test', 12000)
+    # Leave working-history headroom above the complete, growing tool catalogue.
+    # Large reads below still force compaction and exercise the actual preflight.
+    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'context-test', 16000)
     monkeypatch.setattr(agent_context, 'SUMMARY_TOKENS', 128)
     return agent
 
@@ -98,7 +100,8 @@ def completed_bytes(row):
 
 def test_small_history_is_exact_replay_without_compaction(context_row):
     expected = raw_history(context_row)
-    assert prepare(context_row) == expected
+    result = prepare(context_row)
+    assert [item for item in result if not item.get('content', '').startswith('Application working-draft state (')] == expected
     assert checkpoint(context_row) is None
 
 
@@ -107,7 +110,8 @@ def test_unregistered_model_preserves_replay_without_estimating(context_row, mon
     add_group(row, [{'text': 'large source ' * 8000}])
     request = {**request_for(row), 'model': 'unregistered-context-model'}
     monkeypatch.setattr(agent_context, 'estimate_text_request', lambda *a, **kw: pytest.fail('Unregistered model was estimated'))
-    assert prepare(row, request) == raw_history(row)
+    result = prepare(row, request)
+    assert [item for item in result if not item.get('content', '').startswith('Application working-draft state (')] == raw_history(row)
     assert checkpoint(row) is None
 
 
@@ -184,7 +188,9 @@ def test_compacted_clarification_and_original_assignment_remain_verbatim(context
     summary_provider(monkeypatch, 'A deliberately short working summary.')
     result = prepare(row)
     assert result[:len(original)] == original
-    assert all(item.get('role') not in ('system', 'developer') for item in result[len(original):])
+    assert all(item.get('role') not in ('system', 'developer') or
+               item.get('content', '').startswith('Application working-draft state (')
+               for item in result[len(original):])
     contents = '\n'.join(item.get('content', '') for item in result if isinstance(item.get('content'), str))
     assert question in contents and answer in contents
 
@@ -213,7 +219,9 @@ def test_compaction_preserves_report_target_without_marking_a_later_candidate_ch
     saved_steps = completed_bytes(row)
     saved_artifacts = {item.id: item.content_json for item in AgentArtifact.query.all()}
     editor = state(row)
-    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'gpt-6-luna', 140000)
+    # Include fixed-catalogue headroom while still compacting the large source
+    # group and retaining the final small model/tool group verbatim.
+    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'gpt-6-luna', 144000)
     requests = []
     notes = (f'Verification report {report_id} checked {candidate_a} only. '
              f'The revised current candidate is {candidate_b}; no saved report checks it. '
@@ -389,3 +397,41 @@ def test_controller_finishes_from_compacted_synthetic_working_state(context_row,
     assert prompts and checkpoint(row)
     assert row.status == 'completed' and len(state(row)['chat_history']) == 1
     assert state(row)['draft']['title'] == 'Original'
+
+
+def test_authoritative_working_head_survives_compaction_and_reload(context_row, monkeypatch):
+    row = context_row
+    payload = json.loads(row.payload_json)
+    payload['agent_context']['working_candidate_id'] = 'latest-exact-candidate'
+    row.payload_json = service.encode(payload)
+    db.session.commit()
+    for _ in range(8):
+        add_group(row, [{'text': 'Earlier candidate old-base. ' * 1400}])
+    summary_provider(monkeypatch, 'Older draft was old-base; continue the task.')
+    token = claim(row)
+    result = prepare(row, token=token)
+    assert checkpoint(row)
+    message = next(item['content'] for item in result if item.get('content', '').startswith('Application working-draft state ('))
+    assert 'latest-exact-candidate' in message
+    db.session.expire_all()
+    result = prepare(row, token=token)
+    assert any('latest-exact-candidate' in item.get('content', '') for item in result)
+
+
+def test_compaction_retains_material_purposes_and_outstanding_user_checks(context_row, monkeypatch):
+    row=context_row
+    use='source-material is a style example only; verify the new figures before finishing.'
+    for _ in range(7):
+        add_group(row,[{'artifact_id':'source-material','text':'Long reference passage. '*1300}],
+            names=['analyze_material'], arguments=[{'instructions':'Review supplied material.',
+                'material_ids':['source-material'],'material_uses':[{'artifact_id':'source-material','purpose':use}]}])
+    prompts=summary_provider(monkeypatch,use)
+    token=claim(row)
+    result=prepare(row,token=token)
+    assert checkpoint(row)
+    assert 'style example only' in json.dumps(result)
+    assert any('source-material' in prompt and 'style example only' in prompt for prompt,_ in prompts)
+    assert 'outstanding checks' in agent_context.SUMMARY_SYSTEM
+    db.session.expire_all()
+    restored=prepare(row,token=token)
+    assert 'verify the new figures' in json.dumps(restored)

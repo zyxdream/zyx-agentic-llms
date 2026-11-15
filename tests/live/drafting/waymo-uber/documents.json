@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-11-14T22:42:43.248677+00:00",
+  "case_number": "3:17-cv-00939-WHA",
+  "status": "prepared_not_executed",
+  "private_pdf_directory": "instance/evaluation-inputs/waymo-uber",
+  "project_document_keys": [
+    "complaint",
+    "fac",
+    "answer"
+  ],
+  "files": {
+    "complaint": {
+      "path": "instance/evaluation-inputs/waymo-uber/waymo-complaint-2017-02-23.pdf",
+      "filename": "waymo-complaint-2017-02-23.pdf",
+      "sha256": "b47c810318ca57aa3200f10aed5056f4ab7783ef5d06a085eb3729817b9becb6",
+      "bytes": 199007,
+      "pdf_pages": 28,
+      "signed_date": "2017-02-23",
+      "filed_date": "2017-02-23",
+      "copied_from": "/Users/yuxiao/Documents/lexintel/backend/static/COMPLAINT-Waymo.pdf",
+      "source_mtime_ns": 1780123776285760170,
+      "synthetic": false
+    },
+    "fac": {
+      "path": "instance/evaluation-inputs/waymo-uber/waymo-first-amended-complaint-2017-03-10.pdf",
+      "filename": "waymo-first-amended-complaint-2017-03-10.pdf",
+      "sha256": "714b3ccfcd01c36b34af942376d3c39aa6ce328c5bc1ff0f72f4b61b0136b51b",
+      "bytes": 137747,
+      "pdf_pages": 31,
+      "signed_date": "2017-03-10",
+      "filed_date": "2017-03-10",
+      "copied_from": "/Users/yuxiao/Documents/lexintel/backend/static/temp_3607712f-fcb8-4d02-a6c7-0850230b92a8_Waymo v. Uber - FAC.pdf",
+      "source_mtime_ns": 1777408541641964248,
+      "synthetic": false
+    },
+    "answer": {
+      "path": "instance/evaluation-inputs/waymo-uber/uber-ottomotto-answer-to-fac-2017-06-22.pdf",
+      "filename": "uber-ottomotto-answer-to-fac-2017-06-22.pdf",
+      "sha256": "31d841a87df4f57970ba51b1af41d9538b48e4a3060c96252269f92332679d3f",
+      "bytes": 71312,
+      "pdf_pages": 24,
+      "signed_date": "2017-06-22",
+      "filed_date": null,
+      "copied_from": "/Users/yuxiao/Documents/lexintel/backend/static/temp_957072ee-d6e9-495b-a5ce-53a4d4c71342_Waymo v. Uber - ANSWER.pdf",
+      "source_mtime_ns": 1777408541642119456,
+      "synthetic": false
+    },
+    "rfp": {
+      "path": "instance/evaluation-inputs/waymo-uber/uber-first-rfp-2017-05-12.pdf",
+      "filename": "uber-first-rfp-2017-05-12.pdf",
+      "sha256": "100e84b7f67bab3d544124fabf45f8aca4f73c3df41dfe79c57587f53e580d04",
+      "bytes": 379879,
+      "pdf_pages": 27,
+      "signed_date": "2017-05-12",
+      "filed_date": "2017-06-21",
+      "copied_from": "/Users/yuxiao/Documents/lexintel/backend/static/RFP_Uber.pdf",
+      "source_mtime_ns": 1777313822144306914,
+      "synthetic": false,
+      "confidentiality_legend": "HIGHLY CONFIDENTIAL - ATTORNEYS EYES ONLY",
+      "low_text_image_body_pdf_pages": [
+        9,
+        10
+      ],
+      "pdf_page_1_docket_page": 2
+    },
+    "fictional_facts": {
+      "path": "tests/live/drafting/waymo-uber/inputs/fictional-client-facts.txt",
+      "filename": "fictional-client-facts.txt",
+      "sha256": "44d41bf7678319caec9061a0e038b2acaee40a4d1484438c4b2df25c3df89baf",
+      "bytes": 1923,
+      "synthetic": true
+    }
+  },
+  "source_policy": "PDFs are unchanged local copies, ignored by Git and never staged in frontend/public. Only explicit input lists may be uploaded. Reviewer checks and manifests are not agent inputs."
+}

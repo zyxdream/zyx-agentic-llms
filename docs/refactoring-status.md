@@ -46,3 +46,29 @@ At that stage, Docker, cloud OCR, a live model session and remote CI had not bee
 ## Local isolation follow-up
 
 The previous shared-service development instructions have been replaced. Workspace uses frontend 3010, backend 5010, dedicated Redis 6390 and its own account database; LexIntel remains unchanged. The complete matrix now passes 469 backend, 86 frontend component and 54 browser tests, plus a real first-run/reload smoke check. Local authentication and isolation regressions are included. See [local isolation details and verification](local-isolation.md).
+
+## Draft continuity (4A)
+
+Implemented: one persistent working draft, rejection of older editing/publication
+bases, explicit confirmed-version rollback through chat, and atomic confirmed
+snapshots on manual save/final publication. Existing candidates are retained.
+[Behavior and validation](draft-versions.md).
+
+## Workspace editing (4B)
+
+Implemented: focused text replacements within the existing revision call, full
+rewrites for broad transformations, all-or-nothing patch validation, metadata
+preservation and no-op revision handling. Full candidates and 4A continuity remain.
+[Behavior, validation and remaining work](draft-edits.md).
+
+The subsequent general drafting update unifies uploaded-first editing with 4B.
+Deferred: native Word-layout editing, fuzzy matching, automatic long-document
+batching and semantic verification. No new version-history UI is included.
+
+## General drafting and material purposes
+
+Implemented: per-operation material purposes, controller guidance to assess actual
+results against the user request, compaction continuity, and shared uploaded-first /
+Workspace patch/rewrite editing. Existing tools and optional verification remain;
+no task-specific writing workflows or semantic publication gate are introduced.
+[Behavior, interfaces and validation](general-drafting.md).

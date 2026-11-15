@@ -207,7 +207,7 @@ def test_preserve_original_stays_explicitly_unsupported_for_workspace_targets(ag
         operation(agent, monkeypatch, 'create_draft', {'instructions': 'Create a candidate.', 'material_ids': []})
         target = last_result(agent)['artifact_id']
     before = state(agent)
-    monkeypatch.setattr(agent_tools.Operations, 'revise_uploaded_original', lambda *a: pytest.fail('Unsupported mode reached drafting'))
+    monkeypatch.setattr(document_drafts, 'write_document', lambda **kw: pytest.fail('Unsupported mode reached drafting'))
     operation(agent, monkeypatch, 'revise_draft', {'instructions': 'Make targeted edits.', 'material_ids': [],
         'target': target, 'revision_mode': 'preserve_original'})
     assert last_result(agent)['error'] is True

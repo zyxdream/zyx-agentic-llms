@@ -54,8 +54,12 @@ The application supplies these globals:
 - `input_paths`: dictionary mapping authorized `file_id` values to read-only
   input paths. Use `pd.read_excel(input_paths[file_id], sheet_name=...)` or
   `pd.read_csv(input_paths[file_id])` as appropriate.
-- `input_artifacts`: dictionary mapping selected saved artifact IDs to their
-  JSON content, or to an input file path for a saved file artifact.
+- `input_artifacts`: dictionary mapping selected saved result IDs to their
+  already-decoded Python objects. A saved draft is a dictionary, so read
+  `input_artifacts[draft_id]["draft"]["markdown"]` directly. Do not pass an
+  already-decoded dictionary or list to `open()`, `json.load()` or `json.loads()`.
+  Saved file artifact IDs instead map to read-only path strings, for example
+  `pd.read_excel(input_artifacts[workbook_id])` after `import pandas as pd`.
 - `output_dir`: `pathlib.Path` for new files to save as derived work products.
   Basic `.csv`, `.xlsx`, and `.json` files in this directory can be collected.
 - `scratch_dir`: `pathlib.Path` for temporary working files. Scratch files do

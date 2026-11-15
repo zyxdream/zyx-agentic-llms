@@ -276,13 +276,15 @@ def update_draft(draft_id, draft, expected_version, draft_before=UNSET):
     return update_document(draft_id, None, draft, expected_version, draft_before)
 
 
-def update_document(chat_id, document_id, draft, expected_version, draft_before=UNSET):
+def update_document(chat_id, document_id, draft, expected_version, draft_before=UNSET, *, source="manual", candidate_id=None):
     """Stage an owned document mutation after checking its concurrency token."""
     if not isinstance(draft, dict):
         raise ValueError('Draft content must be an object.')
     row = document_for_chat(chat_id, document_id, lock=True)
     if isinstance(expected_version, bool) or not isinstance(expected_version, int) or expected_version != row.draft_version:
         raise WorkspaceConflict(row.draft_version)
+    from backend.util import draft_history
+    previous_json, previous_time = row.draft_json, row.updated_at
     values = {'draft_json': _encode(draft), 'draft_version': expected_version + 1,
               'updated_at': datetime.utcnow()}
     if draft_before is not UNSET:
@@ -295,6 +297,9 @@ def update_document(chat_id, document_id, draft, expected_version, draft_before=
     if changed != 1:
         raise WorkspaceConflict(row.draft_version)
     db.session.flush()
+    draft_history.record(row, source='baseline', version=expected_version,
+                         draft_json=previous_json, created_at=previous_time)
+    draft_history.record(row, source=source, candidate_id=candidate_id)
     return row.draft_version
 
 

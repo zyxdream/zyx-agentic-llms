@@ -1,0 +1,31 @@
+FICTIONAL CLIENT FACTS - EVALUATION INPUT ONLY
+
+This is a separate fictional matter. None of the Waymo/Uber facts is a fact of this matter.
+Use only this packet for factual assertions about Cedar Systems and Meridian Analytics.
+
+Parties and product
+- Cedar Systems develops analytics software named Northstar.
+- Meridian Analytics is a competitor. It sent Cedar a letter dated June 4, 2026,
+  alleging that a former employee brought Meridian source code to Cedar.
+- This packet supplies no filed lawsuit, court, case number, patents, protective
+  order, adjudicated findings or production deadline.
+
+Employee and development history
+- Lena Park worked for Meridian until April 30, 2026 and joined Cedar on May 18, 2026.
+- Cedar's dated repository records show Northstar development began in January 2024.
+- Cedar has a written onboarding policy prohibiting use of a former employer's
+  confidential materials. Having a policy does not prove it was followed.
+- Cedar began a repository and onboarding review on June 8, 2026. The review is
+  incomplete. No finding establishes whether Meridian material was transferred,
+  received, used, retained or deleted. Do not invent a finding in either direction.
+- Relevant evaluation period for proposed document requests: January 1, 2026
+  through June 30, 2026. Earlier development is a stated background fact; requests
+  outside the evaluation period require an explicit reason rather than silent expansion.
+
+Writing assignment constraints
+- Address preliminary internal working drafts to Cedar's legal team.
+- Facts above may be stated with their qualifications. Allegations remain allegations.
+- Identify unanswered factual questions. Do not create admissions, a legal ruling,
+  a completed search, production, withholding decision or privilege determination.
+- Use placeholders for absent procedural details when needed. No external research
+  is required for this evaluation.

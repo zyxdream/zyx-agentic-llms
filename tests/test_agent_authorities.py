@@ -31,12 +31,9 @@ def test_uploaded_revision_bridge_does_not_perform_legacy_lookup(agent, monkeypa
     monkeypatch.setattr(everything, 'finalize_llm_response_for_display', real_finalizer)
     monkeypatch.setattr(everything, 'verify_and_annotate_response_citations',
                         lambda *a, **kw: pytest.fail('Revision performed hidden citation lookup'))
-    result = uploaded_revision(agent, monkeypatch, {
-        'error': False, 'blocked': False, 'message': 'Revised reference to 123 F.3d 456.',
-        'draft': {'title': 'Candidate', 'sections': [
-            {'section_id': '1', 'section_name': 'Facts', 'section_content': 'Targeted correction.'}]},
-        'operations': [],
-    })
+    result = uploaded_revision(agent, monkeypatch, document_drafts.MarkdownRevisionResult(
+        mode='rewrite', title='Candidate', markdown='Targeted correction of 123 F.3d 456.',
+        replacements=[], update_court_format=False))
     assert result['kind'] == 'draft'
 
 

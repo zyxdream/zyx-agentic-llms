@@ -207,19 +207,39 @@ def test_real_queue_upload_read_draft_verify_publish_and_immutable_download(repl
         if catalog['documents'][0]['status']=='ready':break
         time.sleep(.02)
     assert catalog['documents'][0]['status']=='ready',catalog
+    original_writer = document_drafts.write_document
     def writer(**kwargs):
+        if kwargs['target'] is not None:
+            return original_writer(**kwargs)
         assert '240' in json.dumps(kwargs['materials'])
+        assert kwargs['materials'][0]['use_in_this_operation']=='Factual source for the payment condition.'
         return document_drafts.MarkdownDraftResult(title='Order report',markdown='# Order report\n\nTotal: $240. Payment requires acceptance.',update_court_format=False)
     monkeypatch.setattr(document_drafts,'write_document',writer)
+    def parse(prompt, schema, **kwargs):
+        if schema is document_drafts.MarkdownRevisionResult:
+            return schema(mode='patch', title=None, markdown=None,
+                replacements=[{'old_text':'Payment requires acceptance.',
+                    'new_text':'Payment requires documented acceptance.', 'replace_all':False}],
+                update_court_format=False)
+        return schema(decision='not_forbidden',reason='Replay permits editing.',supporting_wording='')
+    monkeypatch.setattr(base,'chat_completion_parse',parse)
     monkeypatch.setattr(base,'chat_completion',lambda *a,**kw:'The report preserves the payment condition.')
     replay.actions=[('read_sources',{'artifact_id':None,'ranges':[{'file_id':source_id,'start':0,'end':len(raw)}],'start':0,'end':None}),
-        lambda req:('create_draft',{'instructions':'Preserve the payment condition','material_ids':[outputs(req)[-1]['artifact_id']]}),
+        lambda req:('create_draft',{'instructions':'Preserve the payment condition','material_ids':[outputs(req)[-1]['artifact_id']],
+            'material_uses':[{'artifact_id':outputs(req)[-1]['artifact_id'],'purpose':'Factual source for the payment condition.'}]}),
         lambda req:('verify_draft',{'instructions':'Check the report','material_ids':[outputs(req)[0]['artifact_id']],'target':outputs(req)[-1]['artifact_id'],'check_citations':False}),
-        lambda req:complete('Report ready',next(v['artifact_id'] for v in outputs(req) if v.get('kind')=='draft'))]
+        ('revise_draft',{'instructions':'Clarify that acceptance must be documented.', 'material_ids':[],
+            'target':'working_draft','revision_mode':'general_revision'}),
+        ('read_sources',{'artifact_id':'working_draft','ranges':[],'start':0,'end':None}),
+        lambda req:complete('Report ready','working_draft') if 'documented acceptance' in outputs(req)[-1]['text'] else pytest.fail('Controller has not inspected the current result') ]
     replay.submit('Draft the order report',promptAttachments=[{'file_id':source_id}]);replay.wait('completed')
     restored=replay.history();assert '$240' in restored['document']['markdown']
+    assert 'Payment requires documented acceptance.' in restored['document']['markdown']
     with replay.app.app_context():
         assert AgentArtifact.query.filter_by(kind='verification').count()==1
+        candidates=AgentArtifact.query.filter_by(kind='draft').all()
+        assert len(candidates)==2
+        assert any(json.loads(candidate.content_json).get('editing_method')=='patch' for candidate in candidates)
     revision=restored['document']['revision_id']
     download=replay.client.post('/api/workspace/documents/'+restored['document_id']+'/revisions/'+revision+'/download',json={'format':'docx'})
     assert download.status_code==200 and download.data.startswith(b'PK')
@@ -271,3 +291,39 @@ def test_real_queue_python_file_selection_publication_and_download(replay):
     downloaded=replay.client.get(url)
     assert downloaded.status_code==200 and downloaded.data==b'item,value\novertime,455\n'
     downloaded.close()
+
+
+def test_real_queue_first_uploaded_edit_uses_shared_engine_then_controller_reads(replay,monkeypatch):
+    raw=b'Payment requires acceptance. Keep this sentence unchanged.'
+    group=replay.client.post('/api/workspace/upload-groups',json={'scope':'chat','scopeId':replay.chat,'selectionId':'shared-first-edit',
+        'documents':[{'client_upload_id':'source','filename':'contract.txt','file_size':len(raw)}]})
+    assert group.status_code==201
+    doc=group.json['documents'][0];uid=doc['document_id']
+    response=replay.client.post('/api/workspace/upload-groups/'+group.json['group_id']+'/files',
+        data={'clientUploadIds':json.dumps([doc['clientUploadId']]),'files':(io.BytesIO(raw),'contract.txt')},content_type='multipart/form-data')
+    assert response.status_code==202
+    deadline=time.monotonic()+15
+    while time.monotonic()<deadline:
+        catalog=replay.client.get('/api/workspace/document-preparation',query_string={'conversation_id':replay.chat}).json
+        if catalog['documents'][0]['status']=='ready':break
+        time.sleep(.02)
+    assert catalog['documents'][0]['status']=='ready'
+    def parse(prompt,schema,**kwargs):
+        if schema is agent_tasks.EditorWriteCheck:
+            return schema(decision='not_forbidden',reason='User requests revision.',supporting_wording='')
+        assert schema is document_drafts.MarkdownRevisionResult
+        payload=json.loads(prompt)
+        assert payload['target_document']['markdown']==raw.decode()
+        return schema(mode='patch',title=None,markdown=None,replacements=[{
+            'old_text':'Payment requires acceptance.','new_text':'Payment requires written acceptance.','replace_all':False}],update_court_format=False)
+    monkeypatch.setattr(base,'chat_completion_parse',parse)
+    replay.actions=[('revise_draft',{'target':uid,'revision_mode':'preserve_original',
+        'instructions':'Require written acceptance; keep all other text.','material_ids':[]}),
+        ('read_sources',{'artifact_id':'working_draft','ranges':[],'start':0,'end':None}),
+        lambda req:complete('Revised.','working_draft') if 'Keep this sentence unchanged.' in outputs(req)[-1]['text'] else pytest.fail('Missing current draft')]
+    replay.submit('Require written acceptance in the uploaded draft.',promptAttachments=[{'file_id':uid}]);replay.wait('completed')
+    assert replay.history()['document']['markdown']=='Payment requires written acceptance. Keep this sentence unchanged.'
+    with replay.app.app_context():
+        from backend.models import UploadedFiles
+        assert AgentArtifact.query.filter_by(kind='draft').count()==1
+        assert UploadedFiles.query.filter_by(unique_id=uid).one().content==raw.decode()

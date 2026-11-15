@@ -332,6 +332,8 @@ def _load_targets(ops, args, record):
             meta = {'kind': 'file', 'file_id': target['file_id'], 'filename': doc['filename'],
                     'prepared_artifact_id': doc['artifact_id'], 'source_hash': entry.get('source_hash')}
         elif target.get('draft_id') is not None:
+            from backend.util import working_draft
+            target['draft_id'] = working_draft.resolve(ops.row, target['draft_id'])
             draft = ops.target(target['draft_id'])
             body = draft_to_markdown(draft)
             meta = {'kind': 'draft', 'draft_id': target['draft_id'], 'filename': draft.get('title', 'Draft'),

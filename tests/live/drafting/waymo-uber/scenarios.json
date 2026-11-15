@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "status": "prepared_not_executed",
+  "project_name_template": "Live drafting - Waymo Uber - <timestamp>",
+  "project_document_keys": [
+    "complaint",
+    "fac",
+    "answer"
+  ],
+  "upload_policy": "Create a fresh normally authenticated Workspace project. Upload the three project documents once. Start a fresh conversation per scenario and attach only its prompt_document_keys. Follow-ups stay in the same conversation; do not reupload.",
+  "scenarios": [
+    {
+      "id": "pleading_change_brief",
+      "title": "Multi-document change brief, then audience rewrite",
+      "prompt_document_keys": [],
+      "optional": false,
+      "turns": [
+        {
+          "id": "01-change-brief",
+          "title": "Draft the source-grounded change brief",
+          "prompt_file": "prompts/01-change-brief.txt"
+        },
+        {
+          "id": "01b-executive-email",
+          "title": "Rewrite for a different audience",
+          "prompt_file": "prompts/01b-executive-email.txt"
+        }
+      ]
+    },
+    {
+      "id": "fac_answer_alignment",
+      "title": "Source-aligned response matrix with numbering traps",
+      "prompt_document_keys": [],
+      "optional": false,
+      "turns": [
+        {
+          "id": "02-allegation-response-matrix",
+          "title": "Draft ten source-aligned entries",
+          "prompt_file": "prompts/02-allegation-response-matrix.txt"
+        }
+      ]
+    },
+    {
+      "id": "style_with_new_facts",
+      "title": "Professional style transfer with separate factual authority",
+      "prompt_document_keys": [
+        "fictional_facts"
+      ],
+      "optional": false,
+      "turns": [
+        {
+          "id": "03-new-matter-position-statement",
+          "title": "Draft a new position statement",
+          "prompt_file": "prompts/03-new-matter-position-statement.txt"
+        }
+      ]
+    },
+    {
+      "id": "new_discovery_document",
+      "title": "New structured document from a format example and new facts",
+      "prompt_document_keys": [
+        "rfp",
+        "fictional_facts"
+      ],
+      "optional": false,
+      "turns": [
+        {
+          "id": "04-new-rfp-working-draft",
+          "title": "Draft eight new document requests",
+          "prompt_file": "prompts/04-new-rfp-working-draft.txt"
+        }
+      ]
+    },
+    {
+      "id": "rfp_response_working_draft",
+      "title": "Draft conditional responses without fabricated production facts",
+      "prompt_document_keys": [
+        "rfp"
+      ],
+      "optional": false,
+      "turns": [
+        {
+          "id": "05-rfp-response-working-draft",
+          "title": "Draft responses for requests 16-23",
+          "prompt_file": "prompts/05-rfp-response-working-draft.txt"
+        }
+      ]
+    },
+    {
+      "id": "uploaded_rfp_patch_and_restore",
+      "title": "First-upload edit, follow-up preservation and explicit rollback",
+      "prompt_document_keys": [
+        "rfp"
+      ],
+      "optional": false,
+      "turns": [
+        {
+          "id": "06-rfp-first-upload-edit",
+          "title": "Make one focused edit to the uploaded draft",
+          "prompt_file": "prompts/06-rfp-first-upload-edit.txt"
+        },
+        {
+          "id": "06b-rfp-follow-up",
+          "title": "Continue the current version",
+          "prompt_file": "prompts/06b-rfp-follow-up.txt"
+        },
+        {
+          "id": "06c-rfp-rollback",
+          "title": "Restore the preceding confirmed content",
+          "prompt_file": "prompts/06c-rfp-rollback.txt"
+        }
+      ]
+    },
+    {
+      "id": "mixed_pdf_and_redactions",
+      "title": "Optional mixed text/image reading and redaction-aware drafting",
+      "prompt_document_keys": [
+        "rfp"
+      ],
+      "optional": true,
+      "turns": [
+        {
+          "id": "07-mixed-pdf-redaction-note",
+          "title": "Draft from image pages without inventing redacted text",
+          "prompt_file": "prompts/07-mixed-pdf-redaction-note.txt"
+        }
+      ]
+    }
+  ]
+}

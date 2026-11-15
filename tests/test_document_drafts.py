@@ -40,7 +40,8 @@ def test_markdown_writer_uses_complete_assignment_context_and_target(monkeypatch
     captured = []
     def provider(prompt, schema, **kwargs):
         captured.append((json.loads(prompt), schema, kwargs))
-        return written()
+        return documents.MarkdownRevisionResult(mode='rewrite', title='Reconciliation', markdown=SOURCE,
+            replacements=[], update_court_format=False)
     monkeypatch.setattr(base, 'chat_completion_parse', provider)
     result = documents.write_document(assignment='Reconcile all invoices.', instructions='Preserve leading zeros.',
         conversation={'text': 'Earlier discussion'}, materials=[{'kind': 'source', 'text': 'Complete source rows'}],
@@ -52,7 +53,7 @@ def test_markdown_writer_uses_complete_assignment_context_and_target(monkeypatch
     assert payload['materials'][0]['text'] == 'Complete source rows'
     assert payload['user_clarifications'][0]['answer'] == 'Use all rows.'
     assert options['model'] == 'selected-model' and options['reasoning_effort'] == 'high'
-    assert schema is documents.MarkdownDraftResult and options['raise_on_incomplete']
+    assert schema is documents.MarkdownRevisionResult and options['raise_on_incomplete']
 
 
 def test_create_revise_and_publish_keep_immutable_markdown_and_court_settings(agent, monkeypatch):
