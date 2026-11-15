@@ -1,12 +1,21 @@
 """Container entrypoint: execute a single program and describe its result."""
 import importlib.metadata
+from datetime import date, datetime
 import json
 from pathlib import Path
 import platform
 import sys
 import traceback
 
-from helpers import recalculate_workbook
+from helpers import check_workbook, recalculate_workbook
+
+
+def result_json_default(value):
+    """Only normalize well-defined date values; unsupported objects remain errors."""
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    raise TypeError(f'{type(value).__name__} is not JSON serializable; return plain values '
+                    'or convert tabular data with to_dict(), or save it as a file.')
 
 
 def main():
@@ -16,7 +25,7 @@ def main():
     namespace = {'__name__': '__main__', '__file__': '/job/script.py',
                  'input_paths': request['input_paths'], 'input_artifacts': request['input_artifacts'],
                  'output_dir': output_dir, 'scratch_dir': scratch_dir,
-                 'recalculate_workbook': recalculate_workbook}
+                 'recalculate_workbook': recalculate_workbook, 'check_workbook': check_workbook}
     metadata = {'status': 'success', 'result': None, 'traceback': None,
                 'runtime_versions': {'python': platform.python_version(), **{
                     name: importlib.metadata.version(name) for name in ('pandas', 'numpy', 'openpyxl')}}}
@@ -24,10 +33,8 @@ def main():
     try:
         code = Path('/job/script.py').read_text(encoding='utf-8')
         exec(compile(code, '/job/script.py', 'exec'), namespace)
-        metadata['result'] = namespace.get('result')
-        # Fail as an ordinary Python observation for e.g. a raw DataFrame result;
-        # the agent can use to_dict() or write a CSV instead.
-        json.dumps(metadata['result'], ensure_ascii=False, allow_nan=False)
+        metadata['result'] = json.loads(json.dumps(namespace.get('result'), ensure_ascii=False,
+            allow_nan=False, default=result_json_default))
     except BaseException:
         metadata.update(status='execution_error', result=None, traceback=traceback.format_exc())
         print(metadata['traceback'], file=sys.stderr)

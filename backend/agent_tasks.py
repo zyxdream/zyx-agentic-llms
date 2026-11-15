@@ -48,6 +48,40 @@ SYSTEM += (
     "patch/rewrite engine on extracted text and leaves the source file unchanged.\n"
 )
 
+SYSTEM += (
+    '\nFor research source reads, copy the research_id/source_id pair supplied together in the '
+    'source reference. Each search or read returns a new immutable research snapshot. '
+    'A source_blocked observation means no requested source text was read; use another relevant '
+    'readable source or disclose incomplete coverage. Do not repeat phrase searches against a blocked page. '
+    'read_sources requires either an explicit artifact_id with ranges=[], or artifact_id=null with '
+    'nonempty original ranges. Read the current candidate using artifact_id=working_draft. '
+    'Keep generated Python simple and separate prose/data from code where practical; errors remain '
+    'visible observations for correction. Dates in structured results are serialized to ISO strings. '
+    'For new or revised calculation workbooks, keep important editable inputs authoritative and '
+    'derive dependent values with formulas. Preserve unchanged formulas and input relationships. '
+    'For date-dependent calculations, derive elapsed periods from the displayed dates unless '
+    'the user explicitly requests a fixed period. In a fixed-period snapshot, label a reporting '
+    'date that is only metadata and explain that changing it alone does not recalculate outputs. '
+    'Check the primary calculation drivers relevant to the assignment, not just one convenient input. '
+    'Clearly label fixed assumptions; do not display disconnected inputs as if they drive outputs. '
+    'Check important input/output relationships with check_workbook on disposable copies, using '
+    'expected values derived from the requested rules, not the workbook output being checked. '
+    'An unchanged output can be correct when the business rule requires it. Resolve failed checks '
+    'or disclose the limitation before completion. Prefer concise tables without unnecessary repeated '
+    'calculated views, while retaining requested detail. Format headings, summaries and notes so '
+    'their full text fits; use recalculate_workbook(..., fit_text_ranges={sheet: [range]}) for selected '
+    'wrapped text ranges before delivering the workbook; manual row heights can clip after conversion. '
+    'recalculate_workbook returns a Path: use a local variable, and str(path) if including it in result. '
+    'After saving a generated/edited XLSX with formulas, recalculate the final formatted copy to '
+    'a different output_dir filename: openpyxl saves discard cached values. Without destination, '
+    'recalculate_workbook returns a scratch copy that is not a downloadable file. Only output_dir '
+    'files receive file IDs. Inspect and deliver the file ID for that actual recalculated output, '
+    'not its uncalculated input or a different copy. '
+    'This wraps text and increases insufficient row heights without '
+    'changing widths, values or formulas. Inspect/check the final recalculated file and select its '
+    'exact file ID for delivery, not an earlier intermediate file.\n'
+)
+
 class ControllerError(RuntimeError):
     """A user-facing controller/provider failure, retained for explicit Retry."""
 
@@ -184,12 +218,14 @@ def model_request(row):
 def publish(row, args, step):
     """Publish atomically, including validation errors returned as observations."""
     try:
-        return _publish(row, args, step)
+        from backend.util.output_files import preflight_output_files
+        verification = preflight_output_files(row, args.output_file_ids)
+        return _publish(row, args, step, verification)
     except Exception:
         db.session.rollback()
         raise
 
-def _publish(row, args, step):
+def _publish(row, args, step, verification):
     """Publish the controller's final response and optional saved draft candidate.
 
     Recheck permission to write the editor; publication does not start new authority research.
@@ -199,8 +235,6 @@ def _publish(row, args, step):
     from backend.util import workspace_store
     service.lock_publication_chat(row.chat_thread_id)
     row = service.validate_execution(lock=True)
-    from backend.util.output_files import resolve_output_files
-    output_files = resolve_output_files(row, args.output_file_ids)
     candidate_id = working_draft.publication_target(row, args.candidate_id)
     args = args.model_copy(update={'candidate_id': candidate_id})
     saved = None
@@ -235,6 +269,8 @@ def _publish(row, args, step):
     service.lock_publication_chat(row.chat_thread_id)
     row = service.validate_execution(lock=True)
     data = json.loads(row.data_json)
+    from backend.util.output_files import resolve_output_files
+    output_files = resolve_output_files(row, args.output_file_ids, verification=verification)
     meta = workspace_state._normalize_prompt_turn_meta(data.get('prompt_turn_meta', data.get('promptAttachments', {})))
     meta['run_id'] = row.id
     meta['agent_run'] = True
@@ -257,7 +293,7 @@ def _publish(row, args, step):
         auxiliary['validated_cases'] = changed_cases
     workspace_store.patch_auxiliary(row.chat_thread_id, auxiliary, remove=('active_task_id',), merge=('validated_cases',))
     step.state, step.updated_at = ('ready', service.now())
-    step.result_json = service.encode({'published': True, 'candidate_id': args.candidate_id, 'output_files': output_files, 'chat_thread_id': state['chat_thread_id'], 'draft_document_id': state['draft_document_id']})
+    step.result_json = service.encode({'published': True, 'candidate_id': args.candidate_id, 'output_files': output_files, 'file_verification': verification, 'chat_thread_id': state['chat_thread_id'], 'draft_document_id': state['draft_document_id']})
     step.summary_json = service.encode({'artifact_id': args.candidate_id, 'message': 'Final result published.'})
     service.stage_publication(row, response, state['draft'], output_files=output_files)
     db.session.commit()

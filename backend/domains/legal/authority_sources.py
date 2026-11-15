@@ -12,6 +12,7 @@ import hashlib
 import ipaddress
 import json
 import os
+import re
 import socket
 import time
 from urllib.parse import parse_qsl, urljoin, urlsplit, urlunsplit
@@ -30,7 +31,9 @@ MAX_REDIRECTS = 5
 
 
 class SourceUnavailable(ValueError):
-    pass
+    def __init__(self, message, *, url=None, http_status=None):
+        super().__init__(message)
+        self.url, self.http_status = url, http_status
 
 
 def _check(callback):
@@ -267,7 +270,8 @@ def _download(url, check_execution):
                 current = urljoin(current, response.headers['Location'])
                 continue
             if response.status != 200:
-                raise SourceUnavailable(f'The source returned HTTP {response.status}.')
+                raise SourceUnavailable(f'The source returned HTTP {response.status}.',
+                                        url=current, http_status=response.status)
             body = _body(response, check_execution, deadline=deadline)
             return current, body, response.headers.get('Content-Type', '').split(';', 1)[0].strip().lower()
         except (urllib3.exceptions.HTTPError, OSError) as exc:
@@ -289,7 +293,8 @@ def _html_text(body):
     text = root.get_text('\n', strip=True)
     lowered = text.lower()
     if not text or (len(text) < 500 and any(value in lowered for value in (
-            'enable javascript', 'javascript is required', 'please turn javascript on'))):
+            'enable javascript', 'javascript is required', 'please turn javascript on'))
+            and not blocked_source_reason({'content_type': 'text/html', 'title': title, 'text': text})):
         raise SourceUnavailable('The webpage has no readable source text; it may require JavaScript.')
     return title, text, [{'start': 0, 'end': len(text), 'location': 'Webpage text'}]
 
@@ -312,6 +317,37 @@ def _html_links(body, base_url):
         seen.add(url)
         links.append({'url': url, 'title': element.get_text(' ', strip=True) or url})
     return links
+
+
+def blocked_source_reason(value):
+    """Recognize access interstitials, including old cached HTML, not articles about them.
+
+    Require both a gate-like page title and instructions addressed to the visitor.
+    Ordinary source text mentioning CAPTCHA/access restrictions is not sufficient.
+    """
+    if value.get('content_type') not in {'text/html', 'application/xhtml+xml'}:
+        return None
+    title = ' '.join((value.get('title') or '').casefold().split())
+    text = ' '.join((value.get('text') or '').casefold().split())
+    gate = re.search(r'(?:^|::\s*|[|\-]\s*)(?:request access|access denied|just a moment[.!…]*|'
+                     r'attention required[!]*|verify (?:that )?you are human|security check|'
+                     r'robot check)(?:\s*[|:\-].*)?$', title)
+    instruction = any(phrase in text for phrase in (
+        'complete the captcha', 'verify you are human', 'verify that you are human',
+        'checking your browser', 'your request has been flagged', 'access to this page has been denied',
+        'you do not have permission to access', "you don't have permission to access",
+        'enable javascript and cookies to continue', 'confirm you are not a robot'))
+    if gate and instruction:
+        return 'The source returned an access challenge or access-denied page, not the requested source text.'
+    return None
+
+
+def reject_blocked_source(value):
+    reason = blocked_source_reason(value)
+    if reason is None:
+        return value
+    return {**value, 'status': 'unavailable', 'error_code': 'source_blocked',
+            'error': reason, 'text': '', 'blocks': [], 'links': [], 'extraction_complete': False}
 
 
 def _pdf_text(body, check_execution=None):
@@ -461,10 +497,14 @@ def fetch_source(source, opinion_id=None, *, check_execution=None):
         else:
             raise SourceUnavailable('The source is not readable HTML, PDF or plain text.')
         _check(check_execution)
-        return {'status': 'read', 'text': text, 'blocks': blocks, 'url': url,
+        return reject_blocked_source({'status': 'read', 'text': text, 'blocks': blocks, 'url': url,
                 'requested_url': source.get('url'), 'title': title, 'content_type': content_type,
                 'sha256': hashlib.sha256(body).hexdigest(), 'retrieved_at': _now(),
-                'opinion_id': None, 'opinion_type': None, 'error': None, **extra}
+                'opinion_id': None, 'opinion_type': None, 'error': None, **extra})
     except (requests.RequestException, SourceUnavailable, TypeError) as exc:
-        return {'status': 'unavailable', 'text': '', 'blocks': [], 'url': source.get('url'),
-                'title': source.get('title') or '', 'retrieved_at': _now(), 'error': str(exc)}
+        status = getattr(exc, 'http_status', None)
+        return {'status': 'unavailable', 'text': '', 'blocks': [],
+                'requested_url': source.get('url'), 'url': getattr(exc, 'url', None) or source.get('url'),
+                'title': source.get('title') or '', 'retrieved_at': _now(), 'error': str(exc),
+                'http_status': status,
+                'error_code': 'source_blocked' if status in {401, 403} else 'source_unavailable'}

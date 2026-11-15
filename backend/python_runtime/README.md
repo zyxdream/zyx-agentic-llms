@@ -66,9 +66,13 @@ The application supplies these globals:
   not become user downloads. Reload saved inputs/artifacts in later calls;
   Python variables do not persist between executions.
 - `result` (optional): assign a JSON-serializable value for structured results.
+  Nested Python date/datetime values are normalized to ISO strings, preserving
+  timezone offsets. Other unsupported objects and NaN/infinity remain errors;
+  arbitrary values are not silently converted to strings.
   Convert DataFrames with `to_dict(orient='records')`, or write a CSV for larger
   results. `print()` is also available for observations.
 - `recalculate_workbook`: helper for explicit workbook formula evaluation.
+- `check_workbook`: helper for nominated input/output checks on disposable copies.
 
 For formula calculation only when needed:
 
@@ -81,12 +85,73 @@ workbook = load_workbook(working_path, data_only=True)
 result = {"total": workbook["Summary"]["B4"].value}
 ```
 
+`recalculate_workbook` returns a `pathlib.Path`, not a structured JSON result.
+Store it in a local variable; use `str(path)` if including it in `result`.
+`check_workbook` returns an ordinary result dictionary. Every Python call starts
+fresh, so import the modules used in that script again.
+A default recalculation destination is in scratch and is not collected as a
+download. For a deliverable, supply a different `output_dir` filename explicitly.
+After openpyxl saves edits to a formula workbook, recalculate that final formatted
+copy because saving discards formula caches. Deliver the file ID belonging to the
+actual recalculated output, rather than its input or a scratch inspection copy.
+
 `recalculate_workbook` creates a new working copy, evaluates its workbook
 formulas with LibreOffice, and returns that copy's path. Formula text and original
 saved values remain in the uploaded source. LibreOffice compatibility differs
 from Excel; inspect error cells and report limitations for affected results.
 Workbooks with external workbook dependencies cannot be recalculated without
 those dependencies. Formula error cells are also reported in execution stderr.
+
+### Generated workbook checks and text fitting
+
+Keep each editable input authoritative and derive related outputs with formulas.
+Preserve unchanged relationships during revisions. Identify fixed assumptions
+explicitly; a displayed date/rate must not imply it drives a disconnected output.
+For date-dependent calculations, derive elapsed periods from the displayed dates
+unless the user explicitly requests a fixed period. Label a metadata-only date in
+a fixed-period snapshot and explain its refresh requirements. Test the primary
+drivers relevant to the assignment, rather than only one convenient input.
+Choose a small representative set of relevant changes and independent expected
+results from the user's rules, including outputs that should remain unchanged:
+
+```python
+checks = check_workbook(final_path, [
+    {"changes": {"Inputs!B2": 12}, "expected": {"Summary!C4": 24}},
+])
+result = checks
+```
+
+References use `Sheet!A1` (quoted sheet names are accepted). Each case has `changes`
+and a nonempty `expected` dictionary. An empty `changes` dictionary checks the
+current outputs. Changes cannot replace formulas or introduce formulas. Each case
+starts from the source, recalculates an isolated copy, compares expected cells
+with absolute numeric tolerance `1e-8` by default, and reports Excel error cells.
+The returned `passed` flag covers only those checks. Failed business comparisons
+are findings, not Python exceptions; invalid check arguments remain errors.
+The helper never infers business rules, fixes formulas, or edits the source.
+Resolve failed checks or disclose their limits before publishing a deliverable.
+
+For selected heading, summary, or note ranges that need text fitting:
+
+```python
+final_path = recalculate_workbook(
+    scratch_dir / "draft.xlsx", output_dir / "final.xlsx",
+    fit_text_ranges={"Summary": ["A1:D1", "A20:D23"]},
+)
+```
+
+This opt-in finishing step wraps plain-text cells and increases insufficient row
+heights at the existing column widths. A temporary measurement cell handles
+merged text; no scratch sheet is exported. It does not merge cells, delete
+columns, restyle the workbook, or alter values/formulas. Existing larger row
+heights are retained. Rich text, rotated text, and differences between Calc and
+Excel can require visual review. Inspect the final recalculated workbook, not an
+intermediate file, and deliver its exact saved file ID. Avoid unnecessary repeated
+calculated views while retaining the detail the assignment requires.
+
+Rebuild this project's analysis image after changing runtime code. These helpers
+run inside the existing isolated container; they add no agent tool, reviewer
+model call, database schema, or separate workflow.
 
 The host retains submitted code, complete stdout/stderr logs, and result data in
 the chosen attempt directory. Tool responses use explicitly marked previews;

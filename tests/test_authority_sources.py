@@ -354,6 +354,41 @@ def test_javascript_shell_is_not_reported_as_read_source(public_web):
     assert result['status'] == 'unavailable' and 'JavaScript' in result['error']
 
 
+@pytest.mark.parametrize('title,text', [
+    ('Federal Register :: Request Access', 'Your request has been flagged as potentially automated. Please complete the CAPTCHA.'),
+    ('Just a moment...', 'Checking your browser. Enable JavaScript and cookies to continue.'),
+    ('Access Denied', 'You do not have permission to access this page.'),
+])
+def test_access_interstitial_is_not_source_text(public_web, title, text):
+    queue, _, _ = public_web
+    queue.extend([Response(status=302, headers={'Location': 'https://gate.example/challenge'}),
+                  Response(f'<html><title>{title}</title><body>{text}</body></html>'.encode(),
+                           headers={'Content-Type': 'text/html'})])
+    result = sources.fetch_source({'type': 'web', 'url': 'https://official.example/law'})
+    assert result['status'] == 'unavailable' and result['error_code'] == 'source_blocked'
+    assert result['text'] == '' and result['blocks'] == [] and not result['extraction_complete']
+    assert result['requested_url'] == 'https://official.example/law'
+    assert result['url'] == 'https://gate.example/challenge' and result['title'] == title
+    assert result['retrieved_at']
+
+
+def test_article_about_captcha_or_access_restrictions_remains_readable(public_web):
+    public_web[0].append(Response(b'<html><title>Research on access controls</title><body>'
+        b'<h1>Access Denied</h1><p>Some websites ask visitors to complete the CAPTCHA. '
+        b'This article explains those restrictions and their consequences.</p></body></html>',
+        headers={'Content-Type': 'text/html'}))
+    result = sources.fetch_source({'type': 'web', 'url': 'https://official.example/article'})
+    assert result['status'] == 'read' and 'This article explains' in result['text']
+
+
+def test_http_access_failure_preserves_status_and_final_url(public_web):
+    public_web[0].extend([Response(status=302, headers={'Location': '/restricted'}), Response(status=403)])
+    result = sources.fetch_source({'type': 'web', 'url': 'https://official.example/law'})
+    assert result['http_status'] == 403 and result['error_code'] == 'source_blocked'
+    assert result['requested_url'] == 'https://official.example/law'
+    assert result['url'] == 'https://official.example/restricted'
+
+
 def _pdf(*page_texts):
     import fitz
     with fitz.open() as document:

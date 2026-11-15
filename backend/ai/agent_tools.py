@@ -53,7 +53,7 @@ class SourceRange(Arguments):
 
 class Read(Arguments):
     artifact_id: str | None = Field(description='Saved operation-result artifact_id from this assignment, explicitly selected saved legal research/source/linked assessment from this chat, or working_draft/current_draft. working_draft resolves to the latest successful candidate; current_draft remains the initial editor snapshot. To read an uploaded document, use null here and supply ranges with its file_id. A prepared_artifact_id is a preparation version, not a readable saved material.')
-    ranges: list[SourceRange] = Field(description='Original character ranges; [] when reading an artifact.')
+    ranges: list[SourceRange] = Field(description='Original character ranges; must be nonempty when artifact_id=null. Use [] with an explicit artifact_id, such as working_draft. Never submit artifact_id=null with ranges=[].')
     start: int = Field(ge=0, description='Artifact character offset; use 0 for source ranges.')
     end: int | None = Field(description='Artifact end offset; null reads through the end.')
 
@@ -123,7 +123,17 @@ class PythonRun(Arguments):
         'Do not pass an already-decoded dict or list to open(), json.load(), or json.loads(). '
         'For a saved generated workbook, use import pandas as pd; df = pd.read_excel(input_artifacts[workbook_id]). '
         'Use output_dir for requested CSV/XLSX exports, scratch_dir for temporary work, and assign a JSON-serializable result for structured findings. '
-        'pandas, numpy, openpyxl, and recalculate_workbook are available. Each call starts fresh.'))
+        'Date/datetime result values are serialized as ISO strings; unsupported objects still fail. '
+        'pandas, numpy, openpyxl, recalculate_workbook and check_workbook are available. '
+        'recalculate_workbook(path, destination=output_dir/"final.xlsx", fit_text_ranges={sheet_name: [range_name]}) '
+        'returns a pathlib.Path to the recalculated copy, not a JSON result; use a local variable and str(path) if reporting it. '
+        'Without destination the copy stays in scratch and is NOT downloadable. Only files saved in output_dir become file IDs. '
+        'After saving edits to an XLSX with formulas, recalculate to a different output_dir filename before delivery: openpyxl saves discard cached values. '
+        'Use fit_text_ranges for wrapped headings, summaries and notes before delivery: fixed row heights can clip after conversion. '
+        'This fits only selected text at existing widths, without changing values or formulas. '
+        'check_workbook(path, checks=[{"changes": {"Inputs!B2": 12}, "expected": {"Summary!C4": 24}}]) '
+        'tests nominated input/output relationships on disposable copies; choose actual cells and independently expected results. '
+        'Each call starts fresh.'))
     file_ids: list[str] = Field(description='Original file IDs selected from the document catalogue; XLSX/CSV originals and extracted text for other documents. Only these files enter the runner.')
     artifact_ids: list[str] = Field(description='Saved result or derived-file artifact IDs from this assignment to reload; not prepared_artifact_id values.')
 
@@ -153,8 +163,8 @@ class SearchLegalSources(Arguments):
 
 
 class ReadAuthority(Arguments):
-    research_id: str = Field(description='The authority_research snapshot to extend.')
-    source_id: str = Field(description='Source ID returned by legal lookup/search, not an invented URL or a local path.')
+    research_id: str = Field(description='Copy research_id from the same returned source reference as source_id. Searches and reads return new immutable snapshots; do not pair a new source with an earlier snapshot.')
+    source_id: str = Field(description='Copy source_id (also displayed as id) together with its research_id from the returned source/citation/link reference. Not an invented URL or a local path.')
     opinion_id: int | None = Field(description='Specific available CourtListener opinion ID; null for a webpage/PDF or to obtain opinion choices.')
     query: str | None = Field(description='Optional phrase to locate, ignoring capitalization, whitespace/line wrapping, typographic quotes/dashes and soft hyphens. Words, order and numbers must match; null reads a page of original text.')
     start: int = Field(ge=0, description='Zero-based character offset in the retrieved source, initially 0. For another occurrence of the same query use match_end (exclusive). For the next chunk use next_start with query=null; stop when next_start=null. A different query may require restarting at 0; earlier searches do not cover that phrase. These are not uploaded-document positions.')

@@ -293,6 +293,71 @@ def test_real_queue_python_file_selection_publication_and_download(replay):
     downloaded.close()
 
 
+@pytest.mark.skipif(os.getenv('ZYX_PYTHON_LIVE')!='1',reason='Set ZYX_PYTHON_LIVE=1 for real XLSX verification.')
+def test_real_queue_rejects_uncached_output_then_delivers_exact_recalculated_file(replay):
+    from openpyxl import load_workbook
+
+    def select_uncached(req):
+        file = outputs(req)[-1]['files'][0]
+        replay.uncached_file_id = file['id']
+        return ('complete_task', {'response': 'Workbook ready.', 'candidate_id': None,
+                                 'output_file_ids': [file['id']]})
+
+    def repair(req):
+        from backend.util import workspace_store
+        error = outputs(req)[-1]
+        assert error['error'] and 'missing formula result' in error['message']
+        assert replay.uncached_file_id in error['message']
+        # The API can show the pending prompt; there must be no published turn.
+        assert workspace_store.turn_for_workflow(replay.run_id) is None
+        return ('python_run', {'code': "source=next(iter(input_artifacts.values()))\n"
+                    "final=recalculate_workbook(source, output_dir/'schedule.xlsx')\n"
+                    "result={'recalculated': True}",
+                    'file_ids': [], 'artifact_ids': [replay.uncached_file_id]})
+
+    def select_final(req):
+        result = outputs(req)[-1]
+        assert not result['error'], result
+        return ('complete_task', {'response': 'The recalculated workbook is ready.',
+            'candidate_id': None, 'output_file_ids': [result['files'][0]['id']]})
+
+    replay.actions = [('python_run', {
+        'code': "from openpyxl import Workbook\nw=Workbook()\nw.active['A1']=100\n"
+                "w.active['B1']='=A1*2'\nw.save(output_dir/'schedule.xlsx')\nresult={'created': True}",
+        'file_ids': [], 'artifact_ids': []}), select_uncached, repair, select_final]
+    replay.submit('Create and deliver a workbook calculating twice an editable input of 100.')
+    replay.wait('completed', timeout=60)
+    history = replay.history()['history']
+    assert len(history) == 1
+    file, = history[0]['metadata']['output_files']
+    assert file['filename'] == 'schedule.xlsx' and file['file_id'] != replay.uncached_file_id
+    with replay.app.app_context():
+        completed = AgentStep.query.filter_by(run_id=replay.run_id, name='complete_task').order_by(AgentStep.sequence).all()
+        assert len(completed) == 2 and json.loads(completed[0].result_json)['error']
+        report, = json.loads(completed[1].result_json)['file_verification']
+        assert report['file_id'] == file['file_id'] and report['status'] == 'passed'
+        assert report['counts'] == {'sheets': 1, 'formula_cells': 1,
+                                    'missing_formula_results': 0, 'error_cells': 0}
+    url = f"/api/workspace/runs/{replay.run_id}/artifacts/{file['execution_id']}/files/{file['file_id']}"
+    downloaded = replay.client.get(url)
+    assert downloaded.status_code == 200
+    body = downloaded.data
+    downloaded.close()
+    assert hashlib.sha256(body).hexdigest() == report['sha256']
+    book = load_workbook(io.BytesIO(body), data_only=True, read_only=True)
+    try:
+        assert book.active['B1'].value == 200
+    finally:
+        book.close()
+    book = load_workbook(io.BytesIO(body), data_only=False, read_only=True)
+    try:
+        assert book.active['B1'].value == '=A1*2'
+    finally:
+        book.close()
+    assert replay.history()['history'][0]['metadata']['output_files'] == [file]
+    assert replay.progress()['value']['output_files'] == [file]
+
+
 def test_real_queue_first_uploaded_edit_uses_shared_engine_then_controller_reads(replay,monkeypatch):
     raw=b'Payment requires acceptance. Keep this sentence unchanged.'
     group=replay.client.post('/api/workspace/upload-groups',json={'scope':'chat','scopeId':replay.chat,'selectionId':'shared-first-edit',

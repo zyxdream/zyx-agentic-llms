@@ -90,6 +90,59 @@ def read_args(research_id, source_id, *, opinion_id=None, query=None, start=0):
     return SimpleNamespace(research_id=research_id, source_id=source_id, opinion_id=opinion_id, query=query, start=start)
 
 
+def test_search_citation_and_link_references_carry_their_own_snapshot(ops, monkeypatch):
+    initial = research.lookup(ops, lookup_args('Research a public rule.'))
+    url = 'https://official.example/rule'
+    monkeypatch.setattr(sources, 'search_sources', lambda *a, **kw: {
+        'results': [web_result(url)], 'generated_summary': 'A relevant research finding.',
+        'citations': [{'url': url, 'title': 'Rule'}], 'error': None})
+    found = research.search(ops, SimpleNamespace(research_id=initial['research_id'],
+        authority_ids=[], query='Find the rule', provider='web'))
+    ref = found['sources'][0]
+    assert ref['research_id'] == found['citations'][0]['research_id'] == found['research_id']
+    assert ref['source_id'] == ref['id'] == found['citations'][0]['source_id']
+    with pytest.raises(ValueError, match='Source ID must come from'):
+        research.read(ops, read_args(initial['research_id'], ref['source_id']))
+    monkeypatch.setattr(sources, 'fetch_source', lambda source, **kw: {
+        'status': 'read', 'text': 'Readable rule.', 'content_type': 'text/html',
+        'title': 'Rule', 'links': [{'url': 'https://official.example/related', 'title': 'Related rule'}]})
+    passage = research.read(ops, read_args(ref['research_id'], ref['source_id']))
+    linked = passage['links'][0]
+    assert linked['research_id'] == passage['research_id']
+    assert linked['source_id'] == linked['id']
+    related = research.read(ops, read_args(linked['research_id'], linked['source_id']))
+    assert related['text'] == 'Readable rule.'
+
+
+@pytest.mark.parametrize('cached', [False, True], ids=['new-fetch', 'historical-cache'])
+def test_blocked_source_never_creates_a_passage_or_marks_a_read(ops, monkeypatch, cached):
+    uid, source_id = add_web_source(ops, monkeypatch)
+    challenge = {'status': 'read', 'content_type': 'text/html',
+        'title': 'Archive :: Request Access', 'text': 'Your request has been flagged. Please complete the CAPTCHA.',
+        'requested_url': 'https://official.example/rule', 'url': 'https://gate.example/challenge',
+        'retrieved_at': '2026-11-15T12:00:00Z', 'extraction_complete': True}
+    original_cache = None
+    if cached:
+        cache_id = ops.save(research.SOURCE_KIND, {**challenge, 'kind': research.SOURCE_KIND, 'role': 'source_cache'})
+        original_cache = db.session.get(AgentArtifact, cache_id).content_json
+        previous = record(uid)
+        previous['sources'][0]['cached_sources'] = [{'requested_opinion_id': None, 'artifact_id': cache_id}]
+        uid = research._persist(ops, previous, uid)
+    else:
+        monkeypatch.setattr(sources, 'fetch_source', lambda *a, **kw: challenge)
+    before = AgentArtifact.query.filter_by(kind=research.SOURCE_KIND).count()
+    result = research.read(ops, read_args(uid, source_id, query='important rule'))
+    assert result['error'] and result['error_code'] == 'source_blocked'
+    assert result['match_start'] is None and result['match_end'] is None and result['next_start'] is None
+    assert 'passage_artifact_id' not in result and 'match_found' not in result
+    assert result['url'] == challenge['url'] and result['requested_url'] == challenge['requested_url']
+    saved = record(result['research_id'])
+    assert not saved['sources'][0].get('reads') and not saved['sources'][0]['passage_artifact_ids']
+    assert AgentArtifact.query.filter_by(kind=research.SOURCE_KIND).count() == before
+    if cached:
+        assert db.session.get(AgentArtifact, cache_id).content_json == original_cache
+
+
 def anchored_mentions(mentions, window):
     """Supply explicit source anchors for mocked model responses."""
     result = []
@@ -467,7 +520,11 @@ def test_search_preserves_findings_and_readable_citation_outside_source_preview(
                 'citations': [{**citation, 'source_id': cited_source['id']}],
                 'retrieved_at': retrieved_at, 'limitations': limitations}
     for key, value in expected.items():
-        assert result[key] == saved['queries'][-1][key] == value
+        assert saved['queries'][-1][key] == value
+        if key == 'citations':
+            assert result[key] == [{**item, 'research_id': result['research_id']} for item in value]
+        else:
+            assert result[key] == value
     assert len(calls) == 1
     assert result['source_count'] == 14 and result['sources_truncated']
     assert urls[12] not in {item['url'] for item in result['sources']}

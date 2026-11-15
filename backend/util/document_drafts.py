@@ -115,6 +115,9 @@ DRAFT_INSTRUCTIONS = (
     'and generated summaries alone do not establish a holding. Attribute claims from user documents '
     'without treating those claims as verified. Link identified CourtListener cases with their supplied '
     'CaseViewer URLs; use observed official/source URLs for other authorities. Do not invent URLs. '
+    'For generated file deliverables, refer only to their supplied display filenames. '
+    'The application supplies download controls separately; never invent sandbox:/, local filesystem, '
+    'or download links in the document. '
     'Set update_court_format only for an explicit user request to change an existing court or page layout. '
     + MATERIAL_USE_GUIDANCE
 )

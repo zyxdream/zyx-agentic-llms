@@ -229,6 +229,14 @@ def _observation(uid, record, **extra):
         'occurrences': len(item.get('occurrences', [])), 'candidates': len(item.get('candidates', [])),
         'source_ids': item.get('source_ids', []), 'checking': item.get('checking', {})}
         for item in record['authorities']]
+    # References must travel with the immutable snapshot that contains them.
+    # Keep existing IDs and top-level fields for saved-call compatibility.
+    for name in ('sources', 'citations', 'links'):
+        if name in extra:
+            extra[name] = [{**item, 'research_id': uid,
+                            **({'source_id': item['id']} if name in {'sources', 'links'} else {})}
+                           if isinstance(item, dict) and (name != 'citations' or 'source_id' in item)
+                           else item for item in extra[name]]
     return {'research_id': uid, 'artifact_id': uid, 'kind': RESEARCH_KIND,
         'discovery_mode': record.get('discovery_mode'),
         'authority_count': len(index), 'authorities': index,
@@ -801,12 +809,19 @@ def read(ops, args):
             uid = _persist(ops, record, args.research_id)
             return _observation(uid, record, **match_positions, source_id=source['id'], opinions=source['opinions'],
                 message='Available opinions saved. Choose an opinion ID to read; no opinion text was read.')
-        if fetched.get('status') != 'read' or not isinstance(fetched.get('text'), str):
-            source.setdefault('read_errors', []).append({'error': fetched.get('error') or 'Source text is unavailable.',
-                'opinion_id': opinion, 'retrieved_at': fetched.get('retrieved_at')})
-            uid = _persist(ops, record, args.research_id)
-            return _observation(uid, record, **match_positions, source_id=source['id'], error=True,
-                read_error=fetched.get('error') or 'Source text is unavailable.')
+    # Recheck cached HTML too; old immutable challenge artifacts remain intact.
+    fetched = authority_sources.reject_blocked_source(fetched)
+    if fetched.get('status') != 'read' or not isinstance(fetched.get('text'), str):
+        details = {key: fetched.get(key) for key in (
+            'error_code', 'http_status', 'requested_url', 'url', 'title', 'retrieved_at')}
+        source.setdefault('read_errors', []).append({**details,
+            'error': fetched.get('error') or 'Source text is unavailable.', 'opinion_id': opinion})
+        uid = _persist(ops, record, args.research_id)
+        return _observation(uid, record, **match_positions, **details, source_id=source['id'], error=True,
+            next_start=None, read_error=fetched.get('error') or 'Source text is unavailable.',
+            message='Source text was not read. Use another relevant readable source or disclose the coverage gap; '
+                    'do not keep searching phrases in an access-challenge page.')
+    if not cache:
         fetched = {**fetched, 'kind': SOURCE_KIND, 'role': 'source_cache', 'source_id': source['id']}
         cache_id = ops.save(SOURCE_KIND, fetched)
         caches.append({'requested_opinion_id': opinion, 'artifact_id': cache_id,
