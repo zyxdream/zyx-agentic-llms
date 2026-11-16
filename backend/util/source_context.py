@@ -184,7 +184,7 @@ def document_heading(doc, label):
     return heading
 
 
-def format_ranges(manifest, spans, label):
+def format_ranges(manifest, spans, label, *, filename=None):
     text, blocks = manifest['text'], manifest['blocks']
     parts = []
     for span in merge_ranges(text, spans):
@@ -199,7 +199,10 @@ def format_ranges(manifest, spans, label):
                         ('paragraph', b['paragraph']) if b.get('paragraph') is not None else ('block', b['id']))
             position = max(span['start'], b['start'])
             if location != previous and location[1] is not None:
-                parts.extend([text[cursor:position], f'\n[{label} {location[0]} {location[1]}]\n'])
+                header = (f'\n--- SOURCE EXCERPT ---\nFILE: {filename or label}\n'
+                          f'PDF PAGE: {location[1]}\n\n' if location[0] == 'page' else
+                          f'\n[{label} {location[0]} {location[1]}]\n')
+                parts.extend([text[cursor:position], header])
                 cursor, previous = position, location
         parts.append(text[cursor:span['end']])
         parts.append('\n')
@@ -207,5 +210,6 @@ def format_ranges(manifest, spans, label):
 
 
 def format_document(doc, spans, label):
-    """Compact labels; original text and separators are retained exactly once."""
-    return document_heading(doc, label) + format_ranges(doc['manifest'], spans, label)
+    """Label each PDF excerpt explicitly without changing canonical text/offsets."""
+    return document_heading(doc, label) + format_ranges(
+        doc['manifest'], spans, label, filename=doc['filename'])

@@ -105,6 +105,16 @@ MATERIAL_USE_GUIDANCE = (
 )
 
 
+SOURCE_LOCATION_GUIDANCE = (
+    'Use page and paragraph locations supported by the supplied source passages. '
+    'PDF PAGE is the page position in the PDF, starting at 1; printed page numbers may differ. '
+    'Keep these numbering systems distinct. Older source labels remain valid evidence. '
+    'Do not infer page offsets or invent page ranges. If a pinpoint cannot be confirmed, '
+    'use a supported paragraph or section reference, or cite the filename without a pinpoint. '
+    'A citation copied from an earlier generated draft is not independently verified. '
+)
+
+
 DRAFT_INSTRUCTIONS = (
     'Include its visible title or heading in the Markdown when appropriate; the separate title is document metadata. '
     'Use headings, paragraphs, lists, tables, quotations and fenced code as the document requires. '
@@ -119,7 +129,7 @@ DRAFT_INSTRUCTIONS = (
     'The application supplies download controls separately; never invent sandbox:/, local filesystem, '
     'or download links in the document. '
     'Set update_court_format only for an explicit user request to change an existing court or page layout. '
-    + MATERIAL_USE_GUIDANCE
+    + MATERIAL_USE_GUIDANCE + SOURCE_LOCATION_GUIDANCE
 )
 REVISION_INSTRUCTIONS = (
     'Revise the current Workspace document. Default to patch mode for focused changes, including '
