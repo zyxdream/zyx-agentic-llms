@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from backend.domains.legal.instructions import COURT_ATTRIBUTION_GUIDANCE
+
 
 class MarkdownDraftResult(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -129,7 +131,7 @@ DRAFT_INSTRUCTIONS = (
     'The application supplies download controls separately; never invent sandbox:/, local filesystem, '
     'or download links in the document. '
     'Set update_court_format only for an explicit user request to change an existing court or page layout. '
-    + MATERIAL_USE_GUIDANCE + SOURCE_LOCATION_GUIDANCE
+    + MATERIAL_USE_GUIDANCE + SOURCE_LOCATION_GUIDANCE + COURT_ATTRIBUTION_GUIDANCE
 )
 REVISION_INSTRUCTIONS = (
     'Revise the current Workspace document. Default to patch mode for focused changes, including '

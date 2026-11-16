@@ -40,6 +40,15 @@ SOURCE_KIND = 'authority_source'
 EXTRACTION_CHARACTERS = 20_000
 CONTEXT_CHARACTERS = 1_500
 CHUNK_PLAN_VERSION = 2
+CASE_IDENTIFICATION_FIELDS = ('cluster_id', 'case_name', 'citations', 'court', 'date',
+                              'case_header', 'case_header_source')
+
+
+def _source_reference(source):
+    """Case identity and observed conflicts, separate from cached bodies/passages."""
+    fields = ('id', 'provider', 'url', 'viewer_url', 'title', 'snippet', 'opinions',
+              'authority_ids', 'observations', *CASE_IDENTIFICATION_FIELDS)
+    return {key: copy.deepcopy(source[key]) for key in fields if key in source}
 
 
 class Mention(BaseModel):
@@ -258,8 +267,8 @@ def _compact_lookup_findings(raw, error):
         summary['candidates'] = []
         for cluster in outcome.get('clusters') or []:
             source = _cluster_source(cluster)
-            summary['candidates'].append({key: source[key] for key in (
-                'cluster_id', 'case_name', 'court', 'date', 'citations')})
+            summary['candidates'].append({key: source[key] for key in
+                CASE_IDENTIFICATION_FIELDS if key in source})
         results.append(summary)
     return {'results': results, 'error': error}
 
@@ -500,9 +509,20 @@ def _source(ops, record, incoming, authority_ids):
         found = value
     else:
         # Preserve conflicts in observations instead of overwriting old facts.
-        observation = {key: value[key] for key in ('provider', 'url', 'title', 'case_name', 'citations', 'court', 'date') if value.get(key) is not None}
+        fields = ('provider', 'url', 'title', *CASE_IDENTIFICATION_FIELDS)
+        observation = {key: copy.deepcopy(value[key]) for key in fields if value.get(key) is not None}
         if observation and observation not in found.setdefault('observations', []):
             found['observations'].append(observation)
+        for field in fields:
+            if field not in {'case_header', 'case_header_source'} and not found.get(field) and value.get(field):
+                found[field] = copy.deepcopy(value[field])
+        # Header text and its provenance must refer to the same observation.
+        if not found.get('case_header') and value.get('case_header'):
+            found['case_header'] = value['case_header']
+            found['case_header_source'] = copy.deepcopy(value.get('case_header_source'))
+        elif (found.get('case_header') == value.get('case_header')
+                and not found.get('case_header_source') and value.get('case_header_source')):
+            found['case_header_source'] = copy.deepcopy(value['case_header_source'])
         for field in ('opinions',):
             if value.get(field):
                 found[field] = list({service.encode(item): item for item in found.get(field, []) + value[field]}.values())
@@ -511,6 +531,7 @@ def _source(ops, record, incoming, authority_ids):
 
 
 def _cluster_source(cluster):
+    from backend.domains.legal.authority_sources import API_BASE, case_header_metadata
     citations = []
     for citation in cluster.get('citations') or []:
         if isinstance(citation, str):
@@ -524,8 +545,9 @@ def _cluster_source(cluster):
         'url': url or f'https://www.courtlistener.com/opinion/{cluster.get("id")}/',
         'title': cluster.get('case_name') or cluster.get('case_name_full') or 'CourtListener case',
         'case_name': cluster.get('case_name') or cluster.get('case_name_full'),
-        'citations': citations, 'court': cluster.get('court'), 'date': cluster.get('date_filed'),
-        'opinions': [{'url': value} if isinstance(value, str) else value for value in cluster.get('sub_opinions') or []]}
+        'citations': citations, 'court': cluster.get('court') or cluster.get('court_id'), 'date': cluster.get('date_filed'),
+        'opinions': [{'url': value} if isinstance(value, str) else value for value in cluster.get('sub_opinions') or []],
+        **case_header_metadata(cluster, f'{API_BASE}citation-lookup/')}
 
 
 def _record_lookup(ops, record, meta, body, blocks, chunk_start, chunk, raw):
@@ -549,7 +571,7 @@ def _record_lookup(ops, record, meta, body, blocks, chunk_start, chunk, raw):
             if source is None:
                 continue
             candidate = {'source_id': source['id'], 'provider': 'courtlistener', 'status': citation.get('status'),
-                **{key: source.get(key) for key in ('cluster_id', 'case_name', 'citations', 'court', 'date', 'url', 'viewer_url')}}
+                **{key: copy.deepcopy(source[key]) for key in (*CASE_IDENTIFICATION_FIELDS, 'url', 'viewer_url') if key in source}}
             if candidate not in authority['candidates']:
                 authority['candidates'].append(candidate)
             if source['id'] not in authority['source_ids']:
@@ -687,7 +709,8 @@ def lookup(ops, args):
     uid = _persist(ops, record, parent)
     provider_failures = [item for item in record['coverage']['failed_chunks'] if item['stage'] == 'courtlistener']
     provider_outcomes = [outcome for item in record['authorities'] for outcome in item.get('provider_outcomes', [])]
-    return _observation(uid, record, error=bool(provider_failures and not any(
+    return _observation(uid, record, sources=[_source_reference(source) for source in record['sources']
+        if source.get('type') == 'courtlistener'], error=bool(provider_failures and not any(
         outcome.get('status') in (200, 300, 400, 404) for outcome in provider_outcomes)))
 
 
@@ -720,7 +743,7 @@ def search(ops, args):
             if source['id'] not in authority['source_ids']:
                 authority['source_ids'].append(source['id'])
             candidate = {'source_id': source['id'], 'provider': args.provider,
-                         **{key: source.get(key) for key in ('cluster_id', 'case_name', 'title', 'citations', 'court', 'date', 'url', 'viewer_url')}}
+                         **{key: copy.deepcopy(source[key]) for key in (*CASE_IDENTIFICATION_FIELDS, 'title', 'url', 'viewer_url') if key in source}}
             if candidate not in authority['candidates']:
                 authority['candidates'].append(candidate)
     sources_by_url = {item['url']: item for item in found if item.get('url')}
@@ -735,7 +758,7 @@ def search(ops, args):
         'authority_ids': args.authority_ids, 'source_ids': [item['id'] for item in found],
         'error': result.get('error'), **copy.deepcopy(findings)})
     uid = _persist(ops, record, args.research_id)
-    previews = [{key: value[key] for key in ('id', 'provider', 'url', 'viewer_url', 'title', 'snippet', 'cluster_id', 'case_name', 'opinions') if key in value} for value in found[:5]]
+    previews = [_source_reference(value) for value in found[:5]]
     return _observation(uid, record, **findings, sources=previews, source_count=len(found),
         sources_truncated=len(found) > 5, search_error=result.get('error'), error=bool(result.get('error')))
 
@@ -794,6 +817,8 @@ def read(ops, args):
         raise ValueError('Source ID must come from this research record.')
     _check(ops)
     match_positions = {'match_start': None, 'match_end': None}
+    identity = {key: copy.deepcopy(source[key]) for key in
+                (*CASE_IDENTIFICATION_FIELDS, 'viewer_url', 'observations') if key in source}
     opinion = args.opinion_id
     caches = source.setdefault('cached_sources', [])
     cache = next((value for value in caches if value.get('requested_opinion_id') == opinion
@@ -807,7 +832,7 @@ def read(ops, args):
         if fetched.get('status') == 'metadata':
             source['opinions'] = fetched.get('opinions') or []
             uid = _persist(ops, record, args.research_id)
-            return _observation(uid, record, **match_positions, source_id=source['id'], opinions=source['opinions'],
+            return _observation(uid, record, **match_positions, **identity, source_id=source['id'], opinions=source['opinions'],
                 message='Available opinions saved. Choose an opinion ID to read; no opinion text was read.')
     # Recheck cached HTML too; old immutable challenge artifacts remain intact.
     fetched = authority_sources.reject_blocked_source(fetched)
@@ -817,12 +842,12 @@ def read(ops, args):
         source.setdefault('read_errors', []).append({**details,
             'error': fetched.get('error') or 'Source text is unavailable.', 'opinion_id': opinion})
         uid = _persist(ops, record, args.research_id)
-        return _observation(uid, record, **match_positions, **details, source_id=source['id'], error=True,
+        return _observation(uid, record, **match_positions, **identity, **details, source_id=source['id'], error=True,
             next_start=None, read_error=fetched.get('error') or 'Source text is unavailable.',
             message='Source text was not read. Use another relevant readable source or disclose the coverage gap; '
                     'do not keep searching phrases in an access-challenge page.')
     if not cache:
-        fetched = {**fetched, 'kind': SOURCE_KIND, 'role': 'source_cache', 'source_id': source['id']}
+        fetched = {**fetched, **identity, 'kind': SOURCE_KIND, 'role': 'source_cache', 'source_id': source['id']}
         cache_id = ops.save(SOURCE_KIND, fetched)
         caches.append({'requested_opinion_id': opinion, 'artifact_id': cache_id,
                        'opinion_id': fetched.get('opinion_id')})
@@ -840,7 +865,7 @@ def read(ops, args):
         raise ValueError('Source text offset is outside the saved text.')
     if args.start == len(body):
         uid = _persist(ops, record, args.research_id)
-        return _observation(uid, record, **match_positions, source_id=source['id'], text='', start=args.start,
+        return _observation(uid, record, **match_positions, **identity, source_id=source['id'], text='', start=args.start,
             end=args.start, total_characters=len(body), next_start=None, end_of_source=True,
             message='There are no source characters at this offset; no passage was marked read.')
     lo = args.start
@@ -848,7 +873,7 @@ def read(ops, args):
         match = _find_source_phrase(body, args.query, args.start)
         if match is None:
             uid = _persist(ops, record, args.research_id)
-            return _observation(uid, record, **match_positions, source_id=source['id'], total_characters=len(body),
+            return _observation(uid, record, **match_positions, **identity, source_id=source['id'], total_characters=len(body),
                 query=args.query, match_found=False, message='The phrase was not found after allowing for capitalization, whitespace, quotes, dashes and soft hyphens. Other phrases or paginated reading remain available.')
         match_positions.update(match_start=match[0], match_end=match[1])
         lo = max(args.start, match[0] - 1000)
@@ -856,7 +881,7 @@ def read(ops, args):
     passage = {'kind': SOURCE_KIND, 'role': 'passage', 'source_id': source['id'], **match_positions,
         'research_id': args.research_id,
         'source_artifact_id': cache_id, 'text': body[lo:hi], 'url': fetched.get('url') or source.get('url'),
-        **{key: copy.deepcopy(source[key]) for key in ('viewer_url', 'cluster_id', 'case_name', 'citations') if key in source},
+        **identity,
         'title': fetched.get('title') or source.get('title'), 'start': lo, 'end': hi,
         'total_characters': len(body), 'next_start': hi if hi < len(body) else None,
         'locations': _passage_locations(fetched.get('blocks') or [], lo, hi),
@@ -883,10 +908,10 @@ def read(ops, args):
     uid = _persist(ops, record, args.research_id)
     # Give the controller the same passage-to-cache provenance supplied to analysis.
     # The cache identity does not extend the returned passage's reading scope.
-    return _observation(uid, record, **match_positions, source_id=source['id'], passage_artifact_id=passage_id,
+    return _observation(uid, record, **match_positions, **identity, source_id=source['id'], passage_artifact_id=passage_id,
         source_artifact_id=passage['source_artifact_id'],
         text=passage['text'], start=lo, end=hi, next_start=passage['next_start'],
-        **{key: passage[key] for key in ('url', 'viewer_url', 'cluster_id', 'case_name', 'citations') if key in passage},
+        url=passage['url'],
         total_characters=len(body), locations=passage['locations'], opinion_id=passage['opinion_id'],
         opinion_type=passage['opinion_type'], query=args.query, match_found=True,
         links=[{key: item[key] for key in ('id', 'url', 'title') if key in item} for item in discovered[:5]],

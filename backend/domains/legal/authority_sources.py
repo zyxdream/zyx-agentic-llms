@@ -154,6 +154,19 @@ def _opinion_metadata(value):
             'download_url': value.get('download_url')}
 
 
+def case_header_metadata(row, response_url):
+    """Retain an available provider header as evidence, without inferring a court."""
+    raw = row.get('headmatter')
+    if not isinstance(raw, str) or not raw.strip():
+        return {}
+    try:
+        _, header, _ = _html_text(raw)
+    except SourceUnavailable:
+        return {}
+    return {'case_header': header,
+            'case_header_source': {'url': response_url, 'field': 'headmatter'}}
+
+
 def _case_result(row):
     identifier = _identifier(row.get('cluster_id') or row.get('id'))
     absolute = row.get('absolute_url') or f'/opinion/{identifier}/'
@@ -171,7 +184,8 @@ def _case_result(row):
             'docket_number': row.get('docketNumber') or row.get('docket_number'),
             'citations': _citation_strings(row.get('citation') or row.get('citations')),
             'opinions': [value for value in opinions if value],
-            'snippet': row.get('snippet') or '', 'snippet_is_source_text': False}
+            'snippet': row.get('snippet') or '', 'snippet_is_source_text': False,
+            **case_header_metadata(row, f'{API_BASE}search/')}
 
 
 def search_sources(query, provider, *, model, reasoning_effort, check_execution=None):

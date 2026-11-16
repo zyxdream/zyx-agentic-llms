@@ -94,3 +94,26 @@ arguments. A fresh natural-request browser run completed in **39 seconds**,
 with **zero tool errors**, a **684-word** draft and a verified DOCX download.
 That model supplied one combined purpose itself; duplicate normalization was
 exercised by the recorded offline replay and operation-handoff checks.
+
+
+## CourtListener court information
+
+Citation lookup returns CourtListener case-identification sources directly, as well
+as retaining the complete saved research record. Existing court values are kept;
+an omitted court stays null. Available `headmatter` is preserved as readable
+`case_header`, with `case_header_source` recording the response URL and field.
+No court is inferred from that text by the backend and no additional docket/court
+requests or model calls are introduced. The controller can use an explicit court
+designation in the identified decision's header as evidence.
+
+The header and other identifying information accompany opinion choices, passages,
+and selected analysis/drafting/verification materials, separately from opinion
+text. Body offsets, matching, pagination and download-cache identities do not
+change. New snapshots can fill missing source information; existing values and
+conflicting provider observations are retained, and historical artifacts remain
+unchanged. Older artifacts without the optional header fields remain readable.
+
+Controller and helper guidance requires evidence for court assertions and treats
+uploaded parentheticals and prior generated statements as claims to check. Court
+identity does not establish quotation accuracy or support for a legal proposition;
+the controller still chooses subsequent source reads and substantive checks.
