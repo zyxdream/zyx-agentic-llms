@@ -624,6 +624,8 @@ def lookup(ops, args):
         # certify a different scope, mode, or structural-window implementation.
         coverage['completed_chunks'], coverage['failed_chunks'] = [], []
     coverage.update(plan, plan_id=plan_id, complete=False)
+    from backend.domains.legal import citation_review
+    review_scope_id = citation_review.start(ops, record, targets) if mode == 'audit' else None
     parent = _persist(ops, record, parent, checkpoint=True)
     for meta, body, blocks in targets:
         for window in _iter_lookup_windows(body, blocks, meta['start']):
@@ -662,7 +664,7 @@ def lookup(ops, args):
                     raise
                 failures.append({'stage': 'identification', 'error': str(exc)})
                 mentions = []
-            resolved = []
+            resolved, unlocated = [], []
             for mention in mentions:
                 if hasattr(mention, 'model_dump'):
                     mention = mention.model_dump()
@@ -672,6 +674,7 @@ def lookup(ops, args):
                         resolved.append(located)
                 except ValueError as exc:
                     failures.append({'stage': 'identification', 'error': str(exc)})
+                    unlocated.append(mention)
             seen_variants = set()
             for mention in sorted(resolved, key=lambda item: (item['start'], item['end'])):
                 citation = mention['citation_as_written']
@@ -693,6 +696,8 @@ def lookup(ops, args):
                         authority = matches[0]
                 authority = authority or _authority(record, mention.get('kind', 'other'), citation, mention.get('case_name'))
                 _save_occurrence(record, authority, meta, blocks, mention, mode)
+            if review_scope_id:
+                citation_review.record_window(record, review_scope_id, meta, window, raw, unlocated)
             record['coverage']['failed_chunks'] = [entry for entry in record['coverage']['failed_chunks'] if entry.get('chunk_key') != key]
             record['coverage']['failed_chunks'].extend({'chunk_key': key, 'target_id': meta['id'],
                 'start': meta['start'] + window['core_start'], 'end': meta['start'] + window['core_end'], **failure}
@@ -704,12 +709,15 @@ def lookup(ops, args):
             parent = _persist(ops, record, parent, checkpoint=True)
     record['coverage']['complete'] = not record['coverage']['failed_chunks'] and all(
         meta.get('extraction', {}).get('status') == 'complete' for meta, _, _ in targets)
+    if review_scope_id:
+        citation_review.finish(record, review_scope_id)
     record['operations'].append({'operation': 'lookup_authorities', 'purpose': args.purpose,
         **copy.deepcopy(plan)})
     uid = _persist(ops, record, parent)
     provider_failures = [item for item in record['coverage']['failed_chunks'] if item['stage'] == 'courtlistener']
     provider_outcomes = [outcome for item in record['authorities'] for outcome in item.get('provider_outcomes', [])]
-    return _observation(uid, record, sources=[_source_reference(source) for source in record['sources']
+    review = citation_review.for_run(ops.row) if review_scope_id else {}
+    return _observation(uid, record, **review, sources=[_source_reference(source) for source in record['sources']
         if source.get('type') == 'courtlistener'], error=bool(provider_failures and not any(
         outcome.get('status') in (200, 300, 400, 404) for outcome in provider_outcomes)))
 
@@ -811,12 +819,16 @@ def read(ops, args):
     Save the actual passage supplied to the agent with source links and locations, while retaining retrieval and extraction limitations.
     """
     from backend.domains.legal import authority_sources
+    alternatives = getattr(args, 'alternative_queries', [])
+    if args.query is None and alternatives:
+        raise ValueError('alternative_queries must be [] when query=null.')
     record = copy.deepcopy(resolve_artifact(ops, args.research_id, RESEARCH_KIND))
     source = next((value for value in record['sources'] if value['id'] == args.source_id), None)
     if source is None:
         raise ValueError('Source ID must come from this research record.')
     _check(ops)
-    match_positions = {'match_start': None, 'match_end': None}
+    match_info = {'query': args.query, 'original_query_found': None, 'matched_query': None,
+                  'match_start': None, 'match_end': None}
     identity = {key: copy.deepcopy(source[key]) for key in
                 (*CASE_IDENTIFICATION_FIELDS, 'viewer_url', 'observations') if key in source}
     opinion = args.opinion_id
@@ -832,7 +844,7 @@ def read(ops, args):
         if fetched.get('status') == 'metadata':
             source['opinions'] = fetched.get('opinions') or []
             uid = _persist(ops, record, args.research_id)
-            return _observation(uid, record, **match_positions, **identity, source_id=source['id'], opinions=source['opinions'],
+            return _observation(uid, record, **match_info, **identity, source_id=source['id'], opinions=source['opinions'],
                 message='Available opinions saved. Choose an opinion ID to read; no opinion text was read.')
     # Recheck cached HTML too; old immutable challenge artifacts remain intact.
     fetched = authority_sources.reject_blocked_source(fetched)
@@ -842,7 +854,7 @@ def read(ops, args):
         source.setdefault('read_errors', []).append({**details,
             'error': fetched.get('error') or 'Source text is unavailable.', 'opinion_id': opinion})
         uid = _persist(ops, record, args.research_id)
-        return _observation(uid, record, **match_positions, **identity, **details, source_id=source['id'], error=True,
+        return _observation(uid, record, **match_info, **identity, **details, source_id=source['id'], error=True,
             next_start=None, read_error=fetched.get('error') or 'Source text is unavailable.',
             message='Source text was not read. Use another relevant readable source or disclose the coverage gap; '
                     'do not keep searching phrases in an access-challenge page.')
@@ -865,20 +877,27 @@ def read(ops, args):
         raise ValueError('Source text offset is outside the saved text.')
     if args.start == len(body):
         uid = _persist(ops, record, args.research_id)
-        return _observation(uid, record, **match_positions, **identity, source_id=source['id'], text='', start=args.start,
+        return _observation(uid, record, **match_info, **identity, source_id=source['id'], text='', start=args.start,
             end=args.start, total_characters=len(body), next_start=None, end_of_source=True,
             message='There are no source characters at this offset; no passage was marked read.')
     lo = args.start
     if args.query is not None:
-        match = _find_source_phrase(body, args.query, args.start)
+        match = None
+        for query in [args.query, *alternatives]:
+            match = _find_source_phrase(body, query, args.start)
+            if match_info['original_query_found'] is None:
+                match_info['original_query_found'] = match is not None
+            if match is not None:
+                match_info['matched_query'] = query
+                break
         if match is None:
             uid = _persist(ops, record, args.research_id)
-            return _observation(uid, record, **match_positions, **identity, source_id=source['id'], total_characters=len(body),
-                query=args.query, match_found=False, message='The phrase was not found after allowing for capitalization, whitespace, quotes, dashes and soft hyphens. Other phrases or paginated reading remain available.')
-        match_positions.update(match_start=match[0], match_end=match[1])
+            return _observation(uid, record, **match_info, **identity, source_id=source['id'], total_characters=len(body),
+                match_found=False, message='No supplied phrase was found at or after start, allowing for capitalization, whitespace, quotes, dashes and soft hyphens. This does not establish that the discussion or proposition is absent. Other phrases or paginated reading remain available.')
+        match_info.update(match_start=match[0], match_end=match[1])
         lo = max(args.start, match[0] - 1000)
     hi = min(len(body), lo + PAGE_CHARACTERS)
-    passage = {'kind': SOURCE_KIND, 'role': 'passage', 'source_id': source['id'], **match_positions,
+    passage = {'kind': SOURCE_KIND, 'role': 'passage', 'source_id': source['id'], **match_info,
         'research_id': args.research_id,
         'source_artifact_id': cache_id, 'text': body[lo:hi], 'url': fetched.get('url') or source.get('url'),
         **identity,
@@ -908,12 +927,12 @@ def read(ops, args):
     uid = _persist(ops, record, args.research_id)
     # Give the controller the same passage-to-cache provenance supplied to analysis.
     # The cache identity does not extend the returned passage's reading scope.
-    return _observation(uid, record, **match_positions, **identity, source_id=source['id'], passage_artifact_id=passage_id,
+    return _observation(uid, record, **match_info, **identity, source_id=source['id'], passage_artifact_id=passage_id,
         source_artifact_id=passage['source_artifact_id'],
         text=passage['text'], start=lo, end=hi, next_start=passage['next_start'],
         url=passage['url'],
         total_characters=len(body), locations=passage['locations'], opinion_id=passage['opinion_id'],
-        opinion_type=passage['opinion_type'], query=args.query, match_found=True,
+        opinion_type=passage['opinion_type'], match_found=True,
         links=[{key: item[key] for key in ('id', 'url', 'title') if key in item} for item in discovered[:5]],
         link_count=len(discovered), links_truncated=len(discovered) > 5)
 

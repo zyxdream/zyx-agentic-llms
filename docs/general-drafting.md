@@ -117,3 +117,71 @@ Controller and helper guidance requires evidence for court assertions and treats
 uploaded parentheticals and prior generated statements as claims to check. Court
 identity does not establish quotation accuracy or support for a legal proposition;
 the controller still chooses subsequent source reads and substantive checks.
+
+
+## Citation-review completion accounting
+
+Current-request `lookup_authorities(mode="audit")` calls declare source-version and
+range-specific review scopes. Lookup saves and returns stable `review_items` for
+identified citation uses. Overlapping selections deduplicate the same original
+occurrence; different uses remain separate. Provider references without confirmed
+original locations remain unresolved discovery items. Discovery limitations stay
+visible. Searches and overview lookups do not expand these scopes automatically.
+
+`complete_task.citation_review_results` supplies one `review_item_id`, `status`
+(`assessed` or `unresolved`), nonblank `finding` and `evidence_ids` list per item.
+Assessed findings require saved original-source/passage or research evidence;
+unresolved entries may have none. Reads alone never create an assessed outcome.
+Missing/duplicate/out-of-scope items or unauthorized evidence return a normal tool
+error before publication. The controller can investigate or explicitly disclose
+unfinished work, then resubmit the complete outcome list. No tool order or extra
+reviewer call is imposed.
+
+Accepted outcomes are saved in completion/turn metadata and rendered as a coverage
+table in the final chat response. The authored Output draft is left unchanged.
+Accounting completeness does not certify legal correctness, exhaustive discovery,
+the model's scope selection or the accuracy of a later rewrite. Ordinary drafting
+and overview research keep their behavior; old calls missing the new field are
+normalized to an empty list. Historical artifacts are never rewritten. Citation-review
+accounting is independent of the source-navigation guidance below.
+
+
+## Ordered alternative queries and source navigation
+
+`read_authority` accepts `alternative_queries`, an ordered list; `[]` keeps the
+single-phrase behavior. New strict tool calls supply this field; older saved calls
+missing it default to `[]` without changing their recorded arguments. Blank entries
+and nonempty alternatives with `query=null` are rejected.
+
+The reader searches the original `query` first, then each alternative from the same
+input `start`, stopping at the first successful phrase. It returns and saves one
+original-source passage within the existing passage-size limit. Alternatives reuse
+the existing formatting-tolerant matcher and downloaded source cache; they do not
+introduce automatic query generation, another model call or semantic matching.
+
+Results retain `query` and add `original_query_found` and `matched_query`. For an
+alternative success, `match_found=true`, `original_query_found=false`, and
+`matched_query` identifies the alternative. Finding an alternative locates related
+discussion; it does not validate the original wording or legal proposition. If all
+phrases miss, no passage is saved and match positions remain null. New fields are
+null when no phrase search occurred, including plain reads, opinion selection,
+unavailable sources and exhaustion. Historical artifacts remain readable unchanged.
+
+`match_start` and exclusive `match_end` always identify the original-text span for
+`matched_query`. Find another occurrence with that phrase as `query`,
+`alternative_queries=[]` and `start=match_end`. Read the next passage with
+`query=null`, `alternative_queries=[]` and `start=next_start`. Different phrases
+may require restarting at zero. Matches and misses cover only the suffix searched.
+
+Controller guidance suggests shorter terms, surrounding text and useful existing
+sources after misses, before repeating broad research. The controller still chooses
+its next action; no fixed research sequence or automatic citation assessment is added.
+Offline replays establish retrieval and metadata behavior. Live model adoption and
+latency measurement remain separate validation.
+
+Validation: **360 affected offline backend checks passed**, including controller
+handoff/reload, matching/navigation, source ownership, court metadata, citation
+completion and the existing context-budget guards. The saved Soundview replay
+reported the original phrase absent, matched `irreparable harm` at original-text
+positions `[123753, 123769)`, returned one passage and fetched the body once. Frozen
+benchmarks remained unchanged; live model behavior and latency were not evaluated.

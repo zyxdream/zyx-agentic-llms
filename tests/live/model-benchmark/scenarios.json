@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "benchmark_version": "legal-workflows-v1",
+  "workflows": [
+    {
+      "id": "waymo",
+      "title": "Waymo pleadings to response draft and verification",
+      "project_documents": [
+        "waymo_complaint",
+        "waymo_fac"
+      ],
+      "turns": [
+        {
+          "id": "W1",
+          "prompt_file": "prompts/W1.txt",
+          "prompt_sha256": "0f53d5061fad5a986018391d8861141eb009bde4241df99b63840144441f2f8c",
+          "attachments": []
+        },
+        {
+          "id": "W2",
+          "prompt_file": "prompts/W2.txt",
+          "prompt_sha256": "77b55708bf6e1e11ab2529a5e77170dcb83208f0d5692beb23498aef5604cbc0",
+          "attachments": [
+            "waymo_answer"
+          ]
+        },
+        {
+          "id": "W3",
+          "prompt_file": "prompts/W3.txt",
+          "prompt_sha256": "1f4d2821b96b1f41e4f2d126f7607200e15488d722d9df4971b9ec01a26a60e5",
+          "attachments": []
+        },
+        {
+          "id": "W4",
+          "prompt_file": "prompts/W4.txt",
+          "prompt_sha256": "06100c65f356a0813b62483451eff82d326669f2270d0ddfe5da558440ed1f0e",
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "id": "sullivan",
+      "title": "Citation audit to corrected provisional-relief draft",
+      "project_documents": [
+        "sullivan_motion"
+      ],
+      "turns": [
+        {
+          "id": "S1",
+          "prompt_file": "prompts/S1.txt",
+          "prompt_sha256": "2c9d365343267458b2b5e30ad2e330e5d918e2c858815742f73bcccf9a8f0176",
+          "attachments": []
+        },
+        {
+          "id": "S2",
+          "prompt_file": "prompts/S2.txt",
+          "prompt_sha256": "90c3be6a1a66d05f13191aeb9f9b1df5e1fa8b5dda16da2b946c54794835eda4",
+          "attachments": [
+            "sullivan_letter"
+          ]
+        },
+        {
+          "id": "S3",
+          "prompt_file": "prompts/S3.txt",
+          "prompt_sha256": "31e5d7e36401f199d3541766caa5ad3fe49cd7b47e6b8397922294374a4394af",
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "id": "coomer",
+      "title": "Brief reliability review and corrected-filing challenge",
+      "project_documents": [
+        "coomer_brief"
+      ],
+      "turns": [
+        {
+          "id": "C1",
+          "prompt_file": "prompts/C1.txt",
+          "prompt_sha256": "ef9c6568464305d307d9c3abacdd1982af599f19a70babaeab58077a226e8919",
+          "attachments": []
+        },
+        {
+          "id": "C2",
+          "prompt_file": "prompts/C2.txt",
+          "prompt_sha256": "7cc546990dcc65fc5b677b17727150bf634ad31d6ca038b7671e954219578c04",
+          "attachments": [
+            "coomer_response",
+            "coomer_corrected"
+          ]
+        },
+        {
+          "id": "C3",
+          "prompt_file": "prompts/C3.txt",
+          "prompt_sha256": "e5813ba93b62850a889173ba8498d957a7417bfff00bb8fbb00ab93a5c767209",
+          "attachments": []
+        }
+      ]
+    }
+  ],
+  "files": {
+    "waymo_complaint": {
+      "path": "instance/evaluation-inputs/model-benchmark-v1/waymo-original-complaint.pdf",
+      "filename": "waymo-original-complaint.pdf",
+      "sha256": "b47c810318ca57aa3200f10aed5056f4ab7783ef5d06a085eb3729817b9becb6",
+      "bytes": 199007,
+      "original": "instance/evaluation-inputs/waymo-uber/waymo-complaint-2017-02-23.pdf"
+    },
+    "waymo_fac": {
+      "path": "instance/evaluation-inputs/model-benchmark-v1/waymo-amended-complaint.pdf",
+      "filename": "waymo-amended-complaint.pdf",
+      "sha256": "714b3ccfcd01c36b34af942376d3c39aa6ce328c5bc1ff0f72f4b61b0136b51b",
+      "bytes": 137747,
+      "original": "instance/evaluation-inputs/waymo-uber/waymo-first-amended-complaint-2017-03-10.pdf"
+    },
+    "waymo_answer": {
+      "path": "instance/evaluation-inputs/model-benchmark-v1/uber-ottomotto-answer.pdf",
+      "filename": "uber-ottomotto-answer.pdf",
+      "sha256": "31d841a87df4f57970ba51b1af41d9538b48e4a3060c96252269f92332679d3f",
+      "bytes": 71312,
+      "original": "instance/evaluation-inputs/waymo-uber/uber-ottomotto-answer-to-fac-2017-06-22.pdf"
+    },
+    "sullivan_motion": {
+      "path": "instance/evaluation-inputs/model-benchmark-v1/provisional-relief-motion.pdf",
+      "filename": "provisional-relief-motion.pdf",
+      "sha256": "11b39c96303f236e36b1468258aae4067e73bd6913c04a15897c2d71a41cc880",
+      "bytes": 821782,
+      "original": "instance/evaluation-inputs/hg-briefs/Sullivan Dirty Brief.pdf"
+    },
+    "sullivan_letter": {
+      "path": "instance/evaluation-inputs/model-benchmark-v1/counsel-correction-letter.pdf",
+      "filename": "counsel-correction-letter.pdf",
+      "sha256": "907127d4745c07606af1bc7ed442ffbc75c2daaa0e4d9a36913941a9bc02b008",
+      "bytes": 316000,
+      "original": "instance/evaluation-inputs/hg-briefs/Sullivan Correction Letter.pdf"
+    },
+    "coomer_brief": {
+      "path": "instance/evaluation-inputs/model-benchmark-v1/opposition-to-motion-in-limine.pdf",
+      "filename": "opposition-to-motion-in-limine.pdf",
+      "sha256": "b9263a4aab69809589e98b354b630e9eaf15d684befa38a0cbd130fca82f0275",
+      "bytes": 547064,
+      "original": "instance/evaluation-inputs/hg-briefs/Coomer_dirty_brief.pdf.pdf"
+    },
+    "coomer_corrected": {
+      "path": "instance/evaluation-inputs/model-benchmark-v1/revised-opposition.pdf",
+      "filename": "revised-opposition.pdf",
+      "sha256": "027ba163037b310be1c9a45d62aa17a16bbcd80ad1d79f60d6ea48f8e055d48d",
+      "bytes": 340424,
+      "original": "instance/evaluation-inputs/hg-briefs/Coomer Corrected Brief.pdf"
+    },
+    "coomer_response": {
+      "path": "instance/evaluation-inputs/model-benchmark-v1/counsel-show-cause-response.pdf",
+      "filename": "counsel-show-cause-response.pdf",
+      "sha256": "9fcd4adc5b77eed5b9fca3d2a0f32c6ecb3078da6045c1722145e99ae6ace2e6",
+      "bytes": 173120,
+      "original": "instance/evaluation-inputs/hg-briefs/Coomer  counsel's show-cause response explaining the correction.pdf"
+    }
+  },
+  "execution": {
+    "fresh_project_per_workflow": true,
+    "sequential_runs": true,
+    "natural_prompts": true,
+    "repeat_count": 1,
+    "providers_mocked": false,
+    "stop_on_failure_or_clarification": true
+  },
+  "evaluator_only_files": [
+    "reviewer-checks.json"
+  ],
+  "held_out_from_uploads": [
+    "instance/evaluation-inputs/hg-briefs/Coomer the sanctions order _ answer key.pdf",
+    "instance/evaluation-inputs/hg-briefs/Mata Order on Sanctions.pdf"
+  ],
+  "comparison_limits": [
+    "One pass is an initial reference, not a latency distribution.",
+    "Follow-ups share the generated history within each workflow.",
+    "Live research may find correction materials online; log this instead of claiming a blind test.",
+    "Future model comparisons must hold auxiliary models/settings constant or label the result a whole-stack change."
+  ]
+}

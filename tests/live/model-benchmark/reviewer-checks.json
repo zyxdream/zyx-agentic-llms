@@ -1,0 +1,150 @@
+{
+  "evaluator_only": true,
+  "never_upload": true,
+  "benchmark_version": "legal-workflows-v1",
+  "scoring": "Each check is pass/fail/unverified with evidence; completed status is separate. Quote/citation checks require inspected evidence, not keyword presence alone.",
+  "waymo": {
+    "reference": "tests/live/drafting/waymo-uber/reviewer-checks.json",
+    "checks": [
+      {
+        "id": "W-claims",
+        "turn": "W1",
+        "expected": "Original six causes versus FAC seven; added standalone Patent 9,285,464 claim.",
+        "anchors": "complaint PDF16-28; FAC PDF16-31"
+      },
+      {
+        "id": "W-parties",
+        "turn": "W2",
+        "expected": "Answer for Uber Technologies and Ottomotto, not Otto Trucking; answers FAC.",
+        "anchors": "Answer PDF1-2,24"
+      },
+      {
+        "id": "W-alignment",
+        "turn": "W2",
+        "expected": "FAC21-30 map to Answer37-46, once each.",
+        "anchors": "FAC PDF7-8; Answer PDF8-9"
+      },
+      {
+        "id": "W-qualified",
+        "turn": "W2",
+        "expected": "21 denial;22-27 lack of knowledge/denial;28-30 specific partial admissions and remaining qualifications.",
+        "anchors": "Answer PDF8-9"
+      },
+      {
+        "id": "W-focused",
+        "turn": "W3",
+        "expected": "W2 entries other than24 remain text-identical; exact requested question added to24."
+      },
+      {
+        "id": "W-verify",
+        "turn": "W4",
+        "expected": "Retain all ten entries and question; actual source/party checks; no unqualified admission or false liability finding."
+      }
+    ]
+  },
+  "sullivan": {
+    "reference": "instance/evaluation-inputs/hg-briefs/Sullivan Correction Letter.pdf",
+    "schedule_interpretation": "Visually inspected PDF3-4; distinguish strikeouts from additions.",
+    "checks": [
+      {
+        "id": "S-soundview",
+        "turn": "S1",
+        "expected": "Paragraph26 Soundview503BR571/2014 citation inconsistent; correction543BR78/2016.",
+        "anchors": "letter PDF3, paragraph26"
+      },
+      {
+        "id": "S-quote",
+        "turn": "S1",
+        "expected": "Paragraph33 asserted Soundview quotation/pin not reliable as written; corrected passage/qualification required.",
+        "anchors": "letter PDF3, paragraph33"
+      },
+      {
+        "id": "S-three-arrows",
+        "turn": "S1",
+        "expected": "Paragraph34 ThreeArrows quotation/support withdrawn; cannot keep unsupported quotation.",
+        "anchors": "letter PDF3, paragraph34"
+      },
+      {
+        "id": "S-team",
+        "turn": "S1",
+        "expected": "Paragraph34 TeamSystems quote and pin need correction; correctpin12 not8.",
+        "anchors": "letter PDF3, paragraph34"
+      },
+      {
+        "id": "S-wl",
+        "turn": "S1",
+        "expected": "Paragraph55 ThreeArrows identifier corrected to2022WL17985969, and proposition narrowed to subpoena service.",
+        "anchors": "letter PDF4, paragraph55"
+      },
+      {
+        "id": "S-statute",
+        "turn": "S1",
+        "expected": "Paragraph59 claimed section1519(b) expressly permits ex-parte relief; letter deletes that attribution.",
+        "anchors": "letter PDF4, paragraph59"
+      },
+      {
+        "id": "S-repair",
+        "turn": "S2",
+        "expected": "Exactly five requested paragraphs; corrections applied; no claim that the correction letter itself independently verifies underlying law."
+      },
+      {
+        "id": "S-preserve",
+        "turn": "S3",
+        "expected": "Five paragraph bodies text-identical toS2;120-180word explanation and outstanding checks; no resurrected withdrawn quote."
+      }
+    ]
+  },
+  "coomer": {
+    "reference": "instance/evaluation-inputs/hg-briefs/Coomer the sanctions order _ answer key.pdf",
+    "checks": [
+      {
+        "id": "C-pure",
+        "turn": "C1",
+        "expected": "Pure is real; reputation/character inextricably intertwined quotation absent.",
+        "anchors": "order PDF3; originalbrief PDF2"
+      },
+      {
+        "id": "C-reaves",
+        "turn": "C1",
+        "expected": "Reaves real case does not support asserted multiple-purpose proposition at cited867-68; Rule608(b) discussion at866.",
+        "anchors": "order PDF3,16; originalbrief PDF12"
+      },
+      {
+        "id": "C-ginter",
+        "turn": "C1",
+        "expected": "Ginter attributed toColorado in brief; court identifies District ofKentucky.",
+        "anchors": "order PDF12; originalbrief PDF4"
+      },
+      {
+        "id": "C-not-cured",
+        "turn": "C2",
+        "expected": "Proposed corrected filing retains Pure misquote and Reaves unsupported parenthetical; cannot approve merely because marked corrected.",
+        "anchors": "correctedbrief PDF2,10; order PDF15-16"
+      },
+      {
+        "id": "C-counsel",
+        "turn": "C2",
+        "expected": "Separate counsel explanation from independent finding, and avoid invented intent/sanctions outcome unless sourced."
+      },
+      {
+        "id": "C-handoff",
+        "turn": "C3",
+        "expected": "Specific qualified go/no-go<=120words, actionable checklist, preserved defects, no unsupported nonexistence claim."
+      }
+    ]
+  },
+  "general": [
+    "Each requested Output saved and downloaded; no invented sandbox links.",
+    "Research conclusions traceable to actually observed material; unresolved access remains explicit.",
+    "No fabricated client facts, citations or quotations.",
+    "Follow-up revision uses continuous current draft and retains required corrections."
+  ],
+  "quality_dimensions": {
+    "source_fidelity": "0-2",
+    "citation_reasoning": "0-2",
+    "task_fulfillment": "0-2",
+    "revision_preservation": "0-2",
+    "usefulness_and_clarity": "0-2"
+  },
+  "rating_rule": "0=material failure,1=partial or unresolved,2=meets reviewed criteria. Manual evidence-based ratings, not a second LLM judge. Nonapplicable dimensions are omitted."
+}

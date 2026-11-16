@@ -226,14 +226,16 @@ def model_request(row):
 def publish(row, args, step):
     """Publish atomically, including validation errors returned as observations."""
     try:
+        from backend.domains.legal import citation_review
+        review = citation_review.preflight(row, args.citation_review_results)
         from backend.util.output_files import preflight_output_files
         verification = preflight_output_files(row, args.output_file_ids)
-        return _publish(row, args, step, verification)
+        return _publish(row, args, step, verification, review)
     except Exception:
         db.session.rollback()
         raise
 
-def _publish(row, args, step, verification):
+def _publish(row, args, step, verification, review):
     """Publish the controller's final response and optional saved draft candidate.
 
     Recheck permission to write the editor; publication does not start new authority research.
@@ -274,6 +276,8 @@ def _publish(row, args, step, verification):
     response, _, _ = workspace_state.finalize_llm_response_for_display(args.response, state, None, verify_citations=False)
     if not response.strip():
         raise ValueError('The final response could not be prepared for display.')
+    from backend.domains.legal import citation_review
+    response += citation_review.render(review)
     service.lock_publication_chat(row.chat_thread_id)
     row = service.validate_execution(lock=True)
     data = json.loads(row.data_json)
@@ -285,6 +289,8 @@ def _publish(row, args, step, verification):
     meta['workflow_completed'] = True
     meta['candidate_id'] = args.candidate_id
     meta['output_files'] = output_files
+    if review['review_scope_ids']:
+        meta['citation_review'] = review
     meta['document_scope'] = data['document_snapshot']
     meta['chat_thread_id'] = state['chat_thread_id']
     meta['draft_document_id'] = state['draft_document_id']
@@ -301,7 +307,7 @@ def _publish(row, args, step, verification):
         auxiliary['validated_cases'] = changed_cases
     workspace_store.patch_auxiliary(row.chat_thread_id, auxiliary, remove=('active_task_id',), merge=('validated_cases',))
     step.state, step.updated_at = ('ready', service.now())
-    step.result_json = service.encode({'published': True, 'candidate_id': args.candidate_id, 'output_files': output_files, 'file_verification': verification, 'chat_thread_id': state['chat_thread_id'], 'draft_document_id': state['draft_document_id']})
+    step.result_json = service.encode({'published': True, 'candidate_id': args.candidate_id, 'output_files': output_files, 'file_verification': verification, 'citation_review': review, 'chat_thread_id': state['chat_thread_id'], 'draft_document_id': state['draft_document_id']})
     step.summary_json = service.encode({'artifact_id': args.candidate_id, 'message': 'Final result published.'})
     service.stage_publication(row, response, state['draft'], output_files=output_files)
     db.session.commit()

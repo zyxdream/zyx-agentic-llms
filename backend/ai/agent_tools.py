@@ -110,7 +110,21 @@ class RestoreDraft(Arguments):
     version_id: str = Field(description='Exact confirmed version_id from list_draft_versions for this document. Only restore when the user explicitly requests rollback; never use restoration to bypass an older edit-target rejection.')
 
 
+class CitationReviewResult(Arguments):
+    review_item_id: str = Field(min_length=1, description='Exact review_item_id returned by an audit lookup or completion error.')
+    status: Literal['assessed', 'unresolved']
+    finding: str = Field(min_length=1, pattern=r'\S', description='What was checked and established, or what remains unchecked and why. Assessed does not mean correct or fully verified.')
+    evidence_ids: list[str] = Field(description='Saved original-source/passage or research artifact IDs supporting the finding; [] is permitted for unresolved work. Not draft IDs or generated analysis.')
+
+    @model_validator(mode='after')
+    def assessed_has_evidence(self):
+        if self.status == 'assessed' and not self.evidence_ids:
+            raise ValueError('An assessed citation review finding requires supporting evidence_ids.')
+        return self
+
+
 class Complete(Arguments):
+    citation_review_results: list[CitationReviewResult] = Field(description='One outcome for EVERY review_item in the current request audit scopes; [] when no audit was declared. Resubmit the full list after a rejected completion. The application adds a coverage table to your final response; do not duplicate it. Reading an opinion alone is not an assessment.')
     response: str = Field(min_length=1)
     candidate_id: str | None = Field(description='Use working_draft to publish the current working candidate (or its exact ID); older candidates are rejected. null leaves the editor draft unchanged.')
     output_file_ids: list[str] = Field(description='Exact derived-file IDs from successful python_run files results to deliver with the answer; [] for no files. Select the final recalculated version explicitly, even when filenames match. Never invent sandbox links, host paths or download URLs.')
@@ -168,7 +182,16 @@ class ReadAuthority(Arguments):
     source_id: str = Field(description='Copy source_id (also displayed as id) together with its research_id from the returned source/citation/link reference. Not an invented URL or a local path.')
     opinion_id: int | None = Field(description='Specific available CourtListener opinion ID; null for a webpage/PDF or to obtain opinion choices.')
     query: str | None = Field(description='Optional phrase to locate, ignoring capitalization, whitespace/line wrapping, typographic quotes/dashes and soft hyphens. Words, order and numbers must match; null reads a page of original text.')
-    start: int = Field(ge=0, description='Zero-based character offset in the retrieved source, initially 0. For another occurrence of the same query use match_end (exclusive). For the next chunk use next_start with query=null; stop when next_start=null. A different query may require restarting at 0; earlier searches do not cover that phrase. These are not uploaded-document positions.')
+    alternative_queries: list[str] = Field(description='Ordered phrases tried only after query misses, each from start. [] when unused or query=null. Returns one passage; alternative matches do not validate the original wording.')
+    start: int = Field(ge=0, description='Zero-based retrieved-source offset; matches/misses apply from here. Next occurrence: query=matched_query, alternative_queries=[], start=match_end (exclusive). Next chunk: query=null, alternative_queries=[], start=next_start; null ends reading. A different phrase may need start=0. Not uploaded-document offsets.')
+
+    @model_validator(mode='after')
+    def valid_alternatives(self):
+        if self.query is None and self.alternative_queries:
+            raise ValueError('alternative_queries must be [] when query=null.')
+        if any(not value.replace('\u00ad', '').strip() for value in self.alternative_queries):
+            raise ValueError('alternative_queries entries must not be blank.')
+        return self
 
 
 # Each tool name maps to its input validator and model-facing description.
@@ -182,7 +205,7 @@ TOOL_TYPES = {
     'python_run': (PythonRun, 'Write and execute Python to inspect spreadsheet structure or analyze full selected data. Returns saved results or Python errors so you can adjust the code. Workbook previews/header guesses are navigation hints: inspect real sheet layouts and use full data for calculations. Input files stay unchanged; requested new CSV/XLSX files are separate artifacts. recalculate_workbook(input_path) evaluates workbook formulas on a working copy when needed.'),
     'lookup_authorities': (LookupAuthorities, 'Discover authorities in explicitly selected text and look up case citations in CourtListener. Choose overview for reference variants and recorded examples, or audit for every occurrence in that scope. Returns saved candidates, original-source context, conflicts, coverage and unresolved references. Missing database coverage is not invalidity. Does not automatically search the web or read every opinion.'),
     'search_legal_sources': (SearchLegalSources, 'Search CourtListener or the web for selected authorities or the research question. Adds observed sources to the combined research record. Search previews are not source passages; read sources before relying on their legal reasoning.'),
-    'read_authority': (ReadAuthority, 'Read a selected opinion, official webpage or PDF into saved source-passage artifacts. Returns a new research snapshot plus passage_artifact_id for material_ids and source_artifact_id for its backing cache. Reading coverage is limited to the returned passage. Choose relevant opinions; a case identity match alone does not establish a holding. Supports formatting-tolerant phrase search; match_start/match_end identify the original matched text, with an exclusive end, or are null when no phrase matched. Find another occurrence using start=match_end with the same source and query. Read the next chunk using start=next_start and query=null; next_start=null ends reading. Returned text and locations remain original.'),
+    'read_authority': (ReadAuthority, 'Read a selected opinion, webpage or PDF. Returns one passage, research_id, passage_artifact_id for material_ids, and source_artifact_id for its cache; only the passage is read. Tries query then alternative_queries in order. query remains original; original_query_found reports its match, matched_query names the successful phrase. match_found=True can mean an alternative matched, without validating the original wording or proposition. match_start/match_end identify the original-text match with an exclusive end; null if no phrase matched. Follow the start field continuation rules; text and locations stay original.'),
     'list_draft_versions': (NoArguments, 'List confirmed Output versions for this document, including explicit manual saves and final agent publications. Intermediate candidates are not rollback versions. Returns metadata and exact version_id values, without changing the working draft.'),
     'restore_draft': (RestoreDraft, 'Only for an explicit user rollback request: copy a confirmed version into a new working candidate. Never edit the old version. Publish the restored working_draft with complete_task when ready; Output remains unchanged until then. Identical content is a no-op.'),
     'create_draft': (Analyze, 'Create the first saved Markdown document candidate from instructions and selected materials. Once a working candidate exists, use revise_draft on working_draft instead. Supports headings, lists, tables and fenced code. Does not change the editor.'),
@@ -224,10 +247,15 @@ def arguments(name, value):
     # strict schema still requires a mode on newly generated lookup calls.
     if name == 'lookup_authorities' and isinstance(value, dict) and 'mode' not in value:
         value = {**value, 'mode': 'overview'}
+    # Older saved reader calls supplied only one phrase.
+    if name == 'read_authority' and isinstance(value, dict) and 'alternative_queries' not in value:
+        value = {**value, 'alternative_queries': []}
     # The strict schema requires explicit file selection in new model calls;
     # previously saved completion calls predate this field and select no files.
     if name == 'complete_task' and isinstance(value, dict) and 'output_file_ids' not in value:
         value = {**value, 'output_file_ids': []}
+    if name == 'complete_task' and isinstance(value, dict) and 'citation_review_results' not in value:
+        value = {**value, 'citation_review_results': []}
     # Saved calls predate per-operation material purposes. Leave them unspecified.
     if name in {'analyze_material', 'create_draft', 'revise_draft', 'verify_draft'} and isinstance(value, dict) and 'material_uses' not in value:
         value = {**value, 'material_uses': []}
