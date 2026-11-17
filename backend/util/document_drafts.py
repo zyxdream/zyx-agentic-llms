@@ -108,12 +108,14 @@ MATERIAL_USE_GUIDANCE = (
 
 
 SOURCE_LOCATION_GUIDANCE = (
-    'Use page and paragraph locations supported by the supplied source passages. '
-    'PDF PAGE is the page position in the PDF, starting at 1; printed page numbers may differ. '
-    'Keep these numbering systems distinct. Older source labels remain valid evidence. '
-    'Do not infer page offsets or invent page ranges. If a pinpoint cannot be confirmed, '
-    'use a supported paragraph or section reference, or cite the filename without a pinpoint. '
-    'A citation copied from an earlier generated draft is not independently verified. '
+    'Use source-supported locations. PDF PAGE is the 1-based PDF position; printed and reporter '
+    'pages may differ. Character offsets do not establish reporter pages. Never infer offsets/ranges. '
+    'Uploaded or generated pinpoints remain claims until reliable opinion evidence places the '
+    'passage on that reporter page. Accept explicit matching pagination; otherwise say '
+    '"not verified from the retrieved sources", retaining supported findings and links without '
+    'unverified pinpoints. Preserve claimed citations when describing documents. Missing evidence '
+    'does not establish fabrication or invalidity; contradictions require evidence. Historical '
+    'labels remain usable. '
 )
 
 

@@ -9,20 +9,37 @@ PACK=Path(__file__).resolve().parent
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
+def validate(cfg):
+ references=cfg.get('evaluator_reference_files',{})
+ forbidden_paths={str((ROOT/p).resolve()) for p in cfg.get('held_out_from_uploads',[])}
+ forbidden_hashes={f['sha256'] for f in references.values()}
+ used=[]
+ for w in cfg['workflows']:
+  used.extend(w['project_documents'])
+  for t in w['turns']:
+   used.extend(t['attachments'])
+   prompt=(PACK/t['prompt_file']).resolve()
+   if not prompt.is_relative_to(PACK/'prompts') or digest(prompt)!=t['prompt_sha256']:
+    raise ValueError('Prompt changed or is outside the pack: '+t['id'])
+ if set(used)!=set(cfg['files']):
+  raise ValueError('Upload keys must match the declared agent inputs, never evaluator references.')
+ for key,item in cfg['files'].items():
+  path=(ROOT/item['path']).resolve()
+  if key in references or str(path) in forbidden_paths or item['sha256'] in forbidden_hashes:
+   raise ValueError('Evaluator reference cannot be an agent upload: '+key)
+ for item in [*cfg['files'].values(),*references.values()]:
+  path=(ROOT/item['path']).resolve()
+  if not path.is_relative_to(ROOT/'instance/evaluation-inputs') or digest(path)!=item['sha256']:
+   raise ValueError('Private benchmark material is missing or changed: '+item['filename'])
+
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--label',default='openai');p.add_argument('--cdp-port',type=int,default=64954)
  p.add_argument('--validate-only',action='store_true');a=p.parse_args()
  cfg=json.loads((PACK/'scenarios.json').read_text())
- for item in cfg['files'].values():
-  path=(ROOT/item['path']).resolve()
-  if not path.is_relative_to(ROOT/'instance/evaluation-inputs') or digest(path)!=item['sha256']:
-   raise ValueError('Private benchmark input is missing or changed: '+item['filename'])
- for w in cfg['workflows']:
-  for t in w['turns']:
-   if digest(PACK/t['prompt_file'])!=t['prompt_sha256']:raise ValueError('Prompt changed: '+t['id'])
+ validate(cfg)
  if a.validate_only:
-  print(json.dumps({'valid':True,'files':len(cfg['files']),'turns':sum(len(w['turns']) for w in cfg['workflows'])}));return
+  print(json.dumps({'valid':True,'files':len(cfg['files']),'turns':sum(len(w['turns']) for w in cfg['workflows']),'evaluator_references':len(cfg.get('evaluator_reference_files',{}))}));return
  if not re.fullmatch(r'[a-zA-Z0-9_-]+',a.label) or not 1024<=a.cdp_port<=65535:p.error('Use a plain label and valid local CDP port.')
  out=ROOT/'artifacts'/('model-benchmark-'+a.label+'-'+datetime.now().strftime('%Y%m%d-%H%M%S'));out.mkdir(parents=True)
  for name in ('scenarios.json','reviewer-checks.json'):shutil.copyfile(PACK/name,out/name)

@@ -1,50 +1,48 @@
 {
   "evaluator_only": true,
   "never_upload": true,
-  "benchmark_version": "legal-workflows-v1",
-  "scoring": "Each check is pass/fail/unverified with evidence; completed status is separate. Quote/citation checks require inspected evidence, not keyword presence alone.",
+  "benchmark_version": "legal-workflows-v2",
+  "scoring": "Record pass, fail or unverified with inspected evidence, separately from execution completion. Mark unanswered material checks as partial task coverage, not evidence of case invalidity. Distinguish initial discovery, follow-up resolution, draft correctness and final verification. Equivalent supported corrections are acceptable; exact agreement with counsel's wording is not required.",
   "waymo": {
-    "reference": "tests/live/drafting/waymo-uber/reviewer-checks.json",
+    "reference": "Original and amended complaints; the filed Answer is historical evaluator context only.",
     "checks": [
       {
         "id": "W-claims",
         "turn": "W1",
-        "expected": "Original six causes versus FAC seven; added standalone Patent 9,285,464 claim.",
-        "anchors": "complaint PDF16-28; FAC PDF16-31"
+        "expected": "Six original causes versus seven amended causes; added standalone Patent 9,285,464 claim.",
+        "anchors": "complaint PDF16–28; amended complaint PDF16–31"
       },
       {
         "id": "W-parties",
         "turn": "W2",
-        "expected": "Answer for Uber Technologies and Ottomotto, not Otto Trucking; answers FAC.",
-        "anchors": "Answer PDF1-2,24"
+        "expected": "Working draft is for Uber Technologies and Ottomotto as requested, without representing Otto Trucking or inventing client instructions."
       },
       {
         "id": "W-alignment",
         "turn": "W2",
-        "expected": "FAC21-30 map to Answer37-46, once each.",
-        "anchors": "FAC PDF7-8; Answer PDF8-9"
+        "expected": "Exactly one correctly sourced entry for each amended-complaint paragraph 21–30; no filed Answer is supplied.",
+        "anchors": "amended complaint PDF7–8"
       },
       {
         "id": "W-qualified",
         "turn": "W2",
-        "expected": "21 denial;22-27 lack of knowledge/denial;28-30 specific partial admissions and remaining qualifications.",
-        "anchors": "Answer PDF8-9"
+        "expected": "Proposed wording is conditional on actual client knowledge and investigation. Allegations are not treated as admissions or established facts. Do not score against the historical Answer's admission/denial choices: the agent lacks those client instructions."
       },
       {
         "id": "W-focused",
         "turn": "W3",
-        "expected": "W2 entries other than24 remain text-identical; exact requested question added to24."
+        "expected": "Other nine entry bodies remain text-identical; requested question is added to paragraph 24 without changing its proposed response."
       },
       {
         "id": "W-verify",
         "turn": "W4",
-        "expected": "Retain all ten entries and question; actual source/party checks; no unqualified admission or false liability finding."
+        "expected": "Ten entries and the exact question remain; document/party alignment is checked, actual errors may be corrected, and no new client facts or unconditional response choices are invented."
       }
     ]
   },
   "sullivan": {
     "reference": "instance/evaluation-inputs/hg-briefs/Sullivan Correction Letter.pdf",
-    "schedule_interpretation": "Visually inspected PDF3-4; distinguish strikeouts from additions.",
+    "schedule_interpretation": "Evaluator only: visually inspect PDF3–4 to distinguish deletions from additions. Neither the letter nor its interpretation is supplied to the agent. Validate findings against underlying authorities, not the letter alone.",
     "checks": [
       {
         "id": "S-soundview",
@@ -61,7 +59,7 @@
       {
         "id": "S-three-arrows",
         "turn": "S1",
-        "expected": "Paragraph34 ThreeArrows quotation/support withdrawn; cannot keep unsupported quotation.",
+        "expected": "Check the purported Three Arrows quotation against the opinion; remove or qualify unsupported wording. The evaluator letter withdraws it, but the agent receives no withdrawal instruction.",
         "anchors": "letter PDF3, paragraph34"
       },
       {
@@ -85,12 +83,12 @@
       {
         "id": "S-repair",
         "turn": "S2",
-        "expected": "Exactly five requested paragraphs; corrections applied; no claim that the correction letter itself independently verifies underlying law."
+        "expected": "Exactly the five requested paragraphs, revised from original motion and observed authority evidence. Known supported corrections should survive; remaining uncertainty is explicit. No correction letter is supplied and no claim that counsel instructed a correction is invented."
       },
       {
         "id": "S-preserve",
         "turn": "S3",
-        "expected": "Five paragraph bodies text-identical toS2;120-180word explanation and outstanding checks; no resurrected withdrawn quote."
+        "expected": "All five paragraphs remain; actual mistakes may be corrected, supported unaffected wording is preserved, and a 120–180 word explanation distinguishes verified and outstanding checks. Do not require erroneous S2 text to remain identical."
       }
     ]
   },
@@ -99,45 +97,47 @@
     "checks": [
       {
         "id": "C-pure",
-        "turn": "C1",
-        "expected": "Pure is real; reputation/character inextricably intertwined quotation absent.",
-        "anchors": "order PDF3; originalbrief PDF2"
+        "turn": "C1–C3",
+        "expected": "Pure is a real case, but the attributed reputation/character quotation is absent. Track whether this was independently assessed or remains explicitly unverified.",
+        "anchors": "original opposition PDF2; evaluator order PDF3"
       },
       {
         "id": "C-reaves",
-        "turn": "C1",
-        "expected": "Reaves real case does not support asserted multiple-purpose proposition at cited867-68; Rule608(b) discussion at866.",
-        "anchors": "order PDF3,16; originalbrief PDF12"
+        "turn": "C1–C3",
+        "expected": "Reaves does not support the asserted general multiple-purpose proposition. Distinguish the brief's asserted 867–68 pinpoint from the Rule 608(b) discussion at 866; do not claim a reporter pinpoint verified without mapping evidence.",
+        "anchors": "original opposition PDF12; evaluator order PDF3,16"
       },
       {
         "id": "C-ginter",
-        "turn": "C1",
-        "expected": "Ginter attributed toColorado in brief; court identifies District ofKentucky.",
-        "anchors": "order PDF12; originalbrief PDF4"
+        "turn": "C1–C3",
+        "expected": "Identify the original brief's Colorado attribution as unsupported; Ginter's own header establishes E.D. Kentucky. Correct the unsupported proposition as supported by the opinion.",
+        "anchors": "original opposition PDF4; evaluator order PDF12"
       },
       {
-        "id": "C-not-cured",
+        "id": "C-follow-through",
         "turn": "C2",
-        "expected": "Proposed corrected filing retains Pure misquote and Reaves unsupported parenthetical; cannot approve merely because marked corrected.",
-        "anchors": "correctedbrief PDF2,10; order PDF15-16"
+        "expected": "Follow up on relevant unresolved findings from C1 or explain why they remain unchecked. Record whether the underlying opinion/proposition was actually assessed; a case lookup or completed accounting alone is insufficient."
       },
       {
-        "id": "C-counsel",
+        "id": "C-revision",
         "turn": "C2",
-        "expected": "Separate counsel explanation from independent finding, and avoid invented intent/sanctions outcome unless sourced."
+        "expected": "Propose corrections to the original opposition supported by retrieved decisions. Do not imitate the held-out revised filing or treat counsel's explanations as findings. Do not invent facts about counsel's intent or sanctions."
       },
       {
         "id": "C-handoff",
         "turn": "C3",
-        "expected": "Specific qualified go/no-go<=120words, actionable checklist, preserved defects, no unsupported nonexistence claim."
+        "expected": "Qualified go/no-go opening of at most 120 words, actionable checklist, preserved supported corrections, actual errors corrected and remaining checks disclosed. No unsupported nonexistence or exact-page verification claim."
       }
     ]
   },
   "general": [
-    "Each requested Output saved and downloaded; no invented sandbox links.",
-    "Research conclusions traceable to actually observed material; unresolved access remains explicit.",
-    "No fabricated client facts, citations or quotations.",
-    "Follow-up revision uses continuous current draft and retains required corrections."
+    "Only the four original pleading PDFs are uploaded; no correction/reference/answer documents or evaluator notes reach any turn.",
+    "Every requested Output is saved and downloaded; no invented sandbox links.",
+    "Follow-up research and revisions use the original documents, underlying authorities and actual conversation evidence; previous generated statements do not establish correctness.",
+    "Separate verified defects from unresolved searches and incomplete review. Disclosing uncertainty is correct, but does not earn completed-substantive-review credit.",
+    "Detect and record any public-web correction-letter/order exposure. Findings that rely on it are not scored as independent discovery.",
+    "No fabricated client facts, citations, quotations or source-page claims. Preserve valid edits while allowing correction of earlier model errors.",
+    "The evaluator references contain selected checks, not exhaustive truth. Where the agent and reference differ, inspect the underlying opinion or statute before assigning a defect."
   ],
   "quality_dimensions": {
     "source_fidelity": "0-2",

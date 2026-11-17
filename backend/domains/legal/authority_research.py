@@ -29,6 +29,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend.ai.token_budget import ContextBudgetExceeded
 from backend.database import db
+from backend.domains.legal.instructions import AUTHORITY_LOCATION_NOTE
 from backend.models import AgentArtifact, ChatThread
 from backend.util import workspace_service as service
 from backend.util.document_preparation import validate_snapshot
@@ -904,6 +905,7 @@ def read(ops, args):
         'title': fetched.get('title') or source.get('title'), 'start': lo, 'end': hi,
         'total_characters': len(body), 'next_start': hi if hi < len(body) else None,
         'locations': _passage_locations(fetched.get('blocks') or [], lo, hi),
+        'location_note': AUTHORITY_LOCATION_NOTE,
         'opinion_id': fetched.get('opinion_id'), 'opinion_type': fetched.get('opinion_type'),
         'retrieved_at': fetched.get('retrieved_at'), 'source_sha256': fetched.get('sha256'),
         'extraction_complete': fetched.get('extraction_complete', True),
@@ -931,7 +933,8 @@ def read(ops, args):
         source_artifact_id=passage['source_artifact_id'],
         text=passage['text'], start=lo, end=hi, next_start=passage['next_start'],
         url=passage['url'],
-        total_characters=len(body), locations=passage['locations'], opinion_id=passage['opinion_id'],
+        total_characters=len(body), locations=passage['locations'], location_note=passage['location_note'],
+        opinion_id=passage['opinion_id'],
         opinion_type=passage['opinion_type'], match_found=True,
         links=[{key: item[key] for key in ('id', 'url', 'title') if key in item} for item in discovered[:5]],
         link_count=len(discovered), links_truncated=len(discovered) > 5)

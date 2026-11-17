@@ -21,6 +21,9 @@ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
  async function upload(keys,scope){
   if(!keys.length)return;
   const entries=keys.map(k=>CFG.files[k]);
+  const referenceHashes=new Set(Object.values(CFG.evaluator_reference_files||{}).map(e=>e.sha256));
+  const referencePaths=new Set((CFG.held_out_from_uploads||[]).map(p=>path.resolve(ROOT,p)));
+  if(entries.some(e=>!e||referenceHashes.has(e.sha256)||referencePaths.has(path.resolve(ROOT,e.path))))throw Error('Evaluator reference is not an allowed upload.');
   for(const e of entries)if(hash(fs.readFileSync(path.join(ROOT,e.path)))!==e.sha256)throw Error('Input hash changed: '+e.filename);
   if(scope==='project')await page.locator('.workspace-main').getByRole('button',{name:'Project documents',exact:true}).click();
   const chooser=page.waitForEvent('filechooser');
@@ -47,7 +50,7 @@ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
  }
  async function prepare(w){
   let c=state.cases[w.id];
-  if(!c){c=state.cases[w.id]={project_name:'Model baseline v1 - '+w.id+' - '+new Date().toISOString(),chat_name:'Benchmark '+w.id};save();}
+  if(!c){c=state.cases[w.id]={project_name:CFG.benchmark_version+' - '+w.id+' - '+new Date().toISOString(),chat_name:'Benchmark '+w.id};save();}
   if(!c.project_id){
    await expand();await page.getByRole('button',{name:'New project',exact:true}).click();
    await page.getByRole('textbox',{name:'Project name',exact:true}).fill(c.project_name);

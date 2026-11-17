@@ -185,3 +185,33 @@ completion and the existing context-budget guards. The saved Soundview replay
 reported the original phrase absent, matched `irreparable harm` at original-text
 positions `[123753, 123769)`, returned one passage and fetched the body once. Frozen
 benchmarks remained unchanged; live model behavior and latency were not evaluated.
+
+
+## Published reporter pinpoints
+
+A pinpoint copied from an uploaded brief or generated draft remains a claim until
+reliable opinion evidence locates the relevant passage on that reporter page.
+Explicit matching reporter pagination may establish the pinpoint. PDF positions
+and character offsets do not, and the agent must not convert them into reporter
+pages. The same shared guidance reaches the controller, analysis, writing,
+revision and verification calls.
+
+Successful `read_authority` observations and newly saved passages include a short
+`location_note` explaining this distinction. The note is metadata outside the
+original text: existing text, locations, match positions, pagination and source
+cache identities remain unchanged. Historical artifacts remain readable and are
+not rewritten. The note does not assert that page evidence is absent from the body.
+
+When evidence is insufficient, report “not verified from the retrieved sources,”
+retain supported substantive findings and the case link, and omit or qualify the
+unverified pinpoint in the agent's own supporting citation. Preserve the original
+citation when describing what a document claims. Missing evidence does not
+establish fabrication or invalidity; a contradiction requires supporting evidence.
+No automatic page inference, new verification status, additional reviewer call or
+mandatory research sequence is introduced.
+
+Portable direct-opinion fixtures cover Naranjo's explicit `*1469` evidence, the
+same quotation without page markers, and Reaves without reporter pagination.
+Mocked tests verify evidence/guidance delivery, unchanged offsets/cache reuse and
+historical compatibility. They do not establish live model compliance; focused
+live results are preserved separately from the earlier frozen benchmarks.

@@ -1,3 +1,9 @@
+AUTHORITY_LOCATION_NOTE = (
+    'Character offsets and PDF positions do not establish reporter pagination. Use a published '
+    'pinpoint only when reliable opinion evidence locates the passage on that reporter page.'
+)
+
+
 COURT_ATTRIBUTION_GUIDANCE = (
     'State or correct a court using identifying information or a court designation from '
     "the identified decision's own case_header. case_header_source records its provider origin. "

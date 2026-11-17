@@ -1,0 +1,42 @@
+{
+  "source": "Direct public-opinion source caches captured in the separate 2026-11-16 live replay. No model-written answer text is included.",
+  "cases": {
+    "naranjo": {
+      "filename": "naranjo.txt",
+      "case_name": "United States v. Terrence Carey Naranjo",
+      "citation": "710 F.2d 1465",
+      "opinion_id": 420993,
+      "url": "https://www.courtlistener.com/opinion/420993/united-states-v-terrence-carey-naranjo/",
+      "retrieval_url": "https://www.courtlistener.com/api/rest/v4/opinions/420993/",
+      "source_text_sha256": "25ba968407b564aec50e12411e4d32c06524988db4140d1823b2f7eec1e5099f",
+      "recorded_passage_start": 7628,
+      "recorded_passage_end": 15149
+    },
+    "naranjo_without_page_marker": {
+      "filename": "naranjo-without-page-marker.txt",
+      "case_name": "United States v. Terrence Carey Naranjo",
+      "citation": "710 F.2d 1465",
+      "opinion_id": 420993,
+      "url": "https://www.courtlistener.com/opinion/420993/united-states-v-terrence-carey-naranjo/",
+      "retrieval_url": "https://www.courtlistener.com/api/rest/v4/opinions/420993/",
+      "source_text_sha256": "52f3b9e22ae0b732101fa4150db53ec67445e815799941d2f31a3e77ac698989",
+      "recorded_passage_start": 0,
+      "recorded_passage_end": 2394,
+      "original_text_range": {
+        "start": 11106,
+        "end": 13500
+      }
+    },
+    "reaves": {
+      "filename": "reaves.txt",
+      "case_name": "United States v. Reaves",
+      "citation": "649 F.3d 862",
+      "opinion_id": 223066,
+      "url": "https://www.courtlistener.com/opinion/223066/united-states-v-reaves/",
+      "retrieval_url": "https://www.courtlistener.com/api/rest/v4/opinions/223066/",
+      "source_text_sha256": "904bc249089597801d7daa180d7ef75cd399f2fc5dc4cdbf335e6ee8dd574e42",
+      "recorded_passage_start": 0,
+      "recorded_passage_end": 12000
+    }
+  }
+}

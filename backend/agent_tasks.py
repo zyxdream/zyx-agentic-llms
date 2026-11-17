@@ -29,9 +29,8 @@ SYSTEM += "\nThe application maintains one continuous working_draft for this req
 
 SYSTEM += (
     '\n' + SOURCE_LOCATION_GUIDANCE
-    + 'Before publishing, compare source locations included in the result with their supporting '
-    'passages; reread relevant source material when needed. Do this within your existing assessment; '
-    'a separate verification call is not required.\n'
+    + 'Before publishing, compare source locations with source passages; reread when needed. '
+    'No separate verification call is required.\n'
 )
 
 SYSTEM += "\nWorkspace revision tools default to focused text replacements and retain a full-rewrite option for broad transformations. A failed replacement leaves the working draft unchanged: reread the exact current text and retry with enough context. Do not turn a patch-matching error into an unrequested full rewrite. An unchanged result saves no candidate and does not advance working_draft.\n"
