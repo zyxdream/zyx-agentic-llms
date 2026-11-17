@@ -1,0 +1,13 @@
+# Citation-review completion validation
+
+The controller still chooses its research actions. Publication requires outcomes for every identified use in the current request's declared audit scopes.
+
+Before each controller decision, `agent_tools.definitions(row)` generates a fresh completion schema from `citation_review.completion_options(row)`. The `review_item_id` choices are current required items; `evidence_ids` choices are authorized saved source/research artifacts, including eligible historical evidence in the same conversation. The lists use existing IDs. They are distinct from provider source IDs and authority IDs. Empty option sets constrain the respective arrays to be empty. Oversized enums are explicitly logged and described as a fallback to execution-time validation; legitimate choices are not silently truncated. Static `definitions()` remains available for compatibility.
+
+`list_documents.citation_review` returns the current checklist, allowed statuses, evidence options, counts and discovery limitations. It reads SQL state without rerunning discovery or modifying prior snapshots. An unconfirmed source occurrence allows only `unresolved`; reading its opinion does not itself resolve the occurrence location.
+
+For structurally valid completion arguments, `preflight()` collects all recoverable reference, duplicate, status, evidence and missing-outcome errors. Failure preserves `error` and readable `message`, and adds `code`, `issues` (field path, code, supplied value, explanation) and `missing_review_items`. Malformed arguments first return field-level schema errors. Raw calls remain saved. No partial outcomes are accepted, no IDs are guessed, and no publication occurs until all checks pass. Cancellation, source-version checks, ownership, working-draft selection and file-verification behavior remain enforced.
+
+This targets the nine rejected completion calls in the November 17 baseline. The three revision-call errors and one Python-call error are outside this change. Schema restrictions do not establish whether a valid evidence ID supports a finding; semantic quality remains separate.
+
+Validation: affected citation-review, controller, context-budget and drafting-material tests run with mocked providers. The recorded first Coomer completion is replayed offline to demonstrate simultaneous reporting of one unknown review ID, two disallowed statuses, four invalid evidence references and one missing item. Live behavior is measured separately with the original natural C1 prompt and original opposition in a new project; frozen benchmarks are never overwritten.

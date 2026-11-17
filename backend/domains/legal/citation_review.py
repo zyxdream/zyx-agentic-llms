@@ -197,32 +197,85 @@ def for_run(row):
     return _describe(required)
 
 
+class CompletionValidationError(ValueError):
+    def __init__(self, issues, missing):
+        self.details = {'code': 'citation_review_invalid', 'issues': issues,
+                        'missing_review_items': missing}
+        super().__init__('Citation review completion rejected: ' + '; '.join(i['message'] for i in issues)
+                         + ('; Citation review has unaccounted items. Resubmit ALL outcomes. missing_review_items: '
+                            + service.encode([{'review_item_id': i['review_item_id'], 'citation': i['citation']} for i in missing]) if missing else ''))
+
+
+def completion_options(row):
+    """Read current obligations and usable evidence; never modify saved research."""
+    from backend.domains.legal import authority_research as research
+    coverage = for_run(row)
+    items = [{**item, 'allowed_statuses': ['unresolved'] if item.get('location_uncertain')
+              else ['assessed', 'unresolved']} for item in coverage['review_items']]
+    evidence = []
+    if coverage['review_scope_ids']:
+        records = (AgentArtifact.query.join(service.Workflow, AgentArtifact.run_id == service.Workflow.id)
+                   .filter(service.Workflow.user_id == row.user_id,
+                           service.Workflow.chat_thread_id == row.chat_thread_id,
+                           AgentArtifact.kind.in_(['source', 'authority_source', 'authority_research']))
+                   .order_by(AgentArtifact.created_at, AgentArtifact.id).all())
+        for saved in records:
+            if saved.run_id != row.id and saved.kind == 'source':
+                continue
+            try:
+                research._owned_row(row, saved.id)
+                if saved.run_id != row.id:
+                    research.resolve_artifact(SimpleNamespace(row=row), saved.id)
+            except ValueError as exc:
+                from backend.util.document_preparation import PreparationError
+                if isinstance(exc, PreparationError):
+                    continue
+                continue
+            value = json.loads(saved.content_json)
+            evidence.append({'artifact_id': saved.id, 'kind': saved.kind,
+                             'description': value.get('title') or value.get('url') or value.get('purpose') or saved.kind})
+    return {**coverage, 'review_items': items, 'review_item_count': len(items), 'evidence_options': evidence}
+
+
 def preflight(row, supplied):
     from backend.domains.legal import authority_research as research
     coverage = for_run(row)
     expected = {item['review_item_id']: item for item in coverage['review_items']}
-    outcomes = {}
-    for result in supplied:
+    outcomes, seen, issues = {}, set(), []
+    def problem(path, code, value, message):
+        issues.append({'path': path, 'code': code, 'value': value, 'message': message})
+    for index, result in enumerate(supplied):
         value = result.model_dump() if hasattr(result, 'model_dump') else dict(result)
         uid = value['review_item_id']
-        if uid in outcomes:
-            raise ValueError('Duplicate citation review outcome: ' + uid)
+        path = f'citation_review_results[{index}]'
+        if uid in seen:
+            problem(path + '.review_item_id', 'duplicate_review_item', uid, 'Duplicate citation review outcome: ' + uid)
+        seen.add(uid)
         if uid not in expected:
-            raise ValueError('Citation review item is outside this request\'s audit scopes: ' + uid)
-        if expected[uid].get('location_uncertain') and value['status'] != 'unresolved':
-            raise ValueError('A citation with an unconfirmed source location must remain unresolved: ' + uid)
-        for evidence_id in value['evidence_ids']:
-            saved = research._owned_row(row, evidence_id)
-            if saved.kind not in {'source', 'authority_source', 'authority_research'}:
-                raise ValueError('Citation evidence must reference saved original material or research, not a generated draft/assessment.')
-            if saved.run_id != row.id:
-                research.resolve_artifact(SimpleNamespace(row=row), evidence_id)
-        outcomes[uid] = value
-    missing = [item for uid, item in expected.items() if uid not in outcomes]
-    if missing:
-        raise ValueError('Citation review has unaccounted items. Investigate them or explicitly mark them unresolved. '
-                         'Resubmit complete_task with outcomes for ALL review_items, including earlier entries. '
-                         + service.encode({'missing_review_items': missing, 'review_limitations': coverage['review_limitations']}))
+            problem(path + '.review_item_id', 'unknown_review_item', uid,
+                    "Citation review item is outside this request's audit scopes: " + uid)
+        elif expected[uid].get('location_uncertain') and value['status'] != 'unresolved':
+            problem(path + '.status', 'unconfirmed_location', value['status'],
+                    'A citation with an unconfirmed source location must remain unresolved: ' + uid)
+        if value['status'] == 'assessed' and not value['evidence_ids']:
+            problem(path + '.evidence_ids', 'missing_evidence', [], 'An assessed citation review finding requires supporting evidence_ids.')
+        for n, evidence_id in enumerate(value['evidence_ids']):
+            try:
+                saved = research._owned_row(row, evidence_id)
+                if saved.kind not in {'source', 'authority_source', 'authority_research'}:
+                    raise ValueError('Citation evidence must reference saved original material or research, not a generated draft/assessment.')
+                if saved.run_id != row.id:
+                    research.resolve_artifact(SimpleNamespace(row=row), evidence_id)
+            except ValueError as exc:
+                from backend.util.document_preparation import PreparationError
+                if isinstance(exc, PreparationError):
+                    raise
+                problem(path + f'.evidence_ids[{n}]', 'invalid_evidence', evidence_id, str(exc))
+        if uid in expected:
+            outcomes[uid] = value
+    missing = [item for uid, item in expected.items() if uid not in seen]
+    if issues or missing:
+        raise CompletionValidationError(issues, missing)
     return {**coverage, 'results': [outcomes[uid] for uid in expected]}
 
 

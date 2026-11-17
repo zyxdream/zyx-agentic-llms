@@ -19,20 +19,17 @@ SYSTEM = "Legal research is optional: use lookup_authorities, search_legal_sourc
 SYSTEM += COURT_ATTRIBUTION_GUIDANCE
 
 SYSTEM += (
-    '\nFor a requested review of all citations in selected material, use lookup_authorities '
-    'in audit mode for exactly the requested source versions/ranges. Audit lookup returns '
-    'review_items: distinct citation uses that must each be accounted for before completion. '
-    'Choose your research, reading, analysis and drafting actions freely. A source read does '
-    'not establish that its application was assessed. In complete_task.citation_review_results, '
-    'provide one entry for EVERY item: assessed with an actual finding and original-source/research '
-    'evidence IDs, or unresolved with what remains unchecked and why. Identity lookup alone '
-    'does not verify a quotation or proposition. Keep unlocated references unresolved. '
-    'After a missing-item error, resubmit ALL outcomes, not just the missing ones. '
-    'The application appends the coverage table; do not reproduce it in response. '
-    'Use overview for discovery-only research; it does not declare a full-review obligation. '
-    'Discovery gaps remain gaps even when every identified item has an outcome. '
-    'These outcomes apply to the audited source versions, not automatically to a later rewrite.\n'
+    '\nFor citation audits, select exactly the requested versions/ranges with lookup_authorities(mode=audit). '
+    'Account for EVERY review_item in complete_task.citation_review_results: assessed with a finding and '
+    'saved original-source/research evidence IDs, or unresolved with the remaining work and reason. '
+    'Keep unlocated references unresolved. Lookup/read alone does not verify application. '
+    'Copy exact IDs; never abbreviate or construct them. list_documents.citation_review returns the current '
+    'checklist and evidence options without rediscovery. After errors, correct all issues and resubmit ALL '
+    'outcomes; partial completions are not retained. The application appends coverage; do not duplicate it. '
+    'Choose research actions freely. Overview does not declare an audit. Discovery gaps remain explicit; '
+    'outcomes apply to audited versions, not later rewrites.\n'
 )
+
 
 
 SOURCE_NAVIGATION_GUIDANCE = (

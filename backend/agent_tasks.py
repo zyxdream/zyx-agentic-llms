@@ -216,7 +216,7 @@ def model_request(row):
     try:
         result = current_provider().decide(
             model=workspace_state._assistant_model(mode), effort=workspace_state._output_effort(mode),
-            tools=agent_tools.definitions(), prepare_input=lambda request: agent_context.prepare_input(row, request))
+            tools=agent_tools.definitions(row), prepare_input=lambda request: agent_context.prepare_input(row, request))
     except (agent_context.CompactionError, ValueError) as exc:
         raise ControllerError(str(exc) + ' Click Retry to resume saved work.') from exc
     return result.checkpoint, result.tool_calls
@@ -389,6 +389,11 @@ def advance(self, workflow_id):
                     if isinstance(exc, (PreparationError, ContextBudgetExceeded)):
                         raise
                     result = {'error': True, 'message': str(exc)}
+                    if hasattr(exc, 'details'):
+                        result.update(exc.details)
+                    elif isinstance(exc, ValidationError):
+                        result['issues'] = [{'path': list(e['loc']), 'code': e['type'], 'message': e['msg']}
+                                            for e in exc.errors(include_input=False)]
                 row = locked_workflow(row.id, token)
                 if not result.get('error'):
                     used = [ref['file_id'] for ref in result.get('references', [])]

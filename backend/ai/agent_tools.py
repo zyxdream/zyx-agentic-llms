@@ -116,11 +116,6 @@ class CitationReviewResult(Arguments):
     finding: str = Field(min_length=1, pattern=r'\S', description='What was checked and established, or what remains unchecked and why. Assessed does not mean correct or fully verified.')
     evidence_ids: list[str] = Field(description='Saved original-source/passage or research artifact IDs supporting the finding; [] is permitted for unresolved work. Not draft IDs or generated analysis.')
 
-    @model_validator(mode='after')
-    def assessed_has_evidence(self):
-        if self.status == 'assessed' and not self.evidence_ids:
-            raise ValueError('An assessed citation review finding requires supporting evidence_ids.')
-        return self
 
 
 class Complete(Arguments):
@@ -225,15 +220,37 @@ def legal_enabled():
 def available_tools():
     return {name: value for name, value in TOOL_TYPES.items() if legal_enabled() or name not in LEGAL_TOOLS}
 
-def definitions():
+def definitions(row=None):
     """Build the tool catalogue supplied to the controller LLM.
 
     It describes what each tool does and what inputs it accepts; execution waits
     until the model selects a tool and the worker dispatches that request.
     """
-    return [{'type': 'function', 'name': name, 'description': description,
-             'parameters': schema.model_json_schema(), 'strict': True}
-            for name, (schema, description) in available_tools().items()]
+    tools = [{'type': 'function', 'name': name, 'description': description,
+              'parameters': schema.model_json_schema(), 'strict': True}
+             for name, (schema, description) in available_tools().items()]
+    if row is not None and legal_enabled():
+        from backend.domains.legal.citation_review import completion_options
+        options = completion_options(row)
+        schema = next(t['parameters'] for t in tools if t['name'] == 'complete_task')
+        outcome = schema['$defs']['CitationReviewResult']['properties']
+        sets = [([i['review_item_id'] for i in options['review_items']], outcome['review_item_id'],
+                 schema['properties']['citation_review_results']),
+                ([i['artifact_id'] for i in options['evidence_options']], outcome['evidence_ids']['items'],
+                 outcome['evidence_ids'])]
+        # Enum limits are across the complete schema. Fall back explicitly to
+        # execution-time enforcement instead of silently excluding valid IDs.
+        total = 2  # existing status enum
+        for values, field, array in sets:
+            if not values:
+                array['maxItems'] = 0
+            elif total + len(values) <= 1000 and sum(map(len, values)) <= 15000:
+                field['enum'] = values
+                total += len(values)
+            else:
+                current_app.logger.warning('Completion ID enum exceeds provider limits; backend validation remains active.')
+                field['description'] = 'ID enum exceeds provider limits; copy exact IDs from list_documents. Backend validation remains active.'
+    return tools
 
 
 def arguments(name, value):
@@ -345,7 +362,12 @@ class Operations:
     def list_documents(self, args):
         from backend.util.agent_catalogue import documents
         from backend.domains.legal.authority_research import catalogue
-        return {'documents': documents(self.row), 'current_draft': 'current_draft',
+        from backend.domains.legal.citation_review import completion_options
+        review = completion_options(self.row) if legal_enabled() else {}
+        compact = [{key: item.get(key) for key in ('review_item_id', 'citation', 'proposition', 'source_location', 'location_uncertain', 'allowed_statuses')}
+                   for item in review.get('review_items', [])]
+        review = {**review, 'review_items': compact} if review else {}
+        return {'citation_review': review, 'documents': documents(self.row), 'current_draft': 'current_draft',
                 'chat_thread_id': self.state.get('chat_thread_id'),
                 'draft_document_id': self.state.get('draft_document_id'),
                 'authority_research': catalogue(self.row)}

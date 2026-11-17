@@ -314,3 +314,110 @@ def test_failed_location_of_known_discovered_reference_is_an_unresolved_item(ops
         review.preflight(ops.row,[])
     accepted=review.preflight(ops.row,args(outcomes([item])).citation_review_results)
     assert accepted['results'][0]['status']=='unresolved'
+
+
+def test_completion_reports_simultaneous_errors(agent, monkeypatch):
+    found = operation_audit(agent, monkeypatch)
+    items = found['review_items']
+    rows = [{'review_item_id': items[0]['review_item_id'], 'status':'assessed',
+             'finding':'A finding.', 'evidence_ids':['unavailable-evidence']},
+            {'review_item_id':'misspelled', 'status':'assessed', 'finding':'Another finding.', 'evidence_ids':[]}]
+    before = copy.deepcopy(state(agent))
+    operation(agent, monkeypatch, 'complete_task', {'response':'Done', 'candidate_id':None,
+              'citation_review_results':rows})
+    error = last_result(agent)
+    assert error['code'] == 'citation_review_invalid'
+    assert {'invalid_evidence','unknown_review_item','missing_evidence'} <= {i['code'] for i in error['issues']}
+    assert error['missing_review_items']
+    assert state(agent) == before and agent.status == 'running'
+
+
+def test_current_checklist_and_completion_enums(agent, monkeypatch):
+    found = operation_audit(agent, monkeypatch)
+    options = review.completion_options(agent)
+    definitions = {t['name']:t for t in agent_tools.definitions(agent)}
+    props = definitions['complete_task']['parameters']['$defs']['CitationReviewResult']['properties']
+    assert set(props['review_item_id']['enum']) == {i['review_item_id'] for i in options['review_items']}
+    assert found['research_id'] in props['evidence_ids']['items']['enum']
+    operation(agent, monkeypatch, 'list_documents', {})
+    listed = last_result(agent)['citation_review']
+    assert listed['review_item_count'] == len(options['review_items'])
+    assert all(i['allowed_statuses'] for i in listed['review_items'])
+    plain = {t['name']:t for t in agent_tools.definitions()}
+    assert 'enum' not in plain['complete_task']['parameters']['$defs']['CitationReviewResult']['properties']['review_item_id']
+
+
+def test_no_audit_completion_schema_has_no_empty_enum(agent):
+    schema = next(t['parameters'] for t in agent_tools.definitions(agent) if t['name']=='complete_task')
+    assert schema['properties']['citation_review_results']['maxItems'] == 0
+    assert 'enum' not in schema['$defs']['CitationReviewResult']['properties']['review_item_id']
+
+
+def test_uncertain_location_and_other_errors_return_together(ops, monkeypatch):
+    found = audit(ops, monkeypatch)
+    item = review.for_run(ops.row)['review_items'][0]
+    monkeypatch.setattr(review, 'for_run', lambda row: {'review_items':[{**item,'location_uncertain':True}], 'review_scope_ids':['scope'], 'review_limitations':[]})
+    with pytest.raises(review.CompletionValidationError) as caught:
+        review.preflight(ops.row, [{'review_item_id':item['review_item_id'],'status':'assessed','finding':'Checked','evidence_ids':['bad']},
+                                 {'review_item_id':item['review_item_id'],'status':'unresolved','finding':'Unchecked','evidence_ids':[]}])
+    assert {'unconfirmed_location','invalid_evidence','duplicate_review_item'} <= {i['code'] for i in caught.value.details['issues']}
+
+
+def test_recorded_coomer_first_completion_reports_all_known_problems(agent, monkeypatch):
+    path = Path(__file__).resolve().parents[1]/'artifacts/model-benchmark-openai-v2-20261117-083206/results/evidence.json'
+    if not path.exists():
+        pytest.skip('Private recorded replay is available only locally.')
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+    original = next(r for r in json.loads(path.read_text())['runs'] if r['id']=='wf_ea960759-ff35-4b30-b856-566756feacda')
+    steps = {s['sequence']:s for s in original['steps']}
+    items = steps[5]['result']['review_items']
+    submitted = json.loads(steps[41]['arguments']['raw'])['citation_review_results']
+    available = {a['id'] for a in original['artifacts']}
+    monkeypatch.setattr(review, 'for_run', lambda row: {'review_items':items,'review_scope_ids':['scope'],'review_limitations':[]})
+    def owned(row, uid):
+        if uid not in available:
+            raise ValueError('Research artifact is unavailable in this chat.')
+        return SimpleNamespace(kind='authority_source',run_id=agent.id)
+    monkeypatch.setattr(research, '_owned_row', owned)
+    with pytest.raises(review.CompletionValidationError) as caught:
+        review.preflight(agent, submitted)
+    codes = [i['code'] for i in caught.value.details['issues']]
+    assert codes.count('unknown_review_item') == 1
+    assert codes.count('unconfirmed_location') == 2
+    assert codes.count('invalid_evidence') == 4
+    assert len(caught.value.details['missing_review_items']) == 1
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_enum_limit_fallback_preserves_all_options(agent, monkeypatch):
+    options = {'review_items':[{'review_item_id':f'citation_{i}'} for i in range(1001)],
+               'evidence_options':[]}
+    monkeypatch.setattr(review, 'completion_options', lambda row: options)
+    schema = next(t['parameters'] for t in agent_tools.definitions(agent) if t['name']=='complete_task')
+    field = schema['$defs']['CitationReviewResult']['properties']['review_item_id']
+    assert 'enum' not in field and 'provider limits' in field['description']
+    assert len(options['review_items']) == 1001
+
+
+def test_completion_schemas_are_isolated_and_refresh_between_requests(monkeypatch):
+    def options(row):
+        return {'review_items':[{'review_item_id':'citation_'+row.id}],
+                'evidence_options':[{'artifact_id':'evidence_'+row.id}]}
+    monkeypatch.setattr(review, 'completion_options', options)
+    def schema(uid):
+        return next(t['parameters'] for t in agent_tools.definitions(SimpleNamespace(id=uid)) if t['name']=='complete_task')
+    a, b = schema('A'), schema('B')
+    fields = lambda s:s['$defs']['CitationReviewResult']['properties']
+    assert fields(a)['review_item_id']['enum']==['citation_A']
+    assert fields(b)['review_item_id']['enum']==['citation_B']
+    fields(b)['evidence_ids']['items']['enum'].append('mutated')
+    assert fields(schema('B'))['evidence_ids']['items']['enum']==['evidence_B']
+    assert fields(a)['evidence_ids']['items']['enum']==['evidence_A']
+
+
+def test_malformed_completion_returns_field_errors(agent, monkeypatch):
+    operation(agent, monkeypatch, 'complete_task', {'response':'Done','candidate_id':None,
+              'citation_review_results':'not a list'})
+    error=last_result(agent)
+    assert error['error'] and error['issues'][0]['path']==['citation_review_results']
+    assert not state(agent)['chat_history']
