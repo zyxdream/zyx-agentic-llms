@@ -109,6 +109,13 @@ MATERIAL_USE_GUIDANCE = (
 )
 
 
+CONDITION_STRENGTH_GUIDANCE = (
+    'Treat permissive or conditional wording as a sufficient condition, not a requirement. '
+    'State that the original is wrong or imposes the requirement only when it affirmatively says so; '
+    'otherwise treat clearer or narrower wording as a clarification, not a confirmed defect. '
+)
+
+
 SOURCE_LOCATION_GUIDANCE = (
     'Assess quotation wording and support in context separately from published pages. '
     'Prioritize material wording/context checks over page-only research unless central to the request. '
@@ -135,6 +142,7 @@ DRAFT_INSTRUCTIONS = (
     'exact original wording and supplied evidence. Prior generated conclusions are not evidence. '
     'If an instruction misstates the original or exceeds the evidence, preserve or qualify the disputed '
     'point and complete other requested edits; do not invent another unsupported correction. '
+    + CONDITION_STRENGTH_GUIDANCE +
     'For your own statement about a case holding or reasoning, use relevant retrieved source passages '
     'supplied in materials, with their opinion identity and limitations. Case metadata, search previews '
     'and generated summaries alone do not establish a holding. Attribute claims from user documents '

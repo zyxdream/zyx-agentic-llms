@@ -161,7 +161,7 @@ def test_latest_oversized_read_is_compacted_instead_of_stranding_run(context_row
     prompts = summary_provider(monkeypatch)
     # Force a small decision-input budget while leaving the existing 32K
     # structured-summary output reserve enough room for each 24K source batch.
-    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'gpt-6-luna', 140000)
+    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'gpt-6-luna', 141000)
     request = {**request_for(row), 'model': 'gpt-6-luna'}
     request.pop('max_output_tokens')
     result = prepare(row, request)
@@ -381,7 +381,7 @@ def test_controller_finishes_from_compacted_synthetic_working_state(context_row,
         db.session.add(AgentArtifact(id=uid, run_id=row.id, step_id=step.id,
             kind=kind, content_json=service.encode(body), created_at=service.now()))
     db.session.commit()
-    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'gpt-6-luna', 140000)
+    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'gpt-6-luna', 141000)
     summary = f'{facts} Source {source_id}, order-file characters 0:70. Candidate {candidate_id}. Acceptance remains unresolved.'
     prompts = summary_provider(monkeypatch, summary)
     requests = []

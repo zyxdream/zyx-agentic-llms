@@ -18,7 +18,7 @@ from backend.models import AgentStep, AgentArtifact, ChatThread
 from backend.util import workspace_service as service
 from backend.util import working_draft
 from backend.util.document_preparation import PreparationError
-from backend.util.document_drafts import SOURCE_LOCATION_GUIDANCE
+from backend.util.document_drafts import CONDITION_STRENGTH_GUIDANCE, SOURCE_LOCATION_GUIDANCE
 from backend.util.task_analytics import task_llm_usage_scope, LLM_USAGE_CHAT
 from backend.ai import agent_tools
 from backend.ai.token_budget import ContextBudgetExceeded
@@ -56,11 +56,15 @@ SYSTEM += (
 SYSTEM += (
     '\nFollow user-requested revisions, including user-supplied facts, without requiring external '
     'verification merely to edit; do not call those changes independently verified. A request to '
-    'check accuracy does not establish an error. When independently claiming content is factually '
-    'wrong or misrepresents a source, quote the exact original wording, explain the proposed '
-    'correction, and pass supporting source passages through material_ids; include the original '
-    'passage when outside the editing target. Prior generated conclusions are not evidence. '
-    'Without sufficient support, describe uncertainty rather than instruct a definitive correction.\n'
+    'check accuracy does not establish an error. Before instructing a source-based correction, '
+    'quote the exact original claim and classify the alleged defect as a contradiction, '
+    'overstatement, omission, or clarification. '
+    + CONDITION_STRENGTH_GUIDANCE +
+    'When independently claiming content is factually wrong or misrepresents a source, quote the '
+    'exact original wording, explain the proposed correction, and pass supporting source passages '
+    'through material_ids; include the original passage when outside the editing target. '
+    'Prior generated conclusions are not evidence. Without sufficient support, describe uncertainty '
+    'rather than instruct a definitive correction.\n'
 )
 
 SYSTEM += (

@@ -56,7 +56,12 @@ a source, it must quote the original wording, explain its proposed correction an
 select supporting source passages through existing `material_ids`. Include the
 original passage if it is outside the editing target. Prior generated conclusions
 are not supporting evidence. Insufficient support calls for uncertainty, not a
-definitive factual correction.
+definitive factual correction. Before instructing a source-based correction, it
+classifies the alleged defect as a contradiction, overstatement, omission or
+clarification. Permissive or conditional wording is a sufficient condition, not a
+requirement; the controller may state that the original is wrong or imposes the
+requirement only when it affirmatively says so. Clearer or narrower wording is a
+clarification, not a confirmed defect.
 
 The shared writer/reviser instructions require comparison against the exact original
 and selected evidence. If a generated instruction misstates the original or exceeds

@@ -25,6 +25,8 @@ def test_correction_guidance_applies_without_requiring_legal_research(monkeypatc
     assert 'verification merely to edit' in system
     assert 'A request to check accuracy does not establish an error' in system
     assert 'quote the exact original wording' in system
+    assert 'classify the alleged defect as a contradiction, overstatement, omission, or clarification' in system
+    assert drafts.CONDITION_STRENGTH_GUIDANCE in system
     assert 'pass supporting source passages through material_ids' in system
     assert 'include the original passage when outside the editing target' in system
     assert 'Prior generated conclusions are not evidence' in system
@@ -92,6 +94,7 @@ def test_writer_receives_actual_source_separately_from_proposed_correction(agent
         assert 'Check agent-proposed factual or source-based corrections against the exact original wording and supplied evidence' in options['sys_prompt']
         assert 'If an instruction misstates the original or exceeds the evidence' in options['sys_prompt']
         assert 'preserve or qualify the disputed point and complete other requested edits' in options['sys_prompt']
+        assert drafts.CONDITION_STRENGTH_GUIDANCE in options['sys_prompt']
         assert 'Prior generated conclusions are not evidence' in options['sys_prompt']
         # Scripted result, not evidence that a live model would make this judgment.
         if tool == 'create_draft':
