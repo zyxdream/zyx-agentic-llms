@@ -827,6 +827,59 @@ def _find_source_phrase(body, query, start):
     return start + positions[match], start + positions[match + len(phrase) - 1] + 1
 
 
+def _cache_from_other_snapshot(ops, source, opinion):
+    """Find an authorized exact-source cache without merging research findings."""
+    from backend.domains.legal.authority_sources import opinion_choices, reject_blocked_source
+    from backend.util.document_preparation import PreparationError
+    if not source.get('identity_key'):
+        return None
+    selected = opinion
+    if source.get('type') == 'courtlistener':
+        choices = [item['id'] for item in opinion_choices(source.get('opinions'))]
+        if selected is None:
+            selected = source.get('opinion_id') or (choices[0] if len(choices) == 1 else None)
+        # Null with multiple/unknown opinions still follows normal opinion selection.
+        if type(selected) is not int or selected <= 0 or (choices and selected not in choices):
+            return None
+    elif source.get('type') != 'web' or opinion is not None:
+        return None
+    records = (AgentArtifact.query.join(service.Workflow, AgentArtifact.run_id == service.Workflow.id)
+        .filter(service.Workflow.user_id == ops.row.user_id,
+                service.Workflow.chat_thread_id == ops.row.chat_thread_id,
+                AgentArtifact.kind == RESEARCH_KIND,
+                AgentArtifact.content_json.contains(source['id'])))
+    cache_ids = set()
+    for row in records.yield_per(50):
+        peer = next((item for item in json.loads(row.content_json).get('sources', [])
+                     if item.get('id') == source['id']
+                     and item.get('identity_key') == source['identity_key']
+                     and item.get('type') == source.get('type')), None)
+        if peer:
+            cache_ids.update(item['artifact_id'] for item in peer.get('cached_sources', [])
+                             if item.get('opinion_id', item.get('requested_opinion_id')) == selected)
+    if not cache_ids:
+        return None
+    # Prefer the latest immutable cache, including later metadata enrichment.
+    candidates = (AgentArtifact.query.join(service.Workflow, AgentArtifact.run_id == service.Workflow.id)
+        .filter(service.Workflow.user_id == ops.row.user_id,
+                service.Workflow.chat_thread_id == ops.row.chat_thread_id,
+                AgentArtifact.id.in_(cache_ids), AgentArtifact.kind == SOURCE_KIND)
+        .order_by(AgentArtifact.created_at.desc(), AgentArtifact.id.desc()))
+    for row in candidates:
+        try:
+            value = resolve_artifact(ops, row.id, SOURCE_KIND)
+        except (ValueError, PreparationError):
+            continue
+        if (value.get('role') != 'source_cache' or value.get('source_id') != source['id']
+                or value.get('opinion_id') != selected
+                or (source.get('type') == 'courtlistener' and value.get('cluster_id') != source.get('cluster_id'))):
+            continue
+        value = reject_blocked_source(value)
+        if value.get('status') == 'read' and isinstance(value.get('text'), str) and value['text'].strip():
+            return {'artifact_id': row.id, 'requested_opinion_id': opinion, 'opinion_id': selected}
+    return None
+
+
 def read(ops, args):
     """Read a selected source or opinion, reusing its cached text for later searches and pages.
 
@@ -850,6 +903,12 @@ def read(ops, args):
     caches = source.setdefault('cached_sources', [])
     cache = next((value for value in caches if value.get('requested_opinion_id') == opinion
                   or (opinion is not None and value.get('opinion_id') == opinion)), None)
+    if cache is None:
+        cache = _cache_from_other_snapshot(ops, source, opinion)
+        if cache:
+            # record/source are copies; historical snapshots and cache bodies stay immutable.
+            caches.append(cache)
+            source['cache_artifact_id'] = cache['artifact_id']
     if cache:
         fetched = resolve_artifact(ops, cache['artifact_id'], SOURCE_KIND)
         cache_id = cache['artifact_id']

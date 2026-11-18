@@ -98,3 +98,34 @@ Validation for this update: **456 affected offline backend checks passed**, incl
 existing small-context compaction guards, citation-review completion safeguards,
 controller/material handoff, source navigation and working-draft regressions.
 Providers were mocked. No live tests were run for this update.
+
+
+## Cache fallback across saved research snapshots
+
+When `read_authority` finds no matching cache pointer in the selected snapshot,
+it checks existing caches referenced by other research snapshots in the same
+user's chat. Reuse requires the same saved source ID and source identity, the
+selected opinion, a successful readable full-source cache, and existing artifact
+ownership/source-snapshot validation. Blocked, empty, foreign and mismatched
+caches are skipped. For this fallback, a null CourtListener opinion selection must identify a sole
+opinion (or an already specified opinion); multiple/unknown choices keep the
+normal metadata-selection behavior. Web/PDF caches retain their source identity.
+
+The newest eligible immutable cache is preferred, including later pagination
+metadata enrichment. An existing pointer in the selected snapshot keeps its
+normal precedence. The fallback adds a cache reference only to the new research
+snapshot; old snapshots, cache bodies, text offsets and page evidence remain
+unchanged. Reads still select and save an actual passage before it reaches the
+controller or drafting tools. Reusing source text does not merge findings or
+create a verification verdict. No model call, database migration or tool-interface
+change is required; normal retrieval remains the fallback when no authorized
+cache qualifies.
+
+Offline regression coverage includes the frozen Pure C2/C3 snapshot structure,
+with `Rule 405(b)` resolving to the saved page1138 evidence and no download.
+Frozen benchmark files remain unchanged. Live validation is deferred.
+
+Validation: **504 affected offline backend tests passed** with mocked providers,
+including source authorization, cross-snapshot reuse, publication/working-draft
+checks and prompt budgets. All921 existing benchmark files retained their hashes.
+No live tests were run for this fix.
