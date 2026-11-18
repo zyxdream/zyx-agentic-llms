@@ -249,3 +249,34 @@ unperformed check from one attempted without enough evidence, and does not requi
 an extra review call. Review accounting and uploaded-source location safeguards
 remain unchanged. See [published-page evidence](authority-page-evidence.md) for the
 optional metadata flag, provenance, immutable caches and validation boundaries.
+
+
+## Visible draft word count
+
+Existing create, revise, restore and draft-read responses include `draft_word_count`.
+It describes the complete resolved draft, even when `read_sources` returns only a
+character-range excerpt. Unchanged operations also return the current count. The
+returned artifact/revision identifies the document counted; after edits, use the
+new revision's count. Non-draft reads do not gain this field.
+
+The helper parses Markdown with the existing CommonMark, table and strikethrough
+options. It counts visible headings, paragraphs, lists, table cells and code using
+`\b[\w’'-]+\b`. Link labels count, hidden destinations and reference definitions
+do not. Image markup/alt text, formatting delimiters, generated list markers and
+code-fence language labels are excluded. Inline formatting does not split a word;
+blocks, table cells and explicit line breaks remain separated. A literal displayed
+URL is visible text and follows the same counting rule. For Markdown drafts, a
+separate metadata title is excluded; legacy section headings/titles count when
+the existing adapter renders them into the document body.
+
+This is Workspace's convention, not a guarantee of identical Microsoft Word or
+court-specific counts. Counts are derived response metadata outside the saved
+body. Document text, serialized read offsets, stored artifacts and historical
+versions are not rewritten. The controller uses the supplied count for ordinary
+length checks rather than counting raw Markdown URL fragments. No automatic edit,
+publication condition, extra model call, new tool or migration is introduced.
+
+The recorded Coomer candidate remains 921 words under the old raw-Markdown regex
+and is 855 using visible text, within the user's requested 700–900 range. The
+offline replay reads the frozen benchmark without changing it. Live behavior and
+latency validation remain deferred to the combined test round.

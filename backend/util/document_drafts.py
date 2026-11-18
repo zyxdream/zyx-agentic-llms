@@ -1,9 +1,11 @@
 """Markdown document revisions and adapters for existing section-based drafts."""
 import copy
 import json
+import re
 from dataclasses import dataclass
 from typing import Literal
 
+from markdown_it import MarkdownIt
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend.domains.legal.instructions import COURT_ATTRIBUTION_GUIDANCE
@@ -196,6 +198,34 @@ def draft_text(draft):
     if isinstance(draft, dict) and isinstance(draft.get('text'), str):
         return draft['text']
     return draft_to_markdown(draft)
+
+
+def draft_word_count(draft):
+    """Count rendered draft words, not Markdown syntax or hidden link targets.
+
+    Use the export renderer's CommonMark/table/strikethrough options. Keep inline
+    adjacency intact; only block boundaries and explicit breaks separate text.
+    This is Workspace's convention, not a court or Microsoft Word word count.
+    """
+    parser = MarkdownIt('commonmark', {'html': False}).enable('table').enable('strikethrough')
+
+    def visible_text(tokens):
+        parts = []
+        for token in tokens:
+            if token.type == 'image':
+                continue
+            if token.children:
+                parts.append(visible_text(token.children))
+            elif token.type in {'text', 'code_inline', 'code_block', 'fence'}:
+                parts.append(token.content)
+            elif token.type in {'softbreak', 'hardbreak'}:
+                parts.append('\n')
+            if token.block:
+                parts.append('\n')
+        return ''.join(parts)
+
+    text = visible_text(parser.parse(draft_to_markdown(draft)))
+    return len(re.findall(r"\b[\w’'-]+\b", text))
 
 
 def write_document(*, assignment, instructions, conversation, materials, target, answers, model, reasoning_effort):

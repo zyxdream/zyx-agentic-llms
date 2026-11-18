@@ -20,7 +20,7 @@ from backend.database import db
 from backend.models import AgentArtifact, ChatThread, UploadedFiles
 from backend.util import workspace_service as service
 from backend.util import working_draft
-from backend.util.document_drafts import MATERIAL_USE_GUIDANCE, SOURCE_LOCATION_GUIDANCE
+from backend.util.document_drafts import MATERIAL_USE_GUIDANCE, SOURCE_LOCATION_GUIDANCE, draft_word_count
 from backend.domains.legal.instructions import COURT_ATTRIBUTION_GUIDANCE
 from backend.util import prepared_retrieval as retrieval, source_context
 from flask import current_app, has_app_context
@@ -204,8 +204,8 @@ TOOL_TYPES = {
     'read_authority': (ReadAuthority, 'Read opinion/web/PDF wording/context; pinpoints are separate. Returns one passage: passage_artifact_id for material_ids, source_artifact_id for cache, research_id for continuation. Tries query then alternatives. original_query_found reports the unchanged query; matched_query identifies success. match_found=True can mean an alternative matched, not verified wording/support. match_start/match_end locate original text, end exclusive; null without a match.'),
     'list_draft_versions': (NoArguments, 'List confirmed Output versions for this document, including explicit manual saves and final agent publications. Intermediate candidates are not rollback versions. Returns metadata and exact version_id values, without changing the working draft.'),
     'restore_draft': (RestoreDraft, 'Only for an explicit user rollback request: copy a confirmed version into a new working candidate. Never edit the old version. Publish the restored working_draft with complete_task when ready; Output remains unchanged until then. Identical content is a no-op.'),
-    'create_draft': (Analyze, 'Create the first saved Markdown document candidate from instructions and selected materials. Once a working candidate exists, use revise_draft on working_draft instead. Supports headings, lists, tables and fenced code. Does not change the editor.'),
-    'revise_draft': (Revise, 'Revise working_draft into its next continuous revision. Earlier candidates cannot be edit bases. The initial editor snapshot or an uploaded draft may start the first revision. Use general_revision for Workspace targets. For the first uploaded-file revision, both revision-mode names use the shared engine on prepared text; original files are unchanged. Focused Workspace edits use validated text replacements; broad transformations may rewrite. Invalid replacements save nothing and can be retried. Unchanged results save no candidate. Successful revisions save a candidate without changing the editor.'),
+    'create_draft': (Analyze, 'Create the first Markdown candidate from instructions/materials; editor unchanged. After a candidate exists, revise working_draft. Supports headings, lists, tables and fenced code.'),
+    'revise_draft': (Revise, 'Revise working_draft continuously; earlier candidates cannot be edit bases. Initial editor/upload can start the first revision. Use general_revision for Workspace targets. Both modes use the shared prepared-text engine for first upload edits; originals stay unchanged. Focused edits use validated replacements; broad changes may rewrite. Invalid replacements save nothing: reread and retry. Unchanged results save no candidate; successful candidates leave the editor unchanged.'),
     'verify_draft': (Verify, 'Check a target and save findings without editing it. The report describes that target; a later revision is a separate candidate. Choose whether to verify again; no mandatory cycle.'),
     'request_user_input': (Question, 'Pause the assignment for clarification and resume the same call with the answer.'),
     'complete_task': (Complete, 'Publish the final response, optional candidate and explicitly selected generated files once the requested assignment is complete. Assess the actual result against the user request before completing; inspect the saved working draft when needed. Use output_file_ids for working application download cards, not sandbox or filesystem links. Disclose unresolved issues.'),
@@ -469,7 +469,8 @@ class Operations:
             if not 0 <= args.start < end <= len(text):
                 raise ValueError('Artifact character range is outside the saved content.')
             return {'artifact_id': args.artifact_id, 'start': args.start, 'end': end,
-                    'total_characters': len(text), 'complete': args.start == 0 and end == len(text), 'text': text[args.start:end]}
+                    'total_characters': len(text), 'complete': args.start == 0 and end == len(text), 'text': text[args.start:end],
+                    **({'draft_word_count': draft_word_count(value['draft'])} if value.get('kind') == 'draft' else {})}
         if not args.ranges:
             raise ValueError('Supply original source ranges or a saved artifact ID.')
         rendered, references = [], []
@@ -578,7 +579,8 @@ class Operations:
             return {'unchanged': True, 'kind': 'draft', 'editing_method': editing_method,
                     'base_candidate_id': base, 'working_draft': 'working_draft',
                     'working_candidate_id': working_draft.ensure(self.row),
-                    'message': 'The working draft is unchanged; no candidate was saved.'}
+                    'message': 'The working draft is unchanged; no candidate was saved.',
+                    'draft_word_count': draft_word_count(target)}
         uid = str(uuid.uuid4())
         # Preserve authored-document metadata. Legacy body fields are replaced
         # by canonical Markdown when adapting a section-based Workspace draft.
@@ -612,7 +614,8 @@ class Operations:
                 'base_candidate_id': base, 'editing_method': editing_method,
                 'replacement_count': replacement_count,
                 'revision_id': uid, 'source_format': 'markdown', 'format_version': 2,
-                'message': 'Draft candidate saved; editor unchanged.', 'rejected_operations': []}
+                'message': 'Draft candidate saved; editor unchanged.', 'rejected_operations': [],
+                'draft_word_count': draft_word_count(draft)}
 
     def list_draft_versions(self, args):
         from backend.util import draft_history
@@ -630,7 +633,8 @@ class Operations:
         current = self.target('working_draft')
         if draft_history.same_content(current, restored):
             return {'restored': False, 'unchanged': True, 'working_draft': 'working_draft',
-                    'working_candidate_id': head, 'message': 'The requested content is already the working draft.'}
+                    'working_candidate_id': head, 'message': 'The requested content is already the working draft.',
+                    'draft_word_count': draft_word_count(current)}
         uid = str(uuid.uuid4())
         restored.update(revision_id=uid, parent_revision_id=head or current.get('revision_id'),
                         restored_from_version_id=args.version_id)
@@ -641,7 +645,8 @@ class Operations:
             'references': [], 'material_ids': []}, artifact_id=uid)
         return {'artifact_id': uid, 'kind': 'draft', 'title': restored.get('title'),
                 'base_candidate_id': head or 'current_draft', 'restored_from_version_id': args.version_id,
-                'message': 'Confirmed content restored as a new working candidate; Output is unchanged until publication.'}
+                'message': 'Confirmed content restored as a new working candidate; Output is unchanged until publication.',
+                'draft_word_count': draft_word_count(restored)}
 
     def create_draft(self, args):
         return self.draft_operation(args, create=True)

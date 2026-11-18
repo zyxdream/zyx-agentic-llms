@@ -33,6 +33,9 @@ SYSTEM += (
     'No separate verification call is required.\n'
 )
 
+SYSTEM += ('\nUse draft_word_count for draft-length checks: full-draft visible words. '
+           'Recheck after edits; hidden URLs never justify shortening within range.\n')
+
 SYSTEM += "\nWorkspace revision tools default to focused text replacements and retain a full-rewrite option for broad transformations. A failed replacement leaves the working draft unchanged: reread the exact current text and retry with enough context. Do not turn a patch-matching error into an unrequested full rewrite. An unchanged result saves no candidate and does not advance working_draft.\n"
 
 SYSTEM += (
