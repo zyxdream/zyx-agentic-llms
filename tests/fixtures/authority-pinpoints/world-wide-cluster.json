@@ -1,0 +1,33 @@
+{
+  "id": 167625,
+  "filepath_json_harvard": "law.free.cap.f3d.450/1132.3089622.json",
+  "citations": [
+    {
+      "volume": 450,
+      "reporter": "F.3d",
+      "page": "1132",
+      "type": 1
+    },
+    {
+      "volume": 70,
+      "reporter": "Fed. R. Serv.",
+      "page": "457",
+      "type": 4
+    },
+    {
+      "volume": 2006,
+      "reporter": "U.S. App. LEXIS",
+      "page": "14418",
+      "type": 6
+    },
+    {
+      "volume": 2006,
+      "reporter": "WL",
+      "page": "1617318",
+      "type": 7
+    }
+  ],
+  "sub_opinions": [
+    "https://www.courtlistener.com/api/rest/v4/opinions/167625/"
+  ]
+}

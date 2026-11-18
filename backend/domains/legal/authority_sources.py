@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import copy
 import ipaddress
 import json
 import os
@@ -195,6 +196,17 @@ def case_header_metadata(row, response_url):
             'case_header_source': {'url': response_url, 'field': 'headmatter'}}
 
 
+def publication_metadata(row, url, digest=None):
+    """Retain provider metadata identifying the scanned publication, with provenance."""
+    if not isinstance(row, dict) or not row.get('filepath_json_harvard'):
+        return None
+    value = {key: copy.deepcopy(row.get(key)) for key in
+             ('id', 'filepath_json_harvard', 'citations', 'sub_opinions')}
+    return {'cluster': value, 'url': url,
+            'sha256': digest or hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest(),
+            'digest_scope': 'response' if digest else 'retained_cluster_fields'}
+
+
 def _case_result(row):
     identifier = _identifier(row.get('cluster_id') or row.get('id'))
     absolute = row.get('absolute_url') or f'/opinion/{identifier}/'
@@ -213,7 +225,9 @@ def _case_result(row):
             'citations': _citation_strings(row.get('citation') or row.get('citations')),
             'opinions': [value for value in opinions if value],
             'snippet': row.get('snippet') or '', 'snippet_is_source_text': False,
-            **case_header_metadata(row, f'{API_BASE}search/')}
+            **case_header_metadata(row, f'{API_BASE}search/'),
+            **({'publication_metadata': publication_metadata(row, f'{API_BASE}search/')}
+               if row.get('filepath_json_harvard') else {})}
 
 
 def search_sources(query, provider, *, model, reasoning_effort, check_execution=None):
@@ -498,14 +512,19 @@ def _fetch_case(source, opinion_id, check_execution):
     # Text and offsets must come from that same representation, never plain-text alignment.
     from backend.domains.legal import published_pages
     page_ranges, text = [], payload.get('plain_text') or ''
+    retained = None
     for field in ('html_with_citations', 'html_columbia', 'html_lawbox', 'html_anon_2020', 'html'):
         html = payload.get(field)
         if not isinstance(html, str) or not html.strip():
             continue
-        extracted, ranges = published_pages.extract(html, source.get('citations') or [], field=field)
-        if ranges:
-            text, page_ranges = extracted, ranges
+        inspected = published_pages.inspect_html(html, source.get('citations') or [], field=field)
+        if inspected['published_page_ranges']:
+            retained = inspected
             break
+        if retained is None and inspected['pagination_streams'] and inspected['text'].strip():
+            retained = inspected
+    if retained is not None:
+        text, page_ranges = retained['text'], retained['published_page_ranges']
     if not isinstance(text, str):
         raise SourceUnavailable('CourtListener returned an unreadable opinion text field.')
     if not text.strip():
@@ -516,7 +535,7 @@ def _fetch_case(source, opinion_id, check_execution):
     if not text.strip():
         raise SourceUnavailable('The selected opinion has no readable text in CourtListener.')
     opinion_type = payload.get('type') or metadata.get('type')
-    return {'status': 'read', 'text': text, 'blocks': [{'start': 0, 'end': len(text),
+    fetched = {'status': 'read', 'text': text, 'blocks': [{'start': 0, 'end': len(text),
                 'location': f'CourtListener opinion {chosen}', 'opinion_id': chosen}],
             'url': source.get('url') or f'{PUBLIC_BASE}/opinion/{cluster_id}/',
             'retrieval_url': f'{API_BASE}opinions/{chosen}/',
@@ -525,6 +544,62 @@ def _fetch_case(source, opinion_id, check_execution):
             'opinion_id': chosen, 'opinion_type': opinion_type, 'opinions': opinions,
             'published_page_ranges': page_ranges,
             'original_url': payload.get('download_url'), 'error': None}
+    fetched.update(cluster_id=cluster_id)
+    if retained is not None:
+        fetched.update({k: v for k, v in retained.items() if k != 'text'})
+    return resolve_page_metadata(fetched, source, allow_request=False, check_execution=check_execution)
+
+
+def resolve_page_metadata(fetched, source, *, allow_request=False, check_execution=None):
+    """Optionally enrich retained CAP boundaries; readable source text stays unchanged."""
+    from backend.domains.legal import published_pages
+    if source.get('type') != 'courtlistener' or fetched.get('published_page_ranges'):
+        return fetched
+    if not fetched.get('unassociated_page_ranges') or fetched.get('pagination_streams') != ['1']:
+        return fetched
+    previous = fetched.get('pagination_resolution') or {}
+    if previous.get('status') in {'resolved', 'unverified'}:
+        return fetched
+    metadata = fetched.get('publication_metadata') or source.get('publication_metadata')
+    if not isinstance(metadata, dict):
+        metadata = None
+    if not metadata and not allow_request:
+        return fetched
+    result = copy.deepcopy(fetched)
+    if not metadata:
+        url = f'{API_BASE}clusters/{source["cluster_id"]}/'
+        try:
+            payload, digest = _api_json('GET', f'clusters/{_identifier(source["cluster_id"])}/',
+                                        check_execution=check_execution)
+            metadata = publication_metadata(payload, url, digest)
+            if metadata is None:
+                # Preserve a successful but conclusively missing response, too.
+                metadata = {'cluster': payload, 'url': url, 'sha256': digest,
+                            'digest_scope': 'response'}
+        except (requests.RequestException, SourceUnavailable) as exc:
+            result['pagination_resolution'] = {'status': 'temporary_failure',
+                'reason': 'Publication metadata could not be retrieved; the pinpoint remains unverified. ' + str(exc),
+                'url': url, 'attempted_at': _now()}
+            return result
+    update = published_pages.resolve_cap_publication(result, metadata.get('cluster'),
+        metadata_url=metadata.get('url'), metadata_sha256=metadata.get('sha256'))
+    result.update(update)
+    if result.get('publication_source'):
+        result['publication_source']['digest_scope'] = metadata.get('digest_scope')
+    result['publication_metadata'] = copy.deepcopy(metadata)
+    result['pagination_resolution']['attempted_at'] = _now()
+    return result
+
+
+def page_location_note(fetched, base_note, *, requested=False):
+    resolution = fetched.get('pagination_resolution') or {}
+    if resolution.get('status') == 'temporary_failure':
+        return base_note + ' Publication metadata could not be retrieved; readable content remains available.'
+    if resolution.get('status') == 'unverified':
+        return base_note + ' Publication metadata did not establish which reporter the retained page markers belong to.'
+    if requested and not fetched.get('published_page_ranges'):
+        return base_note + ' No supported retained pagination is available; the content can still be assessed.'
+    return base_note
 
 
 def fetch_source(source, opinion_id=None, *, check_execution=None):

@@ -519,7 +519,7 @@ def _source(ops, record, incoming, authority_ids):
         found = value
     else:
         # Preserve conflicts in observations instead of overwriting old facts.
-        fields = ('provider', 'url', 'title', *CASE_IDENTIFICATION_FIELDS)
+        fields = ('provider', 'url', 'title', *CASE_IDENTIFICATION_FIELDS, 'publication_metadata')
         observation = {key: copy.deepcopy(value[key]) for key in fields if value.get(key) is not None}
         if observation and observation not in found.setdefault('observations', []):
             found['observations'].append(observation)
@@ -543,7 +543,7 @@ def _source(ops, record, incoming, authority_ids):
 
 
 def _cluster_source(cluster):
-    from backend.domains.legal.authority_sources import API_BASE, case_header_metadata, opinion_choices
+    from backend.domains.legal.authority_sources import API_BASE, case_header_metadata, opinion_choices, publication_metadata
     citations = []
     for citation in cluster.get('citations') or []:
         if isinstance(citation, str):
@@ -559,7 +559,9 @@ def _cluster_source(cluster):
         'case_name': cluster.get('case_name') or cluster.get('case_name_full'),
         'citations': citations, 'court': cluster.get('court') or cluster.get('court_id'), 'date': cluster.get('date_filed'),
         'opinions': opinion_choices(cluster.get('sub_opinions')),
-        **case_header_metadata(cluster, f'{API_BASE}citation-lookup/')}
+        **case_header_metadata(cluster, f'{API_BASE}citation-lookup/'),
+        **({'publication_metadata': publication_metadata(cluster, f'{API_BASE}citation-lookup/')}
+           if cluster.get('filepath_json_harvard') else {})}
 
 
 def _record_lookup(ops, record, meta, body, blocks, chunk_start, chunk, raw):
@@ -877,11 +879,24 @@ def read(ops, args):
             next_start=None, read_error=fetched.get('error') or 'Source text is unavailable.',
             message='Source text was not read. Use another relevant readable source or disclose the coverage gap; '
                     'do not keep searching phrases in an access-challenge page.')
-    if not cache:
-        fetched = {**fetched, **identity, 'kind': SOURCE_KIND, 'role': 'source_cache', 'source_id': source['id']}
-        cache_id = ops.save(SOURCE_KIND, fetched)
-        caches.append({'requested_opinion_id': opinion, 'artifact_id': cache_id,
-                       'opinion_id': fetched.get('opinion_id')})
+    def save_cache(value, *, enriched=False):
+        # Only the new research snapshot points to this immutable enrichment.
+        # Replace aliases too: a first-match cache lookup must not select the old copy.
+        nonlocal cache_id
+        if cache and not enriched:
+            return
+        value = {**value, **identity, 'kind': SOURCE_KIND, 'role': 'source_cache', 'source_id': source['id']}
+        old_id = cache['artifact_id'] if cache else None
+        if old_id:
+            value['parent_cache_artifact_id'] = old_id
+        cache_id = ops.save(SOURCE_KIND, value)
+        if old_id:
+            for entry in caches:
+                if entry['artifact_id'] == old_id:
+                    entry['artifact_id'] = cache_id
+        else:
+            caches.append({'requested_opinion_id': opinion, 'artifact_id': cache_id,
+                           'opinion_id': value.get('opinion_id')})
         source['cache_artifact_id'] = cache_id
     if fetched.get('extraction_complete') is False:
         # Source-reading gaps are separate from processing the selected target.
@@ -895,6 +910,7 @@ def read(ops, args):
     if type(args.start) is not int or not 0 <= args.start <= len(body):
         raise ValueError('Source text offset is outside the saved text.')
     if args.start == len(body):
+        save_cache(fetched)
         uid = _persist(ops, record, args.research_id)
         return _observation(uid, record, **match_info, **identity, source_id=source['id'], text='', start=args.start,
             end=args.start, total_characters=len(body), next_start=None, end_of_source=True,
@@ -910,12 +926,17 @@ def read(ops, args):
                 match_info['matched_query'] = query
                 break
         if match is None:
+            save_cache(fetched)
             uid = _persist(ops, record, args.research_id)
             return _observation(uid, record, **match_info, **identity, source_id=source['id'], total_characters=len(body),
                 match_found=False, message='No supplied phrase was found at or after start, allowing for capitalization, whitespace, quotes, dashes and soft hyphens. This does not establish that the discussion or proposition is absent. Other phrases or paginated reading remain available.')
         match_info.update(match_start=match[0], match_end=match[1])
         lo = max(args.start, match[0] - MATCH_LEADING_CHARACTERS)
     hi = min(len(body), lo + PAGE_CHARACTERS)
+    enriched = authority_sources.resolve_page_metadata(fetched, source,
+        allow_request=getattr(args, 'resolve_page_metadata', False), check_execution=lambda: _check(ops))
+    save_cache(enriched, enriched=enriched is not fetched)
+    fetched = enriched
     match_info.update(published_pages.for_passage(
         fetched, lo, hi, match_info['match_start'], match_info['match_end']))
     passage = {'kind': SOURCE_KIND, 'role': 'passage', 'source_id': source['id'], **match_info,
@@ -925,7 +946,10 @@ def read(ops, args):
         'title': fetched.get('title') or source.get('title'), 'start': lo, 'end': hi,
         'total_characters': len(body), 'next_start': hi if hi < len(body) else None,
         'locations': _passage_locations(fetched.get('blocks') or [], lo, hi),
-        'location_note': AUTHORITY_LOCATION_NOTE,
+        'location_note': authority_sources.page_location_note(fetched, AUTHORITY_LOCATION_NOTE,
+            requested=getattr(args, 'resolve_page_metadata', False)),
+        **{key: copy.deepcopy(fetched[key]) for key in ('publication_source', 'pagination_resolution')
+           if key in fetched},
         'opinion_id': fetched.get('opinion_id'), 'opinion_type': fetched.get('opinion_type'),
         'retrieved_at': fetched.get('retrieved_at'), 'source_sha256': fetched.get('sha256'),
         'extraction_complete': fetched.get('extraction_complete', True),
@@ -951,6 +975,7 @@ def read(ops, args):
     # The cache identity does not extend the returned passage's reading scope.
     return _observation(uid, record, **match_info, **identity, source_id=source['id'], passage_artifact_id=passage_id,
         source_artifact_id=passage['source_artifact_id'],
+        **{key: passage[key] for key in ('publication_source', 'pagination_resolution') if key in passage},
         text=passage['text'], start=lo, end=hi, next_start=passage['next_start'],
         url=passage['url'],
         total_characters=len(body), locations=passage['locations'], location_note=passage['location_note'],

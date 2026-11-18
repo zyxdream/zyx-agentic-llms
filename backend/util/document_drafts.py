@@ -108,16 +108,17 @@ MATERIAL_USE_GUIDANCE = (
 
 
 SOURCE_LOCATION_GUIDANCE = (
-    'Use source-supported locations. PDF PAGE is the 1-based PDF position; printed and reporter '
-    'pages may differ. Character offsets do not establish reporter pages. Never infer offsets/ranges. '
-    'Uploaded or generated pinpoints remain claims until reliable opinion evidence places the '
-    'passage on that reporter page. page_evidence covers its stated ranges; matched_published_pages '
-    'locates only the matched wording, not a longer quotation or its legal application. '
-    'Accept explicit matching pagination; otherwise say '
-    '"not verified from the retrieved sources", retaining supported findings and links without '
-    'unverified pinpoints. Preserve claimed citations when describing documents. Missing evidence '
-    'does not establish fabrication or invalidity; contradictions require evidence. Historical '
-    'labels remain usable. '
+    'Assess quotation wording and support in context separately from published pages. '
+    'Prioritize material wording/context checks over page-only research unless central to the request. '
+    'For paraphrases, assess meaning rather than quotation accuracy. Matches do not verify full quotations/support. '
+    'Distinguish "not checked" from "not verified from the retrieved sources" after checking. '
+    'PDF PAGE is the 1-based PDF position, not necessarily a printed/reporter page. '
+    'Character offsets do not establish reporter pages. Never infer offsets/ranges. '
+    'Uploaded/generated pinpoints remain claims until source evidence locates the passage. '
+    'page_evidence covers stated ranges; matched_published_pages locates only matched wording. '
+    'Accept explicit matching pagination; otherwise retain supported findings/links without asserting pinpoints. '
+    'Preserve claimed citations when describing documents. Missing evidence does not establish fabrication or invalidity; '
+    'contradictions require evidence. Historical labels remain usable. '
 )
 
 

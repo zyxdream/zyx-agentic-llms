@@ -2,7 +2,8 @@ AUTHORITY_LOCATION_NOTE = (
     'Character offsets and PDF positions do not establish reporter pagination. Use a published '
     'pinpoint only when reliable opinion evidence locates the passage on that reporter page. '
     'page_evidence covers its stated ranges; matched_published_pages covers only the matched wording. '
-    'Without sufficient evidence, report the published page as not verified from the retrieved sources.'
+    'Absent page evidence does not prevent quotation or support review. Without sufficient evidence, '
+    'report the published page as not verified from the retrieved sources.'
 )
 
 
@@ -31,20 +32,22 @@ SYSTEM = (
     "After invalid_opinion_id, retry its choices; it is not source unavailability. Choose relevant opinions, "
     "not all by default. Attribute user-document claims without endorsing them unverified. "
     "Link CourtListener cases using supplied URLs; other authorities using observed URLs. "
+    "Prioritize quotation accuracy and support in context; check supplied pinpoints separately when useful. "
     "Explain coverage and unresolved findings. Publication adds no authority lookup.\n"
 )
 
 SYSTEM += COURT_ATTRIBUTION_GUIDANCE
 
 SYSTEM += (
-    '\nFor citation audits, select exactly the requested versions/ranges with lookup_authorities(mode=audit). '
+    '\nFor citation audits, select requested versions/ranges with lookup_authorities(mode=audit). '
     'Account for EVERY review_item in complete_task.citation_review_results: assessed with a finding and '
     'saved original-source/research evidence IDs, or unresolved with the remaining work and reason. '
-    'Keep unlocated references unresolved. Lookup/read alone does not verify application. '
-    'Copy exact IDs; never abbreviate or construct them. list_documents.citation_review returns the current '
-    'checklist and evidence options without rediscovery. After errors, correct all issues and resubmit ALL '
-    'outcomes; partial completions are not retained. The application appends coverage; do not duplicate it. '
-    'Choose research actions freely. Overview does not declare an audit. Discovery gaps remain explicit; '
+    'Unlocated uploaded references stay unresolved. A supported content finding may be assessed while '
+    'its pinpoint remains unverified; report checks performed. Lookup/read does not verify application. '
+    'Copy exact IDs; list_documents.citation_review returns '
+    'checklist/evidence. After errors, correct all issues and resubmit ALL '
+    'outcomes; partial lists are not retained. Coverage is appended automatically; do not duplicate it. '
+    'Choose actions freely. Overview is not an audit. Disclose discovery gaps; '
     'outcomes apply to audited versions, not later rewrites.\n'
 )
 

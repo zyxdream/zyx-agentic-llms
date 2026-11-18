@@ -219,7 +219,8 @@ revision and verification calls.
 Successful `read_authority` observations and newly saved passages include a short
 `location_note` explaining this distinction. The note is metadata outside the
 original text: existing text, locations, match positions, pagination and source
-cache identities remain unchanged. Historical artifacts remain readable and are
+cache text stays unchanged. Optional metadata enrichment creates a new cache copy;
+historical artifacts remain readable and are
 not rewritten. The note does not assert that page evidence is absent from the body.
 
 When evidence is insufficient, report “not verified from the retrieved sources,”
@@ -235,3 +236,16 @@ same quotation without page markers, and Reaves without reporter pagination.
 Mocked tests verify evidence/guidance delivery, unchanged offsets/cache reuse and
 historical compatibility. They do not establish live model compliance; focused
 live results are preserved separately from the earlier frozen benchmarks.
+
+
+## One source-based review
+
+Quotation wording, support in context and published-page location are separate
+conclusions within the existing citation-use finding, sharing the same opinion
+cache and passages. Page evidence is supplemental; missing pagination does not
+invalidate supported content findings. The shared source guidance reaches the
+controller, analysis, creation, revision and verification. It distinguishes an
+unperformed check from one attempted without enough evidence, and does not require
+an extra review call. Review accounting and uploaded-source location safeguards
+remain unchanged. See [published-page evidence](authority-page-evidence.md) for the
+optional metadata flag, provenance, immutable caches and validation boundaries.

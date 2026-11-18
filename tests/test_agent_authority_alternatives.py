@@ -18,7 +18,7 @@ from tests.test_document_preparation import app
 def arguments(**updates):
     return {'research_id': 'saved-research', 'source_id': 'saved-source',
             'opinion_id': None, 'query': 'Original phrase', 'alternative_queries': [],
-            'start': 0, **updates}
+            'start': 0, 'resolve_page_metadata': False, **updates}
 
 
 def test_read_schema_requires_alternatives_but_saved_calls_remain_compatible():
@@ -32,13 +32,14 @@ def test_read_schema_requires_alternatives_but_saved_calls_remain_compatible():
 
     legacy = arguments()
     legacy.pop('alternative_queries')
+    legacy.pop('resolve_page_metadata')
     original = copy.deepcopy(legacy)
     with pytest.raises(ValueError):
         agent_tools.ReadAuthority.model_validate(legacy)
     parsed = agent_tools.arguments('read_authority', legacy)
     assert parsed.alternative_queries == []
     assert legacy == original and 'alternative_queries' not in legacy
-    assert parsed.model_dump() == {**original, 'alternative_queries': []}
+    assert parsed.model_dump() == {**original, 'alternative_queries': [], 'resolve_page_metadata': False}
 
     explicit = arguments(alternative_queries=['  HOURLY rate EMPLOYEE\n', '§ 778.110'])
     original = copy.deepcopy(explicit)

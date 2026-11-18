@@ -1,0 +1,10 @@
+{
+  "opinion_url": "https://www.courtlistener.com/api/rest/v4/opinions/167625/",
+  "opinion_field": "html_with_citations",
+  "html_sha256": "5c2ba7f9b87a2357afd1aff11fc2936ff0fdcab9e0ae66acde470735335c79b9",
+  "opinion_snapshot": "artifacts/model-benchmark-openai-sullivan-coomer-page-corrections-20261117-153455/evaluator-references/opinion-167625-provider.json",
+  "cluster_url": "https://www.courtlistener.com/api/rest/v4/clusters/167625/",
+  "cluster_response_sha256": "e8d412a0bbdce13676790b73ff9c98cb74c38a3bd74ffb3481f395d821f2e46b",
+  "cluster_note": "Only the publication-identifying fields of the recorded metadata response are included.",
+  "recorded_on": "2026-11-17"
+}

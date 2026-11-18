@@ -29,7 +29,7 @@ SYSTEM += "\nThe application maintains one continuous working_draft for this req
 
 SYSTEM += (
     '\n' + SOURCE_LOCATION_GUIDANCE
-    + 'Before publishing, compare source locations with source passages; reread when needed. '
+    + 'Before publishing, compare findings with the supplied source context; reread when needed. '
     'No separate verification call is required.\n'
 )
 
