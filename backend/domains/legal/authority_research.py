@@ -35,7 +35,9 @@ from backend.util import workspace_service as service
 from backend.util.document_preparation import validate_snapshot
 
 
+# Excerpt size and leading context control reading volume, not page verification.
 PAGE_CHARACTERS = 12_000
+MATCH_LEADING_CHARACTERS = 1_000
 RESEARCH_KIND = 'authority_research'
 SOURCE_KIND = 'authority_source'
 EXTRACTION_CHARACTERS = 20_000
@@ -49,7 +51,11 @@ def _source_reference(source):
     """Case identity and observed conflicts, separate from cached bodies/passages."""
     fields = ('id', 'provider', 'url', 'viewer_url', 'title', 'snippet', 'opinions',
               'authority_ids', 'observations', *CASE_IDENTIFICATION_FIELDS)
-    return {key: copy.deepcopy(source[key]) for key in fields if key in source}
+    result = {key: copy.deepcopy(source[key]) for key in fields if key in source}
+    if source.get('type') == 'courtlistener' and 'opinions' in result:
+        from backend.domains.legal.authority_sources import opinion_choices
+        result['opinions'] = opinion_choices(result['opinions'])
+    return result
 
 
 class Mention(BaseModel):
@@ -497,7 +503,10 @@ def _viewer_url(ops, source):
 
 
 def _source(ops, record, incoming, authority_ids):
+    from backend.domains.legal.authority_sources import opinion_choices
     value = copy.deepcopy(incoming)
+    if value.get('type') == 'courtlistener':
+        value['opinions'] = opinion_choices(value.get('opinions'))
     key = ('courtlistener:' + str(value['cluster_id'])) if value.get('cluster_id') else value.get('url')
     if not key:
         return None
@@ -526,13 +535,15 @@ def _source(ops, record, incoming, authority_ids):
             found['case_header_source'] = copy.deepcopy(value['case_header_source'])
         for field in ('opinions',):
             if value.get(field):
-                found[field] = list({service.encode(item): item for item in found.get(field, []) + value[field]}.values())
+                merged = found.get(field, []) + value[field]
+                found[field] = (opinion_choices(merged) if found.get('type') == 'courtlistener'
+                                else list({service.encode(item): item for item in merged}.values()))
     found['authority_ids'] = list(dict.fromkeys(found['authority_ids'] + authority_ids))
     return found
 
 
 def _cluster_source(cluster):
-    from backend.domains.legal.authority_sources import API_BASE, case_header_metadata
+    from backend.domains.legal.authority_sources import API_BASE, case_header_metadata, opinion_choices
     citations = []
     for citation in cluster.get('citations') or []:
         if isinstance(citation, str):
@@ -547,7 +558,7 @@ def _cluster_source(cluster):
         'title': cluster.get('case_name') or cluster.get('case_name_full') or 'CourtListener case',
         'case_name': cluster.get('case_name') or cluster.get('case_name_full'),
         'citations': citations, 'court': cluster.get('court') or cluster.get('court_id'), 'date': cluster.get('date_filed'),
-        'opinions': [{'url': value} if isinstance(value, str) else value for value in cluster.get('sub_opinions') or []],
+        'opinions': opinion_choices(cluster.get('sub_opinions')),
         **case_header_metadata(cluster, f'{API_BASE}citation-lookup/')}
 
 
@@ -819,7 +830,7 @@ def read(ops, args):
 
     Save the actual passage supplied to the agent with source links and locations, while retaining retrieval and extraction limitations.
     """
-    from backend.domains.legal import authority_sources
+    from backend.domains.legal import authority_sources, published_pages
     alternatives = getattr(args, 'alternative_queries', [])
     if args.query is None and alternatives:
         raise ValueError('alternative_queries must be [] when query=null.')
@@ -829,7 +840,8 @@ def read(ops, args):
         raise ValueError('Source ID must come from this research record.')
     _check(ops)
     match_info = {'query': args.query, 'original_query_found': None, 'matched_query': None,
-                  'match_start': None, 'match_end': None}
+                  'match_start': None, 'match_end': None,
+                  'matched_published_pages': None, 'page_evidence': []}
     identity = {key: copy.deepcopy(source[key]) for key in
                 (*CASE_IDENTIFICATION_FIELDS, 'viewer_url', 'observations') if key in source}
     opinion = args.opinion_id
@@ -842,11 +854,17 @@ def read(ops, args):
     else:
         fetched = authority_sources.fetch_source(source, opinion_id=opinion,
                                                   check_execution=lambda: _check(ops))
-        if fetched.get('status') == 'metadata':
-            source['opinions'] = fetched.get('opinions') or []
+        if fetched.get('status') in {'metadata', 'invalid_selection'}:
+            source['opinions'] = (authority_sources.opinion_choices(fetched.get('opinions'))
+                                  if source.get('type') == 'courtlistener' else fetched.get('opinions') or [])
             uid = _persist(ops, record, args.research_id)
+            if fetched['status'] == 'invalid_selection':
+                return _observation(uid, record, **match_info, **identity, source_id=source['id'],
+                    error=True, error_code='invalid_opinion_id',
+                    requested_opinion_id=fetched.get('requested_opinion_id'),
+                    opinions=source['opinions'], next_start=None, message=fetched['error'])
             return _observation(uid, record, **match_info, **identity, source_id=source['id'], opinions=source['opinions'],
-                message='Available opinions saved. Choose an opinion ID to read; no opinion text was read.')
+                message='Choose a numeric opinion_id from these options; no opinion text was read.')
     # Recheck cached HTML too; old immutable challenge artifacts remain intact.
     fetched = authority_sources.reject_blocked_source(fetched)
     if fetched.get('status') != 'read' or not isinstance(fetched.get('text'), str):
@@ -896,8 +914,10 @@ def read(ops, args):
             return _observation(uid, record, **match_info, **identity, source_id=source['id'], total_characters=len(body),
                 match_found=False, message='No supplied phrase was found at or after start, allowing for capitalization, whitespace, quotes, dashes and soft hyphens. This does not establish that the discussion or proposition is absent. Other phrases or paginated reading remain available.')
         match_info.update(match_start=match[0], match_end=match[1])
-        lo = max(args.start, match[0] - 1000)
+        lo = max(args.start, match[0] - MATCH_LEADING_CHARACTERS)
     hi = min(len(body), lo + PAGE_CHARACTERS)
+    match_info.update(published_pages.for_passage(
+        fetched, lo, hi, match_info['match_start'], match_info['match_end']))
     passage = {'kind': SOURCE_KIND, 'role': 'passage', 'source_id': source['id'], **match_info,
         'research_id': args.research_id,
         'source_artifact_id': cache_id, 'text': body[lo:hi], 'url': fetched.get('url') or source.get('url'),

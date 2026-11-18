@@ -139,19 +139,47 @@ def _citation_strings(values):
 
 
 def _opinion_metadata(value):
-    if isinstance(value, str):
-        identifier = value.rstrip('/').rsplit('/', 1)[-1]
-        value = {'id': identifier}
+    """Normalize an opinion reference, never a public case permalink."""
+    if isinstance(value, (int, str)):
+        value = {'id': value} if str(value).isdigit() else {'url': value}
     if not isinstance(value, dict):
         return None
+    identifier = value.get('opinion_id') or value.get('id')
+    if identifier is None:
+        try:
+            parsed = urlsplit(urljoin(API_BASE, value.get('url') or ''))
+            match = re.fullmatch(r'/api/rest/v[34]/opinions/([1-9]\d*)/?', parsed.path)
+            if (parsed.scheme not in {'https', 'http'} or parsed.hostname not in {
+                    'www.courtlistener.com', 'courtlistener.com'} or parsed.username or parsed.password
+                    or not match):
+                return None
+            identifier = match[1]
+        except (TypeError, ValueError):
+            return None
     try:
-        identifier = _identifier(value.get('id') or value.get('opinion_id'))
+        identifier = _identifier(identifier)
     except SourceUnavailable:
         return None
-    return {'id': identifier, 'type': value.get('type'),
+    return {'id': identifier, 'opinion_id': identifier, 'type': value.get('type'),
             'url': f'{API_BASE}opinions/{identifier}/',
             'author': value.get('author_str') or value.get('author') or '',
             'download_url': value.get('download_url')}
+
+
+def opinion_choices(values):
+    """Explicit numeric choices for new results and older URL-only snapshots."""
+    choices = {}
+    if not isinstance(values, (list, tuple)):
+        return []
+    for value in values:
+        row = _opinion_metadata(value)
+        if row is None:
+            continue
+        existing = choices.setdefault(row['opinion_id'], row)
+        for key, item in row.items():
+            if not existing.get(key) and item:
+                existing[key] = item
+    return list(choices.values())
 
 
 def case_header_metadata(row, response_url):
@@ -175,7 +203,7 @@ def _case_result(row):
     if (parsed.scheme not in {'http', 'https'} or parsed.username or parsed.password
             or parsed.hostname not in {'www.courtlistener.com', 'courtlistener.com'}):
         raise SourceUnavailable('CourtListener returned a case URL outside its site.')
-    opinions = [_opinion_metadata(value) for value in row.get('opinions', row.get('sub_opinions', [])) or []]
+    opinions = opinion_choices(row.get('opinions', row.get('sub_opinions', [])))
     name = row.get('caseName') or row.get('case_name') or row.get('caseNameFull') or ''
     return {'type': 'courtlistener', 'provider': 'courtlistener', 'cluster_id': identifier,
             'url': urlunsplit(parsed), 'title': name, 'case_name': name,
@@ -433,9 +461,14 @@ def _fetch_case(source, opinion_id, check_execution):
     """
     cluster_id = _identifier(source.get('cluster_id'))
     chosen = opinion_id if opinion_id is not None else source.get('opinion_id')
-    observed = [_opinion_metadata(value) for value in source.get('opinions') or []]
-    observed = [value for value in observed if value]
-    if chosen is not None and any(value['id'] == _identifier(chosen) for value in observed):
+    invalid_identifier = False
+    if chosen is not None:
+        try:
+            chosen = _identifier(chosen)
+        except SourceUnavailable:
+            invalid_identifier = True
+    observed = opinion_choices(source.get('opinions'))
+    if chosen is not None and not invalid_identifier and any(value['id'] == chosen for value in observed):
         opinions, next_url = observed, None
     else:
         opinions, next_url = _cluster_opinions(source, check_execution)
@@ -446,10 +479,13 @@ def _fetch_case(source, opinion_id, check_execution):
                 'title': source.get('title') or source.get('case_name') or '',
                 'opinions': opinions, 'next_opinions_url': next_url, 'retrieved_at': _now(),
                 'error': None, 'message': 'Choose the specific opinion_id to read; no opinion text was fetched.'}
-    chosen = _identifier(chosen)
-    metadata = next((row for row in opinions if row['id'] == chosen), None)
+    metadata = None if invalid_identifier else next((row for row in opinions if row['id'] == chosen), None)
     if metadata is None:
-        raise SourceUnavailable('The selected opinion is not in the retrieved metadata for this case.')
+        return {'status': 'invalid_selection', 'error_code': 'invalid_opinion_id',
+                'requested_opinion_id': chosen, 'opinions': opinions,
+                'text': '', 'blocks': [], 'url': source.get('url'), 'retrieved_at': _now(),
+                'error': 'Choose an opinion_id from these options, or use null for automatic selection. '
+                         'An invalid selection does not establish that the source is unavailable.'}
     payload, digest = _api_json('GET', f'opinions/{chosen}/', check_execution=check_execution)
     if not isinstance(payload, dict):
         raise SourceUnavailable('CourtListener returned unreadable opinion text.')
@@ -458,7 +494,18 @@ def _fetch_case(source, opinion_id, check_execution):
         parent_id = str(parent).rstrip('/').rsplit('/', 1)[-1]
         if parent_id != str(cluster_id):
             raise SourceUnavailable('The selected opinion belongs to another case.')
-    text = payload.get('plain_text') or ''
+    # Prefer an already-returned HTML representation with identifiable pagination.
+    # Text and offsets must come from that same representation, never plain-text alignment.
+    from backend.domains.legal import published_pages
+    page_ranges, text = [], payload.get('plain_text') or ''
+    for field in ('html_with_citations', 'html_columbia', 'html_lawbox', 'html_anon_2020', 'html'):
+        html = payload.get(field)
+        if not isinstance(html, str) or not html.strip():
+            continue
+        extracted, ranges = published_pages.extract(html, source.get('citations') or [], field=field)
+        if ranges:
+            text, page_ranges = extracted, ranges
+            break
     if not isinstance(text, str):
         raise SourceUnavailable('CourtListener returned an unreadable opinion text field.')
     if not text.strip():
@@ -476,6 +523,7 @@ def _fetch_case(source, opinion_id, check_execution):
             'title': source.get('title') or source.get('case_name') or '',
             'content_type': 'text/plain', 'sha256': digest, 'retrieved_at': _now(),
             'opinion_id': chosen, 'opinion_type': opinion_type, 'opinions': opinions,
+            'published_page_ranges': page_ranges,
             'original_url': payload.get('download_url'), 'error': None}
 
 

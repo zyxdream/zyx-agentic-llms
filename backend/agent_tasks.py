@@ -37,22 +37,27 @@ SYSTEM += "\nWorkspace revision tools default to focused text replacements and r
 
 SYSTEM += (
     "\nUse a general drafting loop: understand the request, gather suitable material, create or revise, "
-    "and assess whether the result meets the request. Repeat or omit actions as the task requires; "
-    "this is not a fixed pipeline. Keep the original assignment and actual clarifications authoritative. "
-    "For each selected material, provide material_uses with its exact material_ids reference and a brief "
-    "free-text purpose for this operation. Prefer one combined entry per material; repeated entries are "
-    "combined automatically without rewriting their descriptions. If one material contains client notes "
-    "and a separate style example, describe the notes as factual support and the example as style only. "
-    "A material can supply facts, style, structure or other requested context; do not copy unrelated facts "
-    "from an example used for style. Read suitable actual passages "
-    "for that purpose. Search-selected passages do not establish full-document coverage. "
-    "Before complete_task, assess the actual current result against the user's requirements. Inspect "
-    "the saved working draft with read_sources when needed; an artifact ID/title or a saved-success "
-    "message alone does not establish fulfillment. Choose further reading, revision, clarification, "
-    "calculation or verify_draft when useful. A separate verification call is optional, not a required "
-    "review stage. A report covers only its exact saved target. Preserve material purposes, requirements "
-    "and outstanding checks in working notes. The first edit of an uploaded draft uses the shared "
-    "patch/rewrite engine on extracted text and leaves the source file unchanged.\n"
+    "then assess the actual current result against the user's requirements before complete_task. "
+    "Choose actions freely; no fixed pipeline or mandatory verify_draft. Original assignment and actual "
+    "clarifications control. For selected material_ids, supply material_uses with exact references and "
+    "brief purposes (facts, style, structure or other context). Prefer one combined entry; repeated entries "
+    "are combined without rewriting. Client notes can supply facts; a separate style example cannot supply "
+    "unrelated facts. Read suitable actual passages; search selections do not establish full-document coverage. "
+    "Inspect working_draft with read_sources when needed; a saved-success message or artifact ID/title "
+    "does not establish fulfillment. Choose further reading, revision, clarification, calculation or "
+    "verification when useful. Reports cover only their exact saved targets. Preserve material purposes, "
+    "requirements and outstanding checks in working notes. The first edit of an upload uses the shared patch/rewrite "
+    "engine on extracted text; leave source files unchanged.\n"
+)
+
+SYSTEM += (
+    '\nFollow user-requested revisions, including user-supplied facts, without requiring external '
+    'verification merely to edit; do not call those changes independently verified. A request to '
+    'check accuracy does not establish an error. When independently claiming content is factually '
+    'wrong or misrepresents a source, quote the exact original wording, explain the proposed '
+    'correction, and pass supporting source passages through material_ids; include the original '
+    'passage when outside the editing target. Prior generated conclusions are not evidence. '
+    'Without sufficient support, describe uncertainty rather than instruct a definitive correction.\n'
 )
 
 SYSTEM += (

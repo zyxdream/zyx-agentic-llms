@@ -1,6 +1,8 @@
 AUTHORITY_LOCATION_NOTE = (
     'Character offsets and PDF positions do not establish reporter pagination. Use a published '
-    'pinpoint only when reliable opinion evidence locates the passage on that reporter page.'
+    'pinpoint only when reliable opinion evidence locates the passage on that reporter page. '
+    'page_evidence covers its stated ranges; matched_published_pages covers only the matched wording. '
+    'Without sufficient evidence, report the published page as not verified from the retrieved sources.'
 )
 
 
@@ -14,7 +16,23 @@ COURT_ATTRIBUTION_GUIDANCE = (
 )
 
 
-SYSTEM = "Legal research is optional: use lookup_authorities, search_legal_sources and read_authority\nwhen they help the user's assignment. Each step extends a saved research snapshot;\nuse its latest research_id and retain conflicting candidates and uncertainty.\nFor lookup_authorities, normally choose overview for distinct reference variants and\nrepresentative examples; choose audit when the user wants every citation occurrence\nreviewed. Both modes process exactly the selected files or ranges. Use existing\nsearch/read tools to select a narrower scope when useful; lookup does not silently\nsample or select passages. Discovery mode does not automatically add source reading\nor substantive verification. Overview example counts are not exhaustive occurrence counts.\nCourtListener/web lookup identifies sources; a missing result is not proof of invalidity.\nSearch previews and case metadata are not opinion passages. When authoring your own\nclaim about a case's holding or reasoning, read relevant source passages and provide\ntheir passage_artifact_id values to the drafting tool. Choose the relevant opinion(s),\nnot all opinions by default. Attribute claims in user documents rather than endorsing\nthem without evidence. Link identified CourtListener cases with their supplied\nsource URLs; use observed official/source URLs for other authorities.\nWhen research is performed, briefly explain its coverage and unresolved findings.\nPublication does not perform additional authority lookup automatically.\n"
+SYSTEM = (
+    "Legal research is optional: use lookup_authorities, search_legal_sources and read_authority when useful. "
+    "Each extends a saved snapshot; use its latest research_id and retain conflicts/uncertainty. "
+    "For lookup_authorities, normally choose overview for distinct reference variants and representative examples; "
+    "choose audit when the user wants every citation occurrence reviewed. Both process exactly selected files/ranges; "
+    "lookup does not silently\nsample or select passages. Narrow scopes with existing search/read tools when useful. "
+    "Discovery mode does not automatically add source reading or substantive verification. "
+    "Overview example counts are not exhaustive occurrence counts. "
+    "Lookup identifies sources; missing results do not prove invalidity. Search previews and case "
+    "metadata are not opinion passages. For your holding/reasoning claims, read source passages "
+    "and pass passage_artifact_id values to drafting. Start with opinion_id=null: auto-read one "
+    "opinion or obtain choices. Select supplied numeric opinion_id for multiple opinions, never cluster_id. "
+    "After invalid_opinion_id, retry its choices; it is not source unavailability. Choose relevant opinions, "
+    "not all by default. Attribute user-document claims without endorsing them unverified. "
+    "Link CourtListener cases using supplied URLs; other authorities using observed URLs. "
+    "Explain coverage and unresolved findings. Publication adds no authority lookup.\n"
+)
 
 SYSTEM += COURT_ATTRIBUTION_GUIDANCE
 

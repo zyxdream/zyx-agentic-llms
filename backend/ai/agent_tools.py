@@ -175,7 +175,7 @@ class SearchLegalSources(Arguments):
 class ReadAuthority(Arguments):
     research_id: str = Field(description='Copy research_id from the same returned source reference as source_id. Searches and reads return new immutable snapshots; do not pair a new source with an earlier snapshot.')
     source_id: str = Field(description='Copy source_id (also displayed as id) together with its research_id from the returned source/citation/link reference. Not an invented URL or a local path.')
-    opinion_id: int | None = Field(description='Specific available CourtListener opinion ID; null for a webpage/PDF or to obtain opinion choices.')
+    opinion_id: int | None = Field(description='Use null initially: auto-read a sole CourtListener opinion, otherwise return numeric choices. Select an opinion_id for multiple opinions; never a case/cluster ID. Null for webpages/PDFs.')
     query: str | None = Field(description='Optional phrase to locate, ignoring capitalization, whitespace/line wrapping, typographic quotes/dashes and soft hyphens. Words, order and numbers must match; null reads a page of original text.')
     alternative_queries: list[str] = Field(description='Ordered phrases tried only after query misses, each from start. [] when unused or query=null. Returns one passage; alternative matches do not validate the original wording.')
     start: int = Field(ge=0, description='Zero-based retrieved-source offset; matches/misses apply from here. Next occurrence: query=matched_query, alternative_queries=[], start=match_end (exclusive). Next chunk: query=null, alternative_queries=[], start=next_start; null ends reading. A different phrase may need start=0. Not uploaded-document offsets.')

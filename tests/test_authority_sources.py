@@ -533,3 +533,28 @@ def test_cancellation_after_web_search_is_not_converted_to_a_provider_error(monk
 def test_saved_case_links_use_the_cluster_opinion_permalink():
     from backend.domains.legal.free_law_tools import build_caseviewer_href
     assert build_caseviewer_href({'type':'case','cluster_id':51}) == 'https://www.courtlistener.com/opinion/51/'
+
+
+def test_explicit_pagination_representation_is_used_without_an_extra_request(api):
+    queue, seen = api
+    html = ('<center><b>365 B.R. 401 (2007)</b></center>'
+            '<p><span class="star-pagination">*409</span>Actual quotation.</p>'
+            '<p><span class="star-pagination">*410</span>Later discussion.</p>')
+    queue.append(Response({'id': 11, 'cluster': 10, 'plain_text': 'Other representation.',
+                           'html_lawbox': html}))
+    result = sources.fetch_source({'type': 'courtlistener', 'cluster_id': 10,
+        'citations': ['365 B.R. 401', '2007 WL 950090'], 'opinions': [{'id': 11}]}, opinion_id=11)
+    assert result['text'] == sources._html_text(html)[1]
+    assert result['published_page_ranges'][0]['citation'] == '365 B.R. 401'
+    assert result['published_page_ranges'][0]['page'] == '409'
+    assert result['published_page_ranges'][0]['field'] == 'html_lawbox'
+    assert len(seen) == 1
+
+
+def test_unsupported_html_pagination_does_not_replace_existing_plain_text(api):
+    api[0].append(Response({'id': 11, 'cluster': 10, 'plain_text': 'Existing source text.',
+                           'html': '<p>*409 ordinary asterisk.</p>'}))
+    result = sources.fetch_source({'type': 'courtlistener', 'cluster_id': 10,
+        'citations': ['365 B.R. 401'], 'opinions': [{'id': 11}]}, opinion_id=11)
+    assert result['text'] == 'Existing source text.'
+    assert result['published_page_ranges'] == []

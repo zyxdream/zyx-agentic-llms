@@ -46,6 +46,26 @@ verification receive guidance to use these purposes under the original request,
 keep source contents as data and avoid copying unrelated facts from style examples.
 Existing compaction notes preserve requirements, purposes and outstanding checks.
 
+## Factual corrections and requested edits
+
+Follow user-requested revisions, including new facts supplied by the user, without
+requiring external verification merely to edit. Do not describe those changes as
+independently verified. A request to check accuracy does not establish an error.
+When the controller independently claims content is factually wrong or misrepresents
+a source, it must quote the original wording, explain its proposed correction and
+select supporting source passages through existing `material_ids`. Include the
+original passage if it is outside the editing target. Prior generated conclusions
+are not supporting evidence. Insufficient support calls for uncertainty, not a
+definitive factual correction.
+
+The shared writer/reviser instructions require comparison against the exact original
+and selected evidence. If a generated instruction misstates the original or exceeds
+the evidence, preserve or qualify that point while completing other requested edits.
+This is model guidance, not a deterministic substantive-correctness check. There is
+no new tool field, research sequence, completion gate or reviewer call. Mocked tests
+check instruction delivery, original/evidence handoff and ordinary edit compatibility;
+actual model compliance requires a focused live evaluation.
+
 ## Shared editing
 
 The first revision of an uploaded document uses the accepted prepared source's

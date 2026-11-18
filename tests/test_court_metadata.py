@@ -103,7 +103,9 @@ def test_header_stays_outside_opinion_text_and_match_positions_with_one_body_fet
     assert_header(record(first['source_artifact_id']))
     assert_header(record(first['passage_artifact_id']))
     assert db.session.get(AgentArtifact, first['passage_artifact_id']).content_json == original_passage
-    assert requests == [('POST', 'citation-lookup/'), ('GET', 'opinions/'), ('GET', 'opinions/2593291/')]
+    # The URL-only lookup reference now supplies the explicit opinion ID, so
+    # selecting it reuses observed metadata and downloads the body only once.
+    assert requests == [('POST', 'citation-lookup/'), ('GET', 'opinions/2593291/')]
 
 
 def test_opinion_choices_misses_and_unavailable_reads_keep_identifying_information(ops, monkeypatch):
