@@ -8,8 +8,8 @@ jobs:
       ZYX_REPLAY_E2E: '1'
       ZYX_PYTHON_LIVE: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.10'
       # textract 1.6.x carries legacy dependency metadata; preserve its existing installer requirement.
@@ -19,7 +19,7 @@ jobs:
       - run: python scripts/cache_tokenizers.py
       - run: docker build -t zyx-agentic-llms-python-analysis:1 backend/python_runtime
       - run: python -m pytest -q -p tests.offline_guard --junitxml=artifacts/workspace-replay/backend-results.xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-replay-results
@@ -30,8 +30,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -41,7 +41,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: browser-replay-results
