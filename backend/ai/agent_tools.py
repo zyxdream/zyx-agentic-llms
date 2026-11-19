@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal
 
 from backend.ai.token_budget import ContextBudgetExceeded, estimate_text_tokens
+from backend.ai import model_policy
 from backend.database import db
 from backend.models import AgentArtifact, ChatThread, UploadedFiles
 from backend.util import workspace_service as service
@@ -296,9 +297,10 @@ class Operations:
         working_draft.ensure(row)
         self.context = json.loads(row.payload_json)['agent_context']
         self.state = copy.deepcopy(self.context['state'])
-        from backend.workspace import state as workspace_state
-        self.model = workspace_state._assistant_model(workspace_state.resolve_assistant_mode(self.data))
-        self.effort = workspace_state._output_effort(workspace_state.resolve_assistant_mode(self.data))
+
+    def role(self, name):
+        """Return the provider/model/effort configured for one operation role."""
+        return model_policy.resolve_role(self.data, name)
 
     def artifact(self, uid, *, kind=None):
         saved = AgentArtifact.query.filter_by(id=uid, run_id=self.row.id).first()
@@ -540,7 +542,8 @@ class Operations:
             service.validate_execution()
             db.session.commit()
 
-        result = search(args.query, model=self.model, reasoning_effort=self.effort,
+        search_policy = self.role('search')
+        result = search(args.query, model=search_policy['model'], reasoning_effort=search_policy['effort'],
                         check_execution=check_execution)
         lines = [f'Web search: {args.query}', 'Generated search synthesis (not full-page source text):',
                  result.get('generated_summary') or 'No search summary was returned.']
@@ -643,6 +646,7 @@ class Operations:
         from backend.ai.base import chat_completion
         from backend.util.agent_context import clarifications
         materials, material_uses, resolution = self.selected_materials(args)
+        analysis = self.role('analysis')
         # This separate LLM call writes findings; the application saves them below.
         # It does not inherit the controller's tool descriptions about persistence.
         try:
@@ -650,7 +654,7 @@ class Operations:
                 + '\nUser clarifications:\n' + service.encode(clarifications(self.row, self.step.sequence))
                 + '\nConversation context:\n' + self.context['conversation']['text']
                 + '\nMaterials (source evidence and prior generated work are labeled):\n' + service.encode(materials),
-                model=self.model, reasoning_effort=self.effort,
+                model=analysis['model'], reasoning_effort=analysis['effort'],
                 sys_prompt='Analyze the requested materials. Preserve qualifications, conflicting evidence, and extraction limitations. '
                     'Cite supplied original source locations. Generated analysis is not independent evidence. '
                     'Return analysis findings only. The application saves your response as an analysis artifact. '
@@ -687,6 +691,8 @@ class Operations:
             raise ValueError('preserve_original is the uploaded-draft revision mode. For a workspace candidate, use general_revision with targeted edit instructions.')
 
         materials, material_uses, resolution = self.selected_materials(args)
+        writer = self.role('writer')
+        court_format = self.role('court_format')
         target, parent = None, None
         workspace_revision = not create and args.target not in file_ids
         references = []
@@ -717,7 +723,7 @@ class Operations:
         try:
             written = document_drafts.write_document(assignment=self.data['query'], instructions=args.instructions,
                 conversation=self.context['conversation'], materials=materials, target=target,
-                answers=clarifications(self.row, self.step.sequence), model=self.model, reasoning_effort=self.effort)
+                answers=clarifications(self.row, self.step.sequence), model=writer['model'], reasoning_effort=writer['effort'])
         except ContextBudgetExceeded as exc:
             raise self.budget_error(exc, materials, resolution, 'drafting') from exc
         settings = copy.deepcopy((target or {}).get('export_settings') or {})
@@ -731,7 +737,7 @@ class Operations:
                 {'title': written.title, 'markdown': written.markdown}, constraints=self.state.get('constraints'),
                 conversation=self.context['conversation'].get('text', ''),
                 instructions=self.data['query'] + '\n' + args.instructions,
-                model=self.model, reasoning_effort=self.effort)
+                model=court_format['model'], reasoning_effort=court_format['effort'])
         if workspace_revision and written.markdown == target['markdown'] and written.title == target.get('title', '') and settings == (target.get('export_settings') or {}):
             return {'unchanged': True, 'kind': 'draft', 'editing_method': editing_method,
                     'base_candidate_id': base, 'working_draft': 'working_draft',
@@ -823,6 +829,7 @@ class Operations:
         else:
             draft = self.target(args.target)
         materials, material_uses, resolution = self.selected_materials(args)
+        verifier = self.role('verifier')
         research = None
         if args.check_citations and not legal_enabled():
             raise ValueError('Legal verification is disabled')
@@ -855,7 +862,7 @@ class Operations:
             report = chat_completion('Original assignment:\n' + self.data['query']
                 + '\nUser clarifications (agent questions provide context):\n' + service.encode(answers)
                 + '\nRequested checks:\n' + args.instructions + '\nDraft:\n' + service.encode(draft)
-                + '\nSupporting materials:\n' + service.encode(materials), model=self.model, reasoning_effort=self.effort,
+                + '\nSupporting materials:\n' + service.encode(materials), model=verifier['model'], reasoning_effort=verifier['effort'],
                 sys_prompt='Check the draft as requested without rewriting it. Report supported findings, source locations, '
                     'missing evidence and uncertainty. Do not claim verification beyond supplied evidence or lookups. '
                     'Return verification findings only. The application saves this response as a report artifact. '

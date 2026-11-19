@@ -2,7 +2,7 @@
 
 ## Current baseline (2026-11-18)
 
-At commit `4d42f56`, the offline backend suite recorded **968 passed, 20 skipped,
+At the current role-policy baseline, the offline backend suite recorded **962 passed, 20 skipped,
 4 known pre-existing failures**; the four failures are unrelated to the current
 work and are named in the [runbook](runbook.md#10-verification). Re-run the
 commands rather than assuming these counts. The sections below record earlier

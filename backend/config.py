@@ -40,16 +40,14 @@ def app_settings():
         if url.drivername != 'sqlite' or not url.database or not Path(url.database).is_absolute() or not Path(url.database).resolve().is_relative_to((ROOT/'instance').resolve()):
             raise ValueError('Local Workspace database must be a SQLite file inside this project instance directory')
     secret = os.getenv('ZYX_FLASK_SECRET_KEY')
-    default_mode = os.getenv('WORKSPACE_DEFAULT_MODE','fast')
-    if default_mode not in {'fast','deep'}:
-        raise ValueError('Workspace model configuration is invalid: check WORKSPACE_DEFAULT_MODE.')
+    from backend.ai import model_policy
+    model_policy.load_model_policy()
     app_url=PUBLIC['appUrl']
     frontend_port=PUBLIC['frontendPort']
     settings = {
         'SECRET_KEY': secret, 'JWT_SECRET_KEY': secret,
         'SQLALCHEMY_DATABASE_URI': database_url, 'SQLALCHEMY_TRACK_MODIFICATIONS': False,
         'WORKSPACE_LEGAL_ENABLED': os.getenv('WORKSPACE_LEGAL_ENABLED','1') != '0',
-        'WORKSPACE_DEFAULT_MODE':default_mode,
         'WORKSPACE_STORAGE_DIR':str(ROOT/'instance/workspace'),
         'DOCUMENT_PREPARATION_SOURCE_DIR':str(ROOT/'instance/workspace/sources'),
         'AGENT_PYTHON_STORAGE_DIR':str(ROOT/'instance/workspace/python'),

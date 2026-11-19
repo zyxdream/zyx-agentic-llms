@@ -736,9 +736,10 @@ def lookup(ops, args):
                 # Give discovery the original chunk plus compact API findings.
                 # It describes every use and additional references while keeping
                 # the document's wording separate from returned candidates.
+                research = ops.role('research')
                 mentions = _discover_mentions(chunk, args.purpose,
                     courtlistener_findings=_compact_lookup_findings(raw, error),
-                    mode=mode, window=window, model=ops.model, reasoning_effort=ops.effort)
+                    mode=mode, window=window, model=research['model'], reasoning_effort=research['effort'])
             except (service.WorkflowStopped, ContextBudgetExceeded):
                 raise
             except Exception as exc:
@@ -830,8 +831,9 @@ def search(ops, args):
         record = copy.deepcopy(resolve_artifact(ops, parent, RESEARCH_KIND))
         selected = _selected(record, args.authority_ids)
     _check(ops)
-    result = authority_sources.search_sources(args.query, args.provider, model=ops.model,
-        reasoning_effort=ops.effort, check_execution=lambda: _check(ops))
+    research = ops.role('research')
+    result = authority_sources.search_sources(args.query, args.provider, model=research['model'],
+        reasoning_effort=research['effort'], check_execution=lambda: _check(ops))
     found = []
     for value in result.get('results') or []:
         source = _source(ops, record, {**value, 'provider': value.get('provider') or args.provider}, args.authority_ids)

@@ -113,13 +113,17 @@ Put the generated value in `ZYX_FLASK_SECRET_KEY`. Fill the rest:
 | `ZYX_CELERY_QUEUE` | Must keep the `zyx-agentic-llms.dev` prefix. |
 | `OPENAI_API_KEY` | Provider credential. |
 | `MODEL_PROVIDER` | `openai`; no other adapter is implemented. |
-| `WORKSPACE_DEFAULT_MODE` | `fast` or `deep` for new mode-less requests. |
-| `WORKSPACE_FAST_MODEL`, `WORKSPACE_DEEP_MODEL` | Model identifiers for each policy. |
+| `WORKSPACE_MODEL_<ROLE>` | Optional override such as `openai:gpt-6.1-sol`. Defaults live in `config/models.json`. |
+| `WORKSPACE_EFFORT_<ROLE>` | Optional reasoning-effort override. |
 | `WORKSPACE_LEGAL_ENABLED` | `1` enables legal tools; `0` removes them. |
 | `FREE_LAW_API_TOKEN` | Optional CourtListener token; anonymous access is rate-limited. |
 | `ZYX_DATABASE_URL` | Optional absolute SQLite URL inside this project's `instance/`. |
 | `ZYX_AWS_REGION` | Optional, for cloud OCR. |
 | `AGENT_PYTHON_IMAGE` | Optional image override; defaults to the tag below. |
+
+Model defaults live in `config/models.json`. There is no fast/deep mode: each run
+saves one role policy snapshot. See
+[model policy](minimal-copy-model-policy.md).
 
 Startup discards inherited `DATABASE_URL`, `REDIS_URL`, `FLASK_SECRET_KEY`,
 Cognito settings and external `PYTHONPATH`. Normal database overrides must be an
@@ -270,11 +274,11 @@ npm run build
 npm run test:e2e
 ```
 
-Recorded baseline at commit `4d42f56` (2026-11-18), Python 3.11.18:
+Current role-policy baseline (2026-11-19), Python 3.11.18:
 
 | Check | Result |
 | --- | --- |
-| Offline backend | 968 passed, 20 skipped, 4 known failures |
+| Offline backend | 962 passed, 20 skipped, 4 known failures |
 | Frontend component | Run the suite; it is the source of truth |
 | Frontend build | Passed |
 | Browser replay | Run the suite; it is the source of truth |

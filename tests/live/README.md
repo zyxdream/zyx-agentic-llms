@@ -127,6 +127,11 @@ The saved conversation IDs and per-turn evidence are in that run's `state.json`
 and `results/evidence.json`. Reusing the same prompts and inputs in a new project
 is the correct comparison; do not append to a frozen conversation.
 
+New runs use the role policy in `config/models.json` (`gpt-6.1-sol` medium for
+controller, analysis, writer and verifier; `gpt-6-luna` medium for preparation,
+research, search, utility and court formatting). The r2 run above remains the
+recorded all-luna baseline; label a role-policy run separately when comparing.
+
 Earlier v2 benchmark runs remain valid historical evidence but are not the
 current baseline:
 

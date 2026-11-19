@@ -113,7 +113,7 @@ def parse_metadata(metadata_json: str | None) -> dict:
 def extract_document_metadata(
     parsed_text: str,
     filename: str,
-    model: str = "gpt-5.5",
+    model: str = "gpt-6-luna",
     *,
     reasoning_effort: str | None = None,
 ) -> dict:

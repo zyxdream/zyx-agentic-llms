@@ -1,93 +1,107 @@
-"""New UI requests use a saved server policy; historical runs keep theirs."""
+"""Role-based model policy: no user-facing fast/deep mode."""
 import json
+
 import pytest
+
 from backend.ai import model_policy
-from backend.config import app_settings
 from backend.database import db
 from backend.models import WorkspaceRun
 from tests.test_workspace_api import client, new_chat
 
 
-@pytest.mark.parametrize('mode,effort',[('fast','medium'),('deep','high')])
-def test_mode_less_requests_save_the_backend_default(client,monkeypatch,mode,effort):
-    client.application.config['WORKSPACE_DEFAULT_MODE']=mode
-    monkeypatch.setattr(model_policy,'WORKSPACE_FAST_MODEL','configured-fast-model')
-    monkeypatch.setenv('WORKSPACE_DEEP_MODEL','configured-deep-model')
-    chat=new_chat(client)
-    response=client.post(f"/api/workspace/conversations/{chat['id']}/runs",json={'query':'Hello Workspace','run_id':'wf_server_policy'})
-    assert response.status_code==202,response.json
-    saved=json.loads(db.session.get(WorkspaceRun,'wf_server_policy').data_json)
-    assert saved['assistant_mode']==mode
-    resolved=model_policy.resolve_assistant_mode(saved)
-    assert model_policy._assistant_model(resolved)==f'configured-{mode}-model'
-    assert model_policy._output_effort(resolved)==effort
+def test_default_policy_assigns_logic_roles_to_sol():
+    policy = model_policy.load_model_policy()
+    assert policy['policy_version'] == 2
+    assert policy['roles']['preparation'] == {
+        'provider': 'openai', 'model': 'gpt-6-luna', 'effort': 'medium'}
+    for role in ('controller', 'analysis', 'writer', 'verifier'):
+        assert policy['roles'][role]['model'] == 'gpt-6.1-sol'
+        assert policy['roles'][role]['effort'] == 'medium'
+    for role in ('research', 'search', 'utility', 'court_format'):
+        assert policy['roles'][role]['model'] == 'gpt-6-luna'
 
 
-def test_current_default_matches_the_former_ui_default(monkeypatch):
-    monkeypatch.delenv('WORKSPACE_DEFAULT_MODE',raising=False)
-    assert app_settings()['WORKSPACE_DEFAULT_MODE']=='fast'
+def test_role_environment_overrides(monkeypatch):
+    monkeypatch.setenv('WORKSPACE_MODEL_CONTROLLER', 'openai:configured-controller')
+    monkeypatch.setenv('WORKSPACE_EFFORT_WRITER', 'high')
+    policy = model_policy.load_model_policy()
+    assert policy['roles']['controller'] == {
+        'provider': 'openai', 'model': 'configured-controller', 'effort': 'medium'}
+    assert policy['roles']['writer']['effort'] == 'high'
+    assert model_policy.default_role('controller')['model'] == 'configured-controller'
+    monkeypatch.setenv('WORKSPACE_MODEL_PREPARATION', 'openai:configured-preparation')
+    assert model_policy.default_role('preparation')['model'] == 'configured-preparation'
 
 
-def test_lost_response_resubmission_reuses_saved_policy_after_default_changes(client):
-    chat=new_chat(client);url=f"/api/workspace/conversations/{chat['id']}/runs"
-    body={'query':'Keep the same request','run_id':'wf_response_lost'}
-    client.application.config['WORKSPACE_DEFAULT_MODE']='fast'
-    assert client.post(url,json=body).status_code==202
-    row=db.session.get(WorkspaceRun,body['run_id']);before=row.data_json;task=row.expected_task_id
-    client.application.config['WORKSPACE_DEFAULT_MODE']='deep'
-    repeated=client.post(url,json=body)
-    assert repeated.status_code==202,repeated.json
-    db.session.expire_all();row=db.session.get(WorkspaceRun,body['run_id'])
-    assert row.data_json==before and row.expected_task_id==task
-    assert WorkspaceRun.query.count()==1
-    assert client.post(f"/api/workspace/runs/{body['run_id']}/cancel").status_code==200
-    assert client.post(f"/api/workspace/runs/{body['run_id']}/retry").status_code==200
+def test_invalid_policy_values_fail_loudly(monkeypatch):
+    monkeypatch.setenv('WORKSPACE_MODEL_CONTROLLER', 'unknown:model')
+    with pytest.raises(ValueError, match='Unsupported model provider'):
+        model_policy.load_model_policy()
+    monkeypatch.delenv('WORKSPACE_MODEL_CONTROLLER')
+    monkeypatch.setenv('WORKSPACE_EFFORT_WRITER', 'extreme')
+    with pytest.raises(ValueError, match='Unsupported reasoning effort'):
+        model_policy.load_model_policy()
+    monkeypatch.delenv('WORKSPACE_EFFORT_WRITER')
+    monkeypatch.setenv('WORKSPACE_MODEL_POLICY_FILE', '/nonexistent/models.json')
+    with pytest.raises(ValueError, match='not found'):
+        model_policy.load_model_policy()
+
+
+def test_new_run_saves_one_role_policy_snapshot(client):
+    chat = new_chat(client)
+    response = client.post(f"/api/workspace/conversations/{chat['id']}/runs",
+                           json={'query': 'A role policy request', 'run_id': 'wf_role_policy'})
+    assert response.status_code == 202, response.json
+    data = json.loads(db.session.get(WorkspaceRun, 'wf_role_policy').data_json)
+    assert 'assistant_mode' not in data
+    assert data['model_policy']['roles']['controller']['model'] == 'gpt-6.1-sol'
+    assert data['model_policy']['roles']['writer']['model'] == 'gpt-6.1-sol'
+    assert data['model_policy']['roles']['preparation']['model'] == 'gpt-6-luna'
+
+
+def test_resubmission_keeps_saved_policy_after_config_change(client, monkeypatch):
+    chat = new_chat(client)
+    url = f"/api/workspace/conversations/{chat['id']}/runs"
+    body = {'query': 'Keep the same policy', 'run_id': 'wf_policy_stable'}
+    assert client.post(url, json=body).status_code == 202
+    before = json.loads(db.session.get(WorkspaceRun, 'wf_policy_stable').data_json)
+    monkeypatch.setenv('WORKSPACE_MODEL_CONTROLLER', 'openai:changed-controller')
+    assert client.post(url, json=body).status_code == 202
     db.session.expire_all()
-    assert db.session.get(WorkspaceRun,body['run_id']).data_json==before
+    after = json.loads(db.session.get(WorkspaceRun, 'wf_policy_stable').data_json)
+    assert after['model_policy'] == before['model_policy']
 
 
-@pytest.mark.parametrize('selectors,expected',[
-    ({'assistant_mode':'deep'},'deep'),
-    ({'assistant_mode':'fast'},'fast'),
-    ({'model':'gpt-6.1-sol'},'fast'),
-    ({'selected_model':'gpt-6.1-sol'},'fast'),
-    ({},'deep'),
-])
-def test_legacy_runs_retain_exact_policy_on_plain_resubmission_and_retry(client,selectors,expected):
-    chat=new_chat(client);url=f"/api/workspace/conversations/{chat['id']}/runs"
-    body={'query':'A saved conversation','run_id':'wf_legacy_policy'}
-    assert client.post(url,json={**body,**selectors}).status_code==202
-    row=db.session.get(WorkspaceRun,body['run_id'])
-    data=json.loads(row.data_json)
-    # Reproduce the pre-change row shape, including a historical mode-less task.
-    for key in ('assistant_mode','model','selected_model'):data.pop(key,None)
-    data.update(selectors);row.data_json=json.dumps(data);db.session.commit()
-    before=row.data_json
-    client.application.config['WORKSPACE_DEFAULT_MODE']='fast' if expected=='deep' else 'deep'
-    assert model_policy.resolve_assistant_mode(data)==expected
-    assert client.post(url,json=body).status_code==202
-    assert client.post('/api/workspace/runs/wf_legacy_policy/cancel').status_code==200
-    assert client.post('/api/workspace/runs/wf_legacy_policy/retry').status_code==200
-    db.session.expire_all();saved=db.session.get(WorkspaceRun,body['run_id'])
-    assert saved.data_json==before and model_policy.resolve_assistant_mode(json.loads(saved.data_json))==expected
+def test_different_policy_on_existing_run_is_rejected(client):
+    chat = new_chat(client)
+    url = f"/api/workspace/conversations/{chat['id']}/runs"
+    body = {'query': 'A fixed policy request', 'run_id': 'wf_policy_conflict'}
+    assert client.post(url, json=body).status_code == 202
+    changed = dict(body)
+    changed['model_policy'] = {
+        'policy_version': 2,
+        'roles': {role: {'provider': 'openai', 'model': 'different', 'effort': 'medium'}
+                  for role in model_policy.ROLES},
+    }
+    assert client.post(url, json=changed).status_code == 400
 
 
-def test_explicit_legacy_policy_change_is_still_rejected_for_an_existing_id(client):
-    chat=new_chat(client);url=f"/api/workspace/conversations/{chat['id']}/runs"
-    body={'query':'Do not change the policy','run_id':'wf_policy_conflict'}
-    assert client.post(url,json={**body,'selected_model':'gpt-6.1-sol'}).status_code==202
-    conflict=client.post(url,json={**body,'selected_model':'another-model'})
-    assert conflict.status_code==400
-    assert json.loads(db.session.get(WorkspaceRun,body['run_id']).data_json)['selected_model']=='gpt-6.1-sol'
+def test_legacy_rows_keep_historical_policy():
+    fast = model_policy.resolve_policy({'assistant_mode': 'fast'})
+    assert fast['legacy_mode'] == 'fast'
+    assert fast['roles']['writer'] == {
+        'provider': 'openai', 'model': 'gpt-6-luna', 'effort': 'medium'}
+    deep = model_policy.resolve_policy({'assistant_mode': 'deep'})
+    assert deep['roles']['writer'] == {
+        'provider': 'openai', 'model': 'gpt-6.1-sol', 'effort': 'high'}
+    assert deep['roles']['preparation']['model'] == 'gpt-6-luna'
+    assert deep['roles']['utility'] == {
+        'provider': 'openai', 'model': 'gpt-6.1-sol', 'effort': 'medium'}
+    assert model_policy.resolve_policy({})['legacy_mode'] == 'deep'
+    assert model_policy.resolve_policy({'model': 'gpt-6.1-sol'})['legacy_mode'] == 'fast'
 
 
-def test_invalid_backend_default_fails_as_a_configuration_error(monkeypatch):
-    monkeypatch.setenv('WORKSPACE_DEFAULT_MODE','invalid')
-    with pytest.raises(ValueError,match='model configuration') as caught:app_settings()
-    assert 'Choose' not in str(caught.value)
-
-
-@pytest.mark.parametrize('value',['invalid',None,[]])
-def test_invalid_legacy_modes_never_ask_users_to_choose_a_model(value):
-    with pytest.raises(ValueError,match='model configuration') as caught:model_policy.resolve_assistant_mode({'assistant_mode':value})
-    assert 'Choose' not in str(caught.value)
+def test_explicit_legacy_selectors_are_not_replaced_by_a_new_policy():
+    data = model_policy.apply_model_policy({'query': 'Old client', 'assistant_mode': 'deep'})
+    assert 'model_policy' not in data
+    assert data['assistant_mode'] == 'deep'

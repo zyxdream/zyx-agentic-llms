@@ -21,7 +21,7 @@ from backend.ai.base import chat_completion_parse
 
 
 BLOCK_TYPES = {"heading", "paragraph"}
-DEFAULT_MODEL = "gpt-5.5"
+DEFAULT_MODEL = "gpt-6-luna"
 # Per-section block structuring is one LLM call per section and the calls are independent, so
 # they are fanned out across a thread pool. Sized to cover most documents (complaints/briefs
 # rarely exceed ~30-40 sections) in a single parallel round; in line with the drafters' 25-50

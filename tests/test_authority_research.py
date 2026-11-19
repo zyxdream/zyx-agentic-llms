@@ -38,6 +38,7 @@ def step_ops(row):
     db.session.commit()
     ops = SimpleNamespace(row=row, step=step, task=db.session.get(Drafts, row.draft_id),
         snapshot=json.loads(row.data_json)['document_snapshot'], model='gpt-6-luna', effort='medium')
+    ops.role = lambda name: {'model': 'gpt-6-luna', 'effort': 'medium'}
     def save(kind, value, artifact_id=None):
         uid = artifact_id or str(uuid.uuid4())
         db.session.add(AgentArtifact(id=uid, run_id=row.id, step_id=step.id,

@@ -46,9 +46,9 @@ def test_fresh_identity_edit_conflict_and_download(client):
 
 def test_run_reload_cancel_retry_and_ownership(client,monkeypatch):
  chat=new_chat(client);url='/api/workspace/conversations/'+chat['id']
- sent=client.post(url+'/runs',json={'query':'Summarize the assignment','run_id':'wf_api','assistant_mode':'fast'})
+ sent=client.post(url+'/runs',json={'query':'Summarize the assignment','run_id':'wf_api'})
  assert sent.status_code==202,sent.json
- assert client.post(url+'/runs',json={'query':'Summarize the assignment','run_id':'wf_api','assistant_mode':'fast'}).json['run_id']=='wf_api'
+ assert client.post(url+'/runs',json={'query':'Summarize the assignment','run_id':'wf_api'}).json['run_id']=='wf_api'
  restored=client.get(url).json;assert restored['active_run']['run_id']=='wf_api';assert len(restored['history'])==1
  assert client.post('/api/workspace/runs/wf_api/cancel').json['cancelled']
  assert client.get(url).json['history'][0]['status']=='cancelled'

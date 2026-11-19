@@ -620,7 +620,7 @@ def fetch_raw_format_requirements_llm(
     *,
     constraints: dict | None = None,
     conversation_brief: str | None = None,
-    model: str = "gpt-5.5",
+    model: str = "gpt-6-luna",
 ) -> tuple[str | None, dict | None]:
     """Call the LLM and return (raw_output_text, parsed_dict). For integration tests/debug."""
     excerpt = build_draft_excerpt(draft)
@@ -640,7 +640,7 @@ def resolve_format_spec_for_export(
     *,
     constraints: dict | None = None,
     conversation_brief: str | None = None,
-    model: str = "gpt-5.5",
+    model: str = "gpt-6-luna",
     reasoning_effort: str | None = None,
 ) -> dict:
     """Return full export spec (structural + layout) for Word export."""

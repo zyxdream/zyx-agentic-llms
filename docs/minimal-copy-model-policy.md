@@ -1,21 +1,66 @@
-# Minimal copy and backend-owned model defaults
+# Model policy
 
-Empty conversations now display “What’s next?” and the composer uses “Message Workspace…” with the accessible label “Message”. The eyebrow and supporting task-list paragraph have been removed. The replacement phrases were compared with the retired frontend and had no matches; no comparison checkout is needed by the application or test suite.
+Workspace uses one role-based model policy per run. There is no user-facing
+fast/deep mode and no frontend model selector.
 
-The frontend has no model/reasoning selector, mode state, or model field in its submission fingerprint. Browser requests omit `assistant_mode`, `model` and `selected_model`. Functional Sources/Document controls and the existing attachment, Send, Stop, clarification and retry behavior remain.
+## Roles and defaults
 
-## Backend compatibility
+Defaults live in `config/models.json`:
 
-- `WORKSPACE_DEFAULT_MODE` is a private backend setting, defaulting to `fast` to preserve the former frontend default and its existing model/effort mapping. It is validated at startup and is not exported in public frontend configuration.
-- Newly admitted requests without model selectors save this server choice in their run data before dispatch.
-- HTTP resubmissions with the same run ID inherit the saved selector fields instead of consulting a newer default. Existing query/source identity checks still reject changed requests.
-- Legacy explicit selectors are retained for older clients. Historical rows without any selector still resolve according to their previous behavior; they are not stamped with the new default. Explicit retries likewise retain the saved run data.
-- Configuration errors no longer ask users to choose Fast/Deep. The existing model identifiers, provider transport and helper mappings have not been changed.
+| Role | Default model | Effort | Used for |
+| --- | --- | --- | --- |
+| `preparation` | `gpt-6-luna` | medium | Uploaded-document summaries and navigation records |
+| `controller` | `gpt-6.1-sol` | medium | Next-action and tool-choice decisions |
+| `analysis` | `gpt-6.1-sol` | medium | `analyze_material` findings |
+| `writer` | `gpt-6.1-sol` | medium | `create_draft` and `revise_draft` |
+| `verifier` | `gpt-6.1-sol` | medium | `verify_draft` findings |
+| `research` | `gpt-6-luna` | medium | Authority discovery and legal-source search |
+| `search` | `gpt-6-luna` | medium | Standalone web-search synthesis |
+| `utility` | `gpt-6-luna` | medium | Compaction, conversation brief, editor-write check |
+| `court_format` | `gpt-6-luna` | medium | Pleading format resolution |
 
-No database migration, existing-row rewrite, new provider selection, model-setting consolidation or automatic routing is included. Deciding future models remains separate backend work.
+The rule is deliberate: luna for high-volume or low-logic work, `gpt-6.1-sol`
+medium for logic-heavy and accuracy-critical work.
 
-## Verification
+## Per-run snapshot
 
-All **496 backend tests**, **96 frontend component tests**, and **78 browser workflows** passed. The full backend run includes actual isolated Redis/Celery replays with mode-less requests and Docker execution; the new policy cases cover the current default, a changed server default, lost-response resubmission, explicit retry, legacy selectors, historical mode-less rows, policy conflicts and generic configuration errors. The production build passed and the minimal welcome was visually inspected.
+At admission, the resolved policy is saved in the run's `data_json` as
+`model_policy`. Resubmissions, retries and saved-run inspection reuse that
+snapshot even if `config/models.json` or the environment changes later.
 
-Workspace was refreshed on frontend 3010/backend 5010/Redis 6390 after confirming no active work. Every existing application table/account hash was unchanged, and the other application's listener PIDs were unchanged. Verification made no paid-provider requests. Reports are under ignored `artifacts/minimal-copy/` and `artifacts/workspace-replay/`. No pushes were made.
+The browser sends no model fields. The frontend has no model/reasoning selector,
+mode state, or model field in its submission fingerprint.
+
+## Overrides
+
+Per-role environment overrides are optional:
+
+```dotenv
+WORKSPACE_MODEL_CONTROLLER=openai:gpt-6.1-sol
+WORKSPACE_MODEL_PREPARATION=openai:gpt-6-luna
+WORKSPACE_EFFORT_VERIFIER=high
+```
+
+The value may be `provider:model` or just `model` (provider defaults to
+`openai`). Invalid providers, models or efforts fail at policy load rather than
+silently falling back.
+
+## Legacy runs
+
+Runs admitted before the role policy keep their historical behavior:
+
+- `assistant_mode=fast` resolves to luna medium for all roles.
+- `assistant_mode=deep` resolves to `gpt-6.1-sol` high for controller/tools,
+  `gpt-6.1-sol` medium for utility, and luna medium for preparation.
+- Historical rows with no selector resolve as deep.
+- Explicit legacy `model`/`selected_model` selectors are retained for old
+  clients and are not rewritten.
+
+New runs never write `assistant_mode`, `model` or `selected_model`.
+
+## Historical note
+
+This replaces the earlier minimal-copy policy where `WORKSPACE_DEFAULT_MODE`
+chose between `WORKSPACE_FAST_MODEL` and `WORKSPACE_DEEP_MODEL`. Those settings
+are removed from `.env.example`; the legacy read-only resolver remains so
+existing rows and retries stay reproducible. No database migration is needed.

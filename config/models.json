@@ -1,0 +1,51 @@
+{
+  "policy_version": 2,
+  "default_effort": "medium",
+  "roles": {
+    "preparation": {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "effort": "medium"
+    },
+    "controller": {
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    "analysis": {
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    "writer": {
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    "verifier": {
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    "research": {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "effort": "medium"
+    },
+    "search": {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "effort": "medium"
+    },
+    "utility": {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "effort": "medium"
+    },
+    "court_format": {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "effort": "medium"
+    }
+  }
+}

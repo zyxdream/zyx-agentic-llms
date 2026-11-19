@@ -55,9 +55,10 @@ def main():
  from scripts import dev
  os.environ.update(dev.environment())
  from backend.ai import model_policy,base
- from backend.util.preparation_summary import MODEL
- mode=os.getenv('WORKSPACE_DEFAULT_MODE','fast')
- runtime={'provider':os.getenv('MODEL_PROVIDER','openai'),'new_run_policy':mode,'controller_model':model_policy._assistant_model(mode),'configured_effort':model_policy._output_effort(mode),'effective_effort':base._effective_reasoning_effort(model_policy._assistant_model(mode),model_policy._output_effort(mode)),'preparation_model':MODEL,'base_default_model':base.DEFAULT_MODEL,'service_records':dev.read_state(),'hardware':{'logical_cpus':os.cpu_count()}}
+ policy=model_policy.load_model_policy()
+ controller=policy['roles']['controller']
+ preparation=policy['roles']['preparation']
+ runtime={'provider':os.getenv('MODEL_PROVIDER','openai'),'model_policy':policy,'controller_model':controller['model'],'controller_effort':controller['effort'],'effective_effort':base._effective_reasoning_effort(controller['model'],controller['effort']),'preparation_model':preparation['model'],'preparation_effort':preparation['effort'],'base_default_model':base.DEFAULT_MODEL,'service_records':dev.read_state(),'hardware':{'logical_cpus':os.cpu_count()}}
  (out/'runtime-configuration.json').write_text(json.dumps(runtime,indent=2)+'\n')
  print(str(out))
 

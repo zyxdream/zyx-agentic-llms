@@ -79,7 +79,7 @@ def test_standalone_search_saves_without_documents_or_legal_research(no_document
     assert seen[0][0] == QUERY
     assert seen[0][1]['model'] == 'gpt-6-luna'
     assert seen[0][1]['reasoning_effort'] == agent_tools.Operations(
-        no_documents, agent_tasks.steps(no_documents).filter_by(kind='tool').first(), None).effort
+        no_documents, agent_tasks.steps(no_documents).filter_by(kind='tool').first(), None).role('search')['effort']
     assert AgentArtifact.query.filter_by(run_id=no_documents.id, kind='authority_research').count() == 0
     saved = db.session.get(AgentArtifact, result['artifact_id'])
     assert saved.kind == 'web_search'

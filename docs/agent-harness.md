@@ -262,6 +262,17 @@ know whether the provider call completed.
 Draft candidate, conversation turn, confirmed version, output files and run result
 commit together. A failure leaves the previous Output and turn intact.
 
+## Model policy
+
+Each run carries one role-based policy snapshot: `preparation`, `controller`,
+`analysis`, `writer`, `verifier`, `research`, `search`, `utility` and
+`court_format`. Defaults live in `config/models.json`; the run stores the
+resolved provider, model and effort so retries do not change models.
+
+There is no user-facing fast/deep mode. `gpt-6-luna` medium handles high-volume
+and low-logic work; `gpt-6.1-sol` medium handles controller decisions, analysis,
+drafting and verification. Legacy rows still resolve their historical policy.
+
 ## Provider boundary
 
 The harness depends on a small protocol: `decide(...)` returns a provider

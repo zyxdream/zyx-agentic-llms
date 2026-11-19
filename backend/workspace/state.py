@@ -1,6 +1,5 @@
 """Extracted, application-owned helpers for the Workspace agent."""
-from backend.ai.model_policy import resolve_assistant_mode
-from backend.ai.model_policy import _assistant_model, _output_effort
+from backend.ai import model_policy
 
 from celery import shared_task
 
@@ -14,7 +13,6 @@ from backend.util.db import DBMemory
 
 from backend.database import db
 
-from backend.ai import base as ai_base
 from backend.ai.base import chat_completion_parse
 
 from backend.ai.workspace_schemas import BriefUpdateResult
@@ -323,12 +321,15 @@ Return JSON: {"brief": "...", "constraints": {"tone": null, "exclusions": [], "s
 
 def update_conversation_brief(current_brief: str, constraints: dict,
                                user_message: str, assistant_response: str,
-                               model: str = ai_base.DEFAULT_MODEL, token_counter=None,
+                               model: str | None = None, token_counter=None,
                                reasoning_effort: str | None = None, require_complete: bool = False) -> tuple[str, dict]:
     """Ask the LLM to update the rolling session brief and durable constraints.
 
     Phase 2 calls this after answer, create, edit, and revise branches, and smart search imports it for the same post-turn memory maintenance.
     """
+    if model is None:
+        utility = model_policy.default_role('utility')
+        model, reasoning_effort = utility['model'], utility['effort']
     from backend.util.conversation_context import compact
     from backend.util.preparation_summary import token_count
     if token_count(user_message + assistant_response) > 24000:
@@ -398,7 +399,10 @@ def _run_brief_update(data: dict) -> None:
     from backend.util.account_access import account_execution, chat_account_id, require_enabled_account
     owner_id = chat_account_id(doc_id)
     require_enabled_account(owner_id)
-    assistant_mode = resolve_assistant_mode(data)
+    utility = {'model': data.get('model'), 'effort': data.get('reasoning_effort')}
+    if not utility['model']:
+        legacy = any(key in data for key in ('assistant_mode', 'model', 'selected_model'))
+        utility = model_policy.resolve_role(data, 'utility') if legacy else model_policy.default_role('utility')
     memory = DBMemory(db=db, doc_id=doc_id)
     state = load_state_from_memory(memory)
     from backend.util.conversation_context import available_turns, conversation_turn
@@ -430,7 +434,7 @@ def _run_brief_update(data: dict) -> None:
         with account_execution(owner_id):
             new_brief, new_constraints = update_conversation_brief(
                 new_brief, new_constraints, question, answer,
-                model=_assistant_model(assistant_mode), reasoning_effort="medium", require_complete=True)
+                model=utility['model'], reasoning_effort=utility['effort'], require_complete=True)
     latest_state = load_state_from_memory(memory)
     if (latest_state.get('conversation_brief_through'), latest_state.get('conversation_brief', ''),
             latest_state.get('constraints', {})) != baseline:
@@ -483,7 +487,7 @@ def update_conversation_brief_task(self, data: dict) -> None:
 
 
 def _enqueue_brief_update(doc_id, user_message: str, llm_response: str, error_flag: bool = False,
-                          *, assistant_mode: str = "deep") -> None:
+                          *, model: str | None = None, reasoning_effort: str | None = None) -> None:
     """Fire-and-forget the post-turn conversation-brief update (see update_conversation_brief_task)."""
     if error_flag or not llm_response:
         return
@@ -492,7 +496,8 @@ def _enqueue_brief_update(doc_id, user_message: str, llm_response: str, error_fl
             'doc_id': int(doc_id),
             'user_message': user_message,
             'assistant_response': llm_response,
-            'assistant_mode': assistant_mode,
+            'model': model,
+            'reasoning_effort': reasoning_effort,
         }
         from backend.util.workspace_service import current_execution
         context = current_execution()

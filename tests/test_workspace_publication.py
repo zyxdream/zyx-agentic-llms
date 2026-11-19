@@ -215,7 +215,7 @@ def test_new_admission_accepts_explicit_ids_without_legacy_alias(agent, monkeypa
     snapshot = json.loads(agent.data_json)['document_snapshot']
     row = workflow.submit(1, {'chat_thread_id': state['chat_thread_id'],
         'draft_document_id': state['draft_document_id'], 'query': 'Next request.',
-        'document_snapshot': snapshot, 'assistant_mode': 'fast'})
+        'document_snapshot': snapshot})
     assert row.chat_thread_id == agent.chat_thread_id
     assert row.draft_document_id == workspace_store.document_for_chat(agent.chat_thread_id).id
     assert row.base_draft_version == state['draft_version']

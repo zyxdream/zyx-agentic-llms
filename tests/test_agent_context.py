@@ -131,7 +131,7 @@ def test_repeated_large_reads_are_bounded_and_preserve_saved_steps_and_artifacts
         request = {**request_for(row), 'input': result}
         assert token_budget.estimate_text_request(request) <= agent_context.COMPACTION_RATIO * token_budget.usable_input_budget(request)
         token_budget.validate_text_request(request)
-    assert prompts and all(kwargs['model'] == 'context-test' for _, kwargs in prompts)
+    assert prompts and all(kwargs['model'] == 'gpt-6-luna' for _, kwargs in prompts)
     assert all('ciphertext-' not in prompt for prompt, _ in prompts)
     assert completed_bytes(row)[:len(saved_steps)] == saved_steps
     assert db.session.get(AgentArtifact, artifact.id).content_json == saved_artifact
@@ -381,7 +381,7 @@ def test_controller_finishes_from_compacted_synthetic_working_state(context_row,
         db.session.add(AgentArtifact(id=uid, run_id=row.id, step_id=step.id,
             kind=kind, content_json=service.encode(body), created_at=service.now()))
     db.session.commit()
-    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'gpt-6-luna', 141000)
+    monkeypatch.setitem(token_budget.CONTEXT_LIMITS, 'gpt-6.1-sol', 141000)
     summary = f'{facts} Source {source_id}, order-file characters 0:70. Candidate {candidate_id}. Acceptance remains unresolved.'
     prompts = summary_provider(monkeypatch, summary)
     requests = []

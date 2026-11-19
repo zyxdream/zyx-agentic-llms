@@ -10,6 +10,7 @@ from backend.models import AgentStep
 from backend.util import workspace_service as service
 from backend.util.preparation_summary import token_count
 from backend.ai.token_budget import IncompleteStructuredOutput, estimate_text_request, usable_input_budget, validate_text_request
+from backend.ai import model_policy
 
 
 COMPACTION_RATIO = 0.8
@@ -200,6 +201,7 @@ def prepare_input(row, request):
     if size is None:
         return items
     target = int(budget * COMPACTION_RATIO)
+    utility = model_policy.resolve_role(json.loads(row.data_json), 'utility')
     while size > target and groups:
         # Choose the longest whole-group suffix that leaves room for the rolling
         # summary. The actual complete request is measured again after generation.
@@ -214,7 +216,7 @@ def prepare_input(row, request):
             else:
                 low = count + 1
         count = low
-        summary = _summarize(row, initial, summary, groups[:count], request['model'])
+        summary = _summarize(row, initial, summary, groups[:count], utility['model'])
         through = groups[count - 1].end
         _save(row, 'working_context', {'summary': summary, 'through_sequence': through})
         groups = groups[count:]

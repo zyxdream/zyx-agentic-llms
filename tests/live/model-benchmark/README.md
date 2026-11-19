@@ -99,7 +99,15 @@ That run followed the fatal Sullivan drafting-budget failure in
 `artifacts/model-benchmark-openai-condition-strength-20261118-131407` (7/8 turns).
 The S1 `create_draft` that previously exceeded the budget completed with 19
 requested materials resolved to 14. Compare later runs against the r2 baseline,
-not against v1. Version 1 remains historical evidence, not a matched
+not against v1.
+
+New runs after the role-policy change use `gpt-6.1-sol` medium for the
+controller, analysis, writer and verifier, and `gpt-6-luna` medium for
+preparation, research, search, utility and court formatting. The r2 run remains
+the recorded all-luna baseline; label a new run separately when comparing the two
+policies.
+
+Version 1 remains historical evidence, not a matched
 timing/accuracy comparison. Its frozen prompts and eight-input design remain in
 `artifacts/model-benchmark-openai-20261115-152018/` and later replay directories;
 do not rewrite those results with the new expectations.

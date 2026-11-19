@@ -145,11 +145,14 @@ Docker, verification and troubleshooting steps are in the
 
 ## Configuration and storage
 
-- `MODEL_PROVIDER=openai` selects the supported adapter. `WORKSPACE_FAST_MODEL`
-  and `WORKSPACE_DEEP_MODEL` change model identifiers, not the provider.
-- `WORKSPACE_DEFAULT_MODE=fast` applies only to new requests without a saved
-  policy. The resolved policy is saved per run; retries retain it. There is no
-  frontend model selector. See [model policy](docs/minimal-copy-model-policy.md).
+- `MODEL_PROVIDER=openai` selects the supported adapter. Model choices are
+  role-based in `config/models.json`: preparation and utility work use
+  `gpt-6-luna`, while controller, analysis, writer and verifier use
+  `gpt-6.1-sol` at medium effort.
+- `WORKSPACE_MODEL_<ROLE>` and `WORKSPACE_EFFORT_<ROLE>` are optional per-role
+  overrides. New runs save one `model_policy` snapshot; retries retain it. There
+  is no frontend model selector and no fast/deep mode. See
+  [model policy](docs/minimal-copy-model-policy.md).
 - `WORKSPACE_LEGAL_ENABLED=0` removes legal tools and instructions.
 - The database is SQLite at `instance/zyx-agentic-llms.db`. An override must be an
   absolute file inside this project's `instance/`.

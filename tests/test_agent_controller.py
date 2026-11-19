@@ -38,7 +38,7 @@ def agent(app, monkeypatch):
     db.session.commit()
     snapshot = prep.build_snapshot(1, 'draft-1', {'promptAttachments': [{'file_id': entry['document_id']}]})
     row = service.submit(1, {'conversation_id': 'draft-1', 'query': 'Compare the source, draft a summary, and check its support.',
-        'document_snapshot': snapshot, 'assistant_mode': 'fast'})
+        'document_snapshot': snapshot})
     tasks.dispatch(row)
     # Existing controller tests permit ordinary candidate publication without
     # calling a live provider. Dedicated guard tests override this decision.
@@ -112,7 +112,7 @@ def test_result_driven_sequence_preserves_reasoning_and_publishes_once(agent, mo
     assert saved['chat_history_meta'][0]['agent_run']
     assert saved['chat_history_meta'][0]['document_scope']['version'] == 2
     assert json.loads(agent.payload_json)['agent_sources'][0]['file_id'] == uid
-    assert requests[0]['model'] == 'gpt-6-luna'
+    assert requests[0]['model'] == 'gpt-6.1-sol'
     assert requests[-1]['parallel_tool_calls'] is False
     assert requests[-1]['store'] is False
     assert any(item.get('encrypted_content') == 'encrypted-state' for item in requests[-1]['input'])

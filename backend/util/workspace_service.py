@@ -128,12 +128,17 @@ def submit(user_id, data):
     if not isinstance(workflow_id, str) or not re.fullmatch('wf_[A-Za-z0-9_-]{1,77}', workflow_id):
         raise ValueError('Invalid run_id')
     existing = db.session.get(Workflow, workflow_id)
-    from backend.ai.model_policy import apply_admission_policy
+    from backend.ai.model_policy import apply_model_policy
     if existing:
         from backend.util.prepared_retrieval import evidence_scope
         previous = json.loads(existing.data_json)
-        data = apply_admission_policy(data, previous)
-        if existing.user_id != user_id or existing.chat_thread_id != draft_id or any((previous.get(key) != data.get(key) for key in ('query', 'assistant_mode', 'model', 'selected_model', 'selected_section', 'draft_mode'))) or (evidence_scope(previous['document_snapshot']) != evidence_scope(data['document_snapshot'])):
+        data = apply_model_policy(data, previous)
+        def policy_identity(value):
+            saved = value.get('model_policy')
+            if isinstance(saved, dict):
+                return saved
+            return {key: value.get(key) for key in ('assistant_mode', 'model', 'selected_model')}
+        if existing.user_id != user_id or existing.chat_thread_id != draft_id or any((previous.get(key) != data.get(key) for key in ('query', 'selected_section', 'draft_mode'))) or policy_identity(previous) != policy_identity(data) or (evidence_scope(previous['document_snapshot']) != evidence_scope(data['document_snapshot'])):
             raise ValueError('The submitted prompt identifier is already in use')
         if data.get('draft_document_id') is not None:
             from backend.util import workspace_store
@@ -141,7 +146,7 @@ def submit(user_id, data):
             if existing.draft_document_id is not None and document.id != existing.draft_document_id:
                 raise ValueError('The submitted prompt identifier targets another document')
         return existing
-    data = apply_admission_policy(data)
+    data = apply_model_policy(data)
     db.session.query(ChatThread).filter_by(id=draft_id).with_for_update().one()
     active = Workflow.query.filter_by(active_chat_thread_id=draft_id).first()
     if active:
