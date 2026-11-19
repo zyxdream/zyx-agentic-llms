@@ -73,7 +73,7 @@ pycryptodome==3.19.1
 pydantic==2.8.0
 pydantic_core==2.20.0
 Pygments==2.21.0
-PyJWT==2.15.0
+PyJWT==2.15.1
 PyPDF2==3.0.1
 PyMuPDF==1.23.26
 PyMuPDFb==1.23.22
