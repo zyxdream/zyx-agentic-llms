@@ -40,8 +40,8 @@ def app_settings():
         if url.drivername != 'sqlite' or not url.database or not Path(url.database).is_absolute() or not Path(url.database).resolve().is_relative_to((ROOT/'instance').resolve()):
             raise ValueError('Local Workspace database must be a SQLite file inside this project instance directory')
     secret = os.getenv('ZYX_FLASK_SECRET_KEY')
-    from backend.ai import model_policy
-    model_policy.load_model_policy()
+    from backend.ai import model_settings
+    model_settings.load_model_settings()
     app_url=PUBLIC['appUrl']
     frontend_port=PUBLIC['frontendPort']
     settings = {

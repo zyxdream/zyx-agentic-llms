@@ -10,7 +10,7 @@ from backend.models import AgentStep
 from backend.util import workspace_service as service
 from backend.util.preparation_summary import token_count
 from backend.ai.token_budget import IncompleteStructuredOutput, estimate_text_request, usable_input_budget, validate_text_request
-from backend.ai import model_policy
+from backend.ai import model_settings
 
 
 COMPACTION_RATIO = 0.8
@@ -201,7 +201,8 @@ def prepare_input(row, request):
     if size is None:
         return items
     target = int(budget * COMPACTION_RATIO)
-    utility = model_policy.resolve_role(json.loads(row.data_json), 'utility')
+    # Utility role: compaction notes, not controller reasoning.
+    utility = model_settings.run_model_setting(json.loads(row.data_json), 'utility')
     while size > target and groups:
         # Choose the longest whole-group suffix that leaves room for the rolling
         # summary. The actual complete request is measured again after generation.

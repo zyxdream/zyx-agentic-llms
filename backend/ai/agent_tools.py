@@ -17,7 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal
 
 from backend.ai.token_budget import ContextBudgetExceeded, estimate_text_tokens
-from backend.ai import model_policy
+from backend.ai import model_settings
 from backend.database import db
 from backend.models import AgentArtifact, ChatThread, UploadedFiles
 from backend.util import workspace_service as service
@@ -298,9 +298,9 @@ class Operations:
         self.context = json.loads(row.payload_json)['agent_context']
         self.state = copy.deepcopy(self.context['state'])
 
-    def role(self, name):
+    def model_setting(self, role):
         """Return the provider/model/effort configured for one operation role."""
-        return model_policy.resolve_role(self.data, name)
+        return model_settings.run_model_setting(self.data, role)
 
     def artifact(self, uid, *, kind=None):
         saved = AgentArtifact.query.filter_by(id=uid, run_id=self.row.id).first()
@@ -542,7 +542,7 @@ class Operations:
             service.validate_execution()
             db.session.commit()
 
-        search_policy = self.role('search')
+        search_policy = self.model_setting('search')  # Search role: synthesis only.
         result = search(args.query, model=search_policy['model'], reasoning_effort=search_policy['effort'],
                         check_execution=check_execution)
         lines = [f'Web search: {args.query}', 'Generated search synthesis (not full-page source text):',
@@ -646,7 +646,7 @@ class Operations:
         from backend.ai.base import chat_completion
         from backend.util.agent_context import clarifications
         materials, material_uses, resolution = self.selected_materials(args)
-        analysis = self.role('analysis')
+        analysis = self.model_setting('analysis')  # Logic-heavy evidence assessment.
         # This separate LLM call writes findings; the application saves them below.
         # It does not inherit the controller's tool descriptions about persistence.
         try:
@@ -691,8 +691,8 @@ class Operations:
             raise ValueError('preserve_original is the uploaded-draft revision mode. For a workspace candidate, use general_revision with targeted edit instructions.')
 
         materials, material_uses, resolution = self.selected_materials(args)
-        writer = self.role('writer')
-        court_format = self.role('court_format')
+        writer = self.model_setting('writer')  # Drafting and editing.
+        court_format = self.model_setting('court_format')  # Structured court layout only.
         target, parent = None, None
         workspace_revision = not create and args.target not in file_ids
         references = []
@@ -829,7 +829,7 @@ class Operations:
         else:
             draft = self.target(args.target)
         materials, material_uses, resolution = self.selected_materials(args)
-        verifier = self.role('verifier')
+        verifier = self.model_setting('verifier')  # Independent checking role.
         research = None
         if args.check_citations and not legal_enabled():
             raise ValueError('Legal verification is disabled')

@@ -81,7 +81,7 @@ stateDiagram-v2
 ```
 
 1. **Admission.** The API authorizes the conversation, captures the prepared
-   source snapshot, resolves the saved model policy, writes `WorkspaceRun`, then
+   source snapshot, resolves the saved model settings, writes `WorkspaceRun`, then
    publishes the task. The request is durable before any provider call.
 2. **Claim.** A worker conditionally claims the run by writing a lease token and
    expiry. Only one worker may own the run at a time.
@@ -262,16 +262,17 @@ know whether the provider call completed.
 Draft candidate, conversation turn, confirmed version, output files and run result
 commit together. A failure leaves the previous Output and turn intact.
 
-## Model policy
+## Model settings
 
-Each run carries one role-based policy snapshot: `preparation`, `controller`,
+Each run carries one role-based settings snapshot: `preparation`, `controller`,
 `analysis`, `writer`, `verifier`, `research`, `search`, `utility` and
 `court_format`. Defaults live in `config/models.json`; the run stores the
 resolved provider, model and effort so retries do not change models.
 
 There is no user-facing fast/deep mode. `gpt-6-luna` medium handles high-volume
 and low-logic work; `gpt-6.1-sol` medium handles controller decisions, analysis,
-drafting and verification. Legacy rows still resolve their historical policy.
+drafting and verification. Rows without a saved snapshot resolve the current
+table; obsolete selector fields are ignored.
 
 ## Provider boundary
 

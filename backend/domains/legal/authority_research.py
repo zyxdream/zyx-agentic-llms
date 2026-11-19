@@ -736,7 +736,7 @@ def lookup(ops, args):
                 # Give discovery the original chunk plus compact API findings.
                 # It describes every use and additional references while keeping
                 # the document's wording separate from returned candidates.
-                research = ops.role('research')
+                research = ops.model_setting('research')  # Structured citation discovery.
                 mentions = _discover_mentions(chunk, args.purpose,
                     courtlistener_findings=_compact_lookup_findings(raw, error),
                     mode=mode, window=window, model=research['model'], reasoning_effort=research['effort'])
@@ -831,7 +831,7 @@ def search(ops, args):
         record = copy.deepcopy(resolve_artifact(ops, parent, RESEARCH_KIND))
         selected = _selected(record, args.authority_ids)
     _check(ops)
-    research = ops.role('research')
+    research = ops.model_setting('research')  # Legal/web source synthesis.
     result = authority_sources.search_sources(args.query, args.provider, model=research['model'],
         reasoning_effort=research['effort'], check_execution=lambda: _check(ops))
     found = []

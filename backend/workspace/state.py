@@ -1,5 +1,5 @@
 """Extracted, application-owned helpers for the Workspace agent."""
-from backend.ai import model_policy
+from backend.ai import model_settings
 
 from celery import shared_task
 
@@ -328,7 +328,8 @@ def update_conversation_brief(current_brief: str, constraints: dict,
     Phase 2 calls this after answer, create, edit, and revise branches, and smart search imports it for the same post-turn memory maintenance.
     """
     if model is None:
-        utility = model_policy.default_role('utility')
+        # Utility role: background conversation-brief maintenance.
+        utility = model_settings.default_model_setting('utility')
         model, reasoning_effort = utility['model'], utility['effort']
     from backend.util.conversation_context import compact
     from backend.util.preparation_summary import token_count
@@ -401,8 +402,8 @@ def _run_brief_update(data: dict) -> None:
     require_enabled_account(owner_id)
     utility = {'model': data.get('model'), 'effort': data.get('reasoning_effort')}
     if not utility['model']:
-        legacy = any(key in data for key in ('assistant_mode', 'model', 'selected_model'))
-        utility = model_policy.resolve_role(data, 'utility') if legacy else model_policy.default_role('utility')
+        # Utility role: background conversation-brief maintenance.
+        utility = model_settings.default_model_setting('utility')
     memory = DBMemory(db=db, doc_id=doc_id)
     state = load_state_from_memory(memory)
     from backend.util.conversation_context import available_turns, conversation_turn

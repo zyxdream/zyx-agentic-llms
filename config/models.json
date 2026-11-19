@@ -1,5 +1,6 @@
 {
-  "policy_version": 2,
+  "description": "Role-based model settings. Edit this file to change the committed defaults.",
+  "model_settings_version": 2,
   "default_effort": "medium",
   "roles": {
     "preparation": {

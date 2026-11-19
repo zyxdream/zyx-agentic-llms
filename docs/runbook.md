@@ -122,8 +122,8 @@ Put the generated value in `ZYX_FLASK_SECRET_KEY`. Fill the rest:
 | `AGENT_PYTHON_IMAGE` | Optional image override; defaults to the tag below. |
 
 Model defaults live in `config/models.json`. There is no fast/deep mode: each run
-saves one role policy snapshot. See
-[model policy](minimal-copy-model-policy.md).
+saves one model settings snapshot. See
+[model settings](model-settings.md).
 
 Startup discards inherited `DATABASE_URL`, `REDIS_URL`, `FLASK_SECRET_KEY`,
 Cognito settings and external `PYTHONPATH`. Normal database overrides must be an
@@ -274,7 +274,7 @@ npm run build
 npm run test:e2e
 ```
 
-Current role-policy baseline (2026-11-19), Python 3.11.18:
+Current role-settings baseline (2026-11-19), Python 3.11.18:
 
 | Check | Result |
 | --- | --- |

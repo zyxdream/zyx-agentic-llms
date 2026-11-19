@@ -54,11 +54,11 @@ def main():
  sys.path.insert(0,str(ROOT))
  from scripts import dev
  os.environ.update(dev.environment())
- from backend.ai import model_policy,base
- policy=model_policy.load_model_policy()
- controller=policy['roles']['controller']
- preparation=policy['roles']['preparation']
- runtime={'provider':os.getenv('MODEL_PROVIDER','openai'),'model_policy':policy,'controller_model':controller['model'],'controller_effort':controller['effort'],'effective_effort':base._effective_reasoning_effort(controller['model'],controller['effort']),'preparation_model':preparation['model'],'preparation_effort':preparation['effort'],'base_default_model':base.DEFAULT_MODEL,'service_records':dev.read_state(),'hardware':{'logical_cpus':os.cpu_count()}}
+ from backend.ai import model_settings,base
+ settings=model_settings.load_model_settings()
+ controller=settings['roles']['controller']
+ preparation=settings['roles']['preparation']
+ runtime={'provider':os.getenv('MODEL_PROVIDER','openai'),'model_settings':settings,'controller_model':controller['model'],'controller_effort':controller['effort'],'effective_effort':base._effective_reasoning_effort(controller['model'],controller['effort']),'preparation_model':preparation['model'],'preparation_effort':preparation['effort'],'base_default_model':base.DEFAULT_MODEL,'service_records':dev.read_state(),'hardware':{'logical_cpus':os.cpu_count()}}
  (out/'runtime-configuration.json').write_text(json.dumps(runtime,indent=2)+'\n')
  print(str(out))
 

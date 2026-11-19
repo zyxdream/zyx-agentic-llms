@@ -121,14 +121,14 @@ def collect(database, project_ids, run_ids, output, state_file=None):
         for artifact in artifacts:
             artifact['content'] = decoded(artifact.pop('content_json'), {})
         data = decoded(run['data_json'], {})
-        request = {key:data[key] for key in ('query','assistant_mode','model','selected_model','model_policy','document_snapshot','excludedDocumentIds','promptAttachments','chatFiles') if key in data}
+        request = {key:data[key] for key in ('query','assistant_mode','model','selected_model','model_settings','document_snapshot','excludedDocumentIds','promptAttachments','chatFiles') if key in data}
         snapshot = request.get('document_snapshot') or {}
         summary = {'id':rid,'chat_thread_id':run['chat_thread_id'],'status':run['status'],
             'created_at':run['created_at'],'updated_at':run['updated_at'],
             'wall_seconds':seconds(run['created_at'],run['updated_at']),
             'wall_seconds_note':'For active requests this is elapsed to last persisted update, not completion latency.',
             'attempts':run['attempts'],'error_message':run['error_message'],
-            'base_draft_version':run['base_draft_version'], 'saved_policy':request.get('model_policy') or request.get('assistant_mode'),
+            'base_draft_version':run['base_draft_version'], 'saved_policy':request.get('model_settings') or request.get('assistant_mode'),
             'snapshot_file_count':len(snapshot.get('files',[])),
             'snapshot_scope_counts':dict(Counter(item.get('scope','unknown') for item in snapshot.get('files',[]))),
             'step_count':len(steps),'tool_counts':dict(Counter(step['name'] for step in steps if step['kind']=='tool')),

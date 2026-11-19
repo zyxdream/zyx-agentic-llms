@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 import tiktoken
 
 from backend.ai.base import chat_completion_parse
-from backend.ai import model_policy
+from backend.ai import model_settings
 from backend.util.attachment_parser import WorkPending, unverified_manifest
 
 VERSION = 'luna-source-records-v2'
@@ -102,7 +102,8 @@ class RecordTooLarge(ValueError):
 
 def _call(prompt, schema=PreparedSummary, *, limit=INPUT_LIMIT, model=None, reasoning_effort=None):
     if model is None:
-        policy = model_policy.default_role('preparation')
+        # Preparation role: upload summaries and navigation records.
+        policy = model_settings.default_model_setting('preparation')
         model, reasoning_effort = policy['model'], policy['effort']
     if input_tokens(prompt, schema) > limit:
         raise RecordTooLarge('Preparation request exceeds its input budget')
@@ -262,7 +263,8 @@ def summarize_document(text, filename, checkpoint, *, source_hash, manifest=None
     if not text.strip():
         raise ValueError('No parsed text is available to summarize')
     if model is None:
-        policy = model_policy.default_role('preparation')
+        # Preparation role: upload summaries and navigation records.
+        policy = model_settings.default_model_setting('preparation')
         model, reasoning_effort = policy['model'], policy['effort']
     if manifest.get('spreadsheet'):
         return _summarize_spreadsheet(text, filename, checkpoint, source_hash=source_hash,

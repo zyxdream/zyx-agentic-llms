@@ -150,9 +150,9 @@ Docker, verification and troubleshooting steps are in the
   `gpt-6-luna`, while controller, analysis, writer and verifier use
   `gpt-6.1-sol` at medium effort.
 - `WORKSPACE_MODEL_<ROLE>` and `WORKSPACE_EFFORT_<ROLE>` are optional per-role
-  overrides. New runs save one `model_policy` snapshot; retries retain it. There
+  overrides. New runs save one `model_settings` snapshot; retries retain it. There
   is no frontend model selector and no fast/deep mode. See
-  [model policy](docs/minimal-copy-model-policy.md).
+  [model settings](docs/model-settings.md).
 - `WORKSPACE_LEGAL_ENABLED=0` removes legal tools and instructions.
 - The database is SQLite at `instance/zyx-agentic-llms.db`. An override must be an
   absolute file inside this project's `instance/`.
