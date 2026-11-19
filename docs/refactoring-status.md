@@ -2,7 +2,7 @@
 
 ## Current status (2026-11-18)
 
-Application commit `e8e1e1e` is the current fixed-code baseline. The host runtime
+Application commit `e83305f` is the current fixed-code baseline. The host runtime
 is Python 3.11. Model choices are role-based in `config/models.json`: preparation
 and utility work use `gpt-6-luna`, while controller, analysis, writer and verifier
 use `gpt-6.1-sol` medium. Automatic dependency version PRs are disabled; updates
