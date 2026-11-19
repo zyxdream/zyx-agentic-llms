@@ -1,10 +1,9 @@
 # Workspace mock-live verification
 
-## Current baseline (2026-11-18)
+## Current baseline (2026-11-19)
 
-At the current role-settings baseline, the offline backend suite recorded **962 passed, 20 skipped,
-4 known pre-existing failures**; the four failures are unrelated to the current
-work and are named in the [runbook](runbook.md#10-verification). Re-run the
+At the current role-settings baseline, the offline backend suite recorded **966 passed, 20 skipped,
+0 failures**. The replay + Docker suite recorded **986 passed, 0 failures**. Re-run the
 commands rather than assuming these counts. The sections below record earlier
 replay and isolation passes and their counts at the time.
 

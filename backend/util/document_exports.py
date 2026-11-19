@@ -328,7 +328,7 @@ def convert_docx_to_pdf(source_path, output_path, *, timeout_seconds=120):
         args = [*docker, 'run', '--name', name, '--init', '--network', 'none', '--read-only',
                 '--user', '65532:65532', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
                 '--pids-limit', '128', '--memory', '1g', '--memory-swap', '1g', '--cpus', '1',
-                '--tmpfs', '/tmp:rw,noexec,nosuid,size=256m', '--env', 'HOME=/scratch/home',
+                '--tmpfs', '/tmp:rw,noexec,nosuid,size=256m', '--env', 'HOME=/tmp',
                 '--mount', f'type=bind,src={source_path},dst=/inputs/source.docx,readonly',
                 '--mount', f'type=bind,src={work / "scratch"},dst=/scratch',
                 '--mount', f'type=bind,src={work / "output"},dst=/output',

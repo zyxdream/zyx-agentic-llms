@@ -121,7 +121,7 @@ def test_page_locations_survive_reload_and_reach_creation_revision_and_controlle
     def controller(request):
         system = next(item['content'] for item in request['input'] if item.get('role') == 'system')
         assert drafts.SOURCE_LOCATION_GUIDANCE in system
-        assert 'Before publishing, compare source locations' in system
+        assert 'Before publishing, compare findings' in system
         outputs = [json.loads(item['output']) for item in request['input']
                    if item.get('type') == 'function_call_output']
         assert json.loads(outputs[-1]['text'])['text'] == source_text

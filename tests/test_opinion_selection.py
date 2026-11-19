@@ -197,6 +197,6 @@ def test_controller_receives_invalid_choice_options_and_can_retry(agent,api,monk
 def test_tool_and_controller_guidance_describe_null_and_explicit_selection():
     definition=next(x for x in agent_tools.definitions() if x['name']=='read_authority')
     description=definition['parameters']['properties']['opinion_id']['description']
-    assert 'Use null initially' in description and 'case/cluster ID' in description
+    assert 'Null initially' in description and 'never cluster_id' in description
     assert 'opinion_id=null' in agent_tasks.system_instructions()
     assert 'After invalid_opinion_id, retry its choices' in agent_tasks.system_instructions()

@@ -278,16 +278,10 @@ Current role-settings baseline (2026-11-19), Python 3.11.18:
 
 | Check | Result |
 | --- | --- |
-| Offline backend | 962 passed, 20 skipped, 4 known failures |
+| Offline backend | 966 passed, 20 skipped, 0 failures |
 | Frontend component | Run the suite; it is the source of truth |
 | Frontend build | Passed |
 | Browser replay | Run the suite; it is the source of truth |
-
-The four known backend failures are pre-existing and unrelated to the current
-work: `test_agent_web_search::test_legal_search_findings_survive_reload_and_reach_the_next_controller_step`,
-`test_opinion_selection::test_tool_and_controller_guidance_describe_null_and_explicit_selection`,
-and both `test_source_locations` parameterizations. Confirm against a clean
-checkout before treating them as regressions.
 
 The replay suite launches its own Redis and containers. It never points at the
 running local database, Redis namespace or storage.

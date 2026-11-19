@@ -221,7 +221,8 @@ def test_legal_search_findings_survive_reload_and_reach_the_next_controller_step
     assert len(result['sources']) == 5 and cited_url not in [source['url'] for source in result['sources']]
     assert len(result['citations']) == 1
     cited_source_id = result['citations'][0]['source_id']
-    assert result['citations'] == [{**citation, 'source_id': cited_source_id}]
+    assert result['citations'] == [{**citation, 'source_id': cited_source_id,
+                                    'research_id': result['research_id']}]
     assert 'passage_artifact_id' not in result
     assert {item.id for item in AgentArtifact.query.filter_by(
         run_id=agent.id, kind='authority_source').all()} == initial_source_ids
@@ -233,7 +234,14 @@ def test_legal_search_findings_survive_reload_and_reach_the_next_controller_step
     saved = response.json['content']
     query = saved['queries'][-1]
     for field in ('generated_summary', 'summary_is_source_text', 'citations', 'retrieved_at', 'limitations'):
-        assert query[field] == result[field]
+        if field == 'citations':
+            # The saved query record is the durable evidence; the observation adds
+            # research_id so the controller can reference the snapshot.
+            strip = lambda items: [{key: value for key, value in item.items() if key != 'research_id'}
+                                   for item in items]
+            assert strip(query[field]) == strip(result[field])
+        else:
+            assert query[field] == result[field]
     cited_source = next(source for source in saved['sources'] if source['id'] == cited_source_id)
     assert cited_source['url'] == cited_url and cited_source['passage_artifact_ids'] == []
     assert saved['authorities'] == []

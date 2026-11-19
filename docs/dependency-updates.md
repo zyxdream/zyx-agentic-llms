@@ -124,7 +124,7 @@ The commit message should name the group and the gate result, for example:
 Update the Celery queue group
 
 celery 5.5.3 -> 5.7.x, kombu/billiard/vine/amqp aligned.
-Offline: 968 passed, 20 skipped, 4 known failures.
+Offline: 966 passed, 20 skipped, 0 failures.
 Replay: passed. Docker: passed. Frontend: unchanged.
 ```
 

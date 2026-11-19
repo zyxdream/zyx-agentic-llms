@@ -65,6 +65,10 @@ def convert_document(source, destination):
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait(timeout=3)
+            # The container runs as an unprivileged user and owns these paths.
+            # Remove them here so the host bind mount is clean for the caller.
+            shutil.rmtree(work, ignore_errors=True)
+            shutil.rmtree(Path('/scratch') / 'home', ignore_errors=True)
 
 
 if __name__ == '__main__':
