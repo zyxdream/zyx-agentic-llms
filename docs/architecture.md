@@ -2,6 +2,11 @@
 
 The application remains one modular Flask service plus Celery workers. Redis carries jobs/results; SQL is the authoritative run and document store.
 
+This page describes service topology and module boundaries. The controller loop,
+tool authorization, context compaction, failure handling and publication
+invariants are in [agent harness design](agent-harness.md). Installation and
+operation are in the [runbook](runbook.md).
+
 ```mermaid
 flowchart LR
  UI[React Workspace] --> API[Flask Workspace API]

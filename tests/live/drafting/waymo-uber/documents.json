@@ -18,9 +18,8 @@
       "pdf_pages": 28,
       "signed_date": "2017-02-23",
       "filed_date": "2017-02-23",
-      "copied_from": "/Users/yuxiao/Documents/lexintel/backend/static/COMPLAINT-Waymo.pdf",
-      "source_mtime_ns": 1780123776285760170,
-      "synthetic": false
+      "synthetic": false,
+      "provenance": "authorized local copy"
     },
     "fac": {
       "path": "instance/evaluation-inputs/waymo-uber/waymo-first-amended-complaint-2017-03-10.pdf",
@@ -30,9 +29,8 @@
       "pdf_pages": 31,
       "signed_date": "2017-03-10",
       "filed_date": "2017-03-10",
-      "copied_from": "/Users/yuxiao/Documents/lexintel/backend/static/temp_3607712f-fcb8-4d02-a6c7-0850230b92a8_Waymo v. Uber - FAC.pdf",
-      "source_mtime_ns": 1777408541641964248,
-      "synthetic": false
+      "synthetic": false,
+      "provenance": "authorized local copy"
     },
     "answer": {
       "path": "instance/evaluation-inputs/waymo-uber/uber-ottomotto-answer-to-fac-2017-06-22.pdf",
@@ -42,9 +40,8 @@
       "pdf_pages": 24,
       "signed_date": "2017-06-22",
       "filed_date": null,
-      "copied_from": "/Users/yuxiao/Documents/lexintel/backend/static/temp_957072ee-d6e9-495b-a5ce-53a4d4c71342_Waymo v. Uber - ANSWER.pdf",
-      "source_mtime_ns": 1777408541642119456,
-      "synthetic": false
+      "synthetic": false,
+      "provenance": "authorized local copy"
     },
     "rfp": {
       "path": "instance/evaluation-inputs/waymo-uber/uber-first-rfp-2017-05-12.pdf",
@@ -54,15 +51,14 @@
       "pdf_pages": 27,
       "signed_date": "2017-05-12",
       "filed_date": "2017-06-21",
-      "copied_from": "/Users/yuxiao/Documents/lexintel/backend/static/RFP_Uber.pdf",
-      "source_mtime_ns": 1777313822144306914,
       "synthetic": false,
       "confidentiality_legend": "HIGHLY CONFIDENTIAL - ATTORNEYS EYES ONLY",
       "low_text_image_body_pdf_pages": [
         9,
         10
       ],
-      "pdf_page_1_docket_page": 2
+      "pdf_page_1_docket_page": 2,
+      "provenance": "authorized local copy"
     },
     "fictional_facts": {
       "path": "tests/live/drafting/waymo-uber/inputs/fictional-client-facts.txt",
@@ -72,5 +68,5 @@
       "synthetic": true
     }
   },
-  "source_policy": "PDFs are unchanged local copies, ignored by Git and never staged in frontend/public. Only explicit input lists may be uploaded. Reviewer checks and manifests are not agent inputs."
+  "source_policy": "PDFs are unchanged local copies kept only under the ignored instance/evaluation-inputs directory. They are never staged in frontend/public. Only explicit input lists may be uploaded."
 }

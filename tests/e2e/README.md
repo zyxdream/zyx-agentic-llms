@@ -2,6 +2,10 @@
 
 These checks exercise application behavior with deterministic external providers. They never call paid model providers or production services.
 
+Live, paid-provider suites are separate and opt-in; see
+[the live suite registry](../live/README.md) for the three-workflow legal
+benchmark, drafting pack and acceptance fixtures.
+
 ## Full backend and runtime replay
 
 Requirements: the project-owned `.venv` (prewarm its tokenizer cache using `.venv/bin/python scripts/cache_tokenizers.py` before offline checks), `redis-server`, Docker, and the execution image described in the root README. The fixture launches and terminates its own Redis process on a random localhost port. Every test gets an independent SQLite database, queue namespace and storage directory. Existing Redis, queues and databases are left untouched.
@@ -33,7 +37,7 @@ Results, traces on failure, screenshots on failure and JSON/HTML reports are wri
 ## Matched performance comparison
 
 ```sh
-.venv/bin/python tests/e2e/benchmark.py --baseline 4d2463a --repeat 5
+.venv/bin/python tests/e2e/benchmark.py --baseline d8e334c --repeat 5
 ```
 
 This extracts the chosen pre-refactor Git commit into a temporary directory and alternates before/after subprocesses. Both execute the same twelve parametrized controller checks with identical model/broker doubles and external networking blocked. It records total process time and test-body duration separately. The baseline is the independent initial snapshot, not the original project checkout. Use an explicitly chosen compatible ref when comparing another change.

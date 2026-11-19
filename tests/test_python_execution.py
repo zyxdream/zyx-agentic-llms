@@ -505,7 +505,7 @@ result = {'total': calculated['Summary']['B4'].value}
 
 @pytest.mark.skipif(os.environ.get('ZYX_PYTHON_LIVE') != '1', reason='Set ZYX_PYTHON_LIVE=1 for Docker integration.')
 def test_real_container_is_nonroot_without_network_and_has_timeout(tmp_path, monkeypatch):
-    monkeypatch.setenv('LEXINTEL_PRIVATE_TEST_TOKEN', 'must-not-reach-the-container')
+    monkeypatch.setenv('OTHER_APP_PRIVATE_TEST_TOKEN', 'must-not-reach-the-container')
     code = '''import os, socket
 try:
     socket.create_connection(('1.1.1.1', 443), timeout=0.5)
@@ -513,7 +513,7 @@ try:
 except OSError:
     network_blocked = True
 result = {'uid': os.getuid(), 'network_blocked': network_blocked,
-          'host_secret': os.environ.get('LEXINTEL_PRIVATE_TEST_TOKEN')}
+          'host_secret': os.environ.get('OTHER_APP_PRIVATE_TEST_TOKEN')}
 '''
     answer = runtime.run_python(code, {}, {}, attempt_dir=tmp_path / 'isolation')
     assert answer['error'] is False, answer

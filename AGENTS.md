@@ -8,4 +8,4 @@ Run backend checks with `ZYX_E2E=1 python -m pytest -q -p tests.offline_guard` u
 
 Use only the independent fresh-database baseline. Never upgrade, rewrite or delete an older database or source collection. SQL run state owns progress; Redis task results are not the application record. Preserve lease fencing, ownership, source-version validation, idempotent submissions and atomic document/turn publication.
 
-See `docs/architecture.md` and `docs/refactoring-status.md` before changing module boundaries or broadening scope.
+See `docs/architecture.md` and `docs/refactoring-status.md` before changing module boundaries or broadening scope. Agent-loop behavior is described in `docs/agent-harness.md`; installation and operation are in `docs/runbook.md`; live suites and their recorded baselines are in `tests/live/README.md`.

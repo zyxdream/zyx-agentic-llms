@@ -1,6 +1,6 @@
 # Independent Workspace local runtime
 
-Workspace is served at **http://localhost:3010** from this repository. LexIntel remains at its original ports and was not modified.
+Workspace is served at **http://localhost:3010** from this repository. The original application remains at its original ports and was not modified.
 
 ## Application resources
 
@@ -47,7 +47,7 @@ The final local checks passed on November 12, 2026:
 - **86 frontend component tests** across eight suites; production build passed.
 - **54 mocked Chromium workflows** including cancel, reload, retry, stale responses, source preparation, saved results and downloads.
 - **Real application browser smoke:** port 3010 rendered the initial account form, proxied its session handshake to the real backend with HTTP 200, restored the form after reload, and received the project-named HttpOnly session cookie. No browser errors. No live account was created.
-- **Independent stop/start:** Workspace ports 3010/5010/6390 closed and reopened; LexIntel's listener PIDs on 3000/5000/6379 were unchanged throughout. All six Workspace services were left running.
+- **Independent stop/start:** Workspace ports 3010/5010/6390 closed and reopened; the other application's listener PIDs on 3000/5000/6379 were unchanged throughout. All six Workspace services were left running.
 - Dedicated Redis data directory, private credential permissions, project-owned dependency paths, ignored/untracked credential/runtime files, Python syntax, CI YAML and diff whitespace checks passed.
 
 Reports are under ignored `artifacts/workspace-isolation/`; browser replay traces/results also use `artifacts/workspace-replay/`. CI prewarms public tokenizer data before enabling the external-network guard. These checks made no paid model request or cloud OCR call. Production load testing, cloud OCR acceptance and paid-provider semantic evaluation were not part of this change. No commits or pushes were made.

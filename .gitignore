@@ -17,6 +17,22 @@ frontend/playwright-report/
 frontend/test-results/
 frontend/src/brandConfig.generated.js
 
+# Real case documents, client files and private evaluation inputs.
+# Keep local copies under the ignored instance/ directory; never commit them.
+tests/fixtures/sample-*.pdf
+tests/e2e/fixtures/sample-*.pdf
+instance/evaluation-inputs/
+
+# Private credentials and keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa*
+credentials
+**/.aws/
+
 # SqLite files
 *.db
 

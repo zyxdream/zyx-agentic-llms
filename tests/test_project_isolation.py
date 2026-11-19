@@ -7,7 +7,7 @@ from backend import config
 
 def test_legacy_environment_variables_are_not_used(monkeypatch):
     monkeypatch.setattr(config,'E2E_MODE',False)
-    for name,value in {'REDIS_URL':'redis://localhost:6379/0','DATABASE_URL':'sqlite:////tmp/lexintel.db',
+    for name,value in {'REDIS_URL':'redis://localhost:6379/0','DATABASE_URL':'sqlite:////tmp/other-app.db',
         'WORKSPACE_DATABASE_URL':'sqlite:////tmp/old.db','CELERY_QUEUE':'celery','COGNITO_USERPOOL_ID':'old-pool',
         'COGNITO_APP_CLIENT_ID':'old-client','FLASK_SECRET_KEY':'legacy-secret','JWT_SECRET_KEY':'legacy-secret'}.items():monkeypatch.setenv(name,value)
     settings=config.app_settings()
@@ -26,7 +26,7 @@ def test_public_config_has_no_shared_identity_provider():
     assert not {'userPoolId','userPoolClientId','identityPoolId'} & set(public)
 
 
-def test_normal_configuration_rejects_lexintel_redis(monkeypatch):
+def test_normal_configuration_rejects_other_application_redis(monkeypatch):
     monkeypatch.setattr(config,'E2E_MODE',False);monkeypatch.setenv('ZYX_REDIS_URL','redis://127.0.0.1:6379/0')
     with pytest.raises(ValueError,match='own local Redis'):config.app_settings()
 

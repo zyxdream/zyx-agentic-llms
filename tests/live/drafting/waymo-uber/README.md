@@ -7,11 +7,14 @@ and rollback checks passed; one Python tool error recovered. All ten Outputs and
 DOCX downloads were verified. Run times were 11–170 seconds (median 72 seconds),
 excluding preparation; no matched historical performance baseline was run.
 
+This pack has no matched baseline on the post-refactor code. Its recorded run is
+listed with the other live suites in [the live registry](../../README.md).
+
 The detailed local report and evidence are in the ignored folder
 `artifacts/live-drafting-waymo-20261114-165411/report.md`. The new evaluation
 project is `Live drafting - Waymo Uber - 2026-11-14 19:12:15` (ID 5).
-Application code, original input documents and LexIntel server processes were
-unchanged during testing. This pack adds no task-specific application code.
+Application code, original input documents and the other application's server
+processes were unchanged during testing. This pack adds no task-specific application code.
 
 ## Inputs and storage
 
@@ -51,7 +54,7 @@ chats so facts and drafts cannot leak from a previous task.
 ## Run through Workspace
 
 1. Use `http://localhost:3010` and the normal signed-in Workspace account. Confirm
-   API 5010 and Redis 6390 belong to this project. Leave LexIntel's server alone.
+   API 5010 and Redis 6390 belong to this project. Leave the other application's server alone.
 2. Create `Live drafting - Waymo Uber - <timestamp>` and upload the original
    complaint, FAC and Answer to **Project documents** once.
 3. Open a fresh chat for a case. Attach only the files in that case's

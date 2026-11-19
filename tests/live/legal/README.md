@@ -4,6 +4,10 @@ All organizations, people, contracts, invoices, payroll records and case facts i
 
 These tests are an opt-in evaluation against the current Workspace application, its real local database and its live agent workers. They are separate from deterministic mocked browser/worker regressions. Running them makes real calls to configured model, research and preparation providers and can incur charges. Run only with explicit authorization.
 
+Recorded runs and their application identities are listed in
+[the live registry](../README.md). The baseline acceptance run is
+`artifacts/live-legal-20261113`; focused follow-ups are recorded separately.
+
 ## Authentication and isolation
 
 Use the normal authenticated session of the intended Workspace account and its current CSRF token. Account setup/login remains required; do not bypass authentication, replace an account password, embed credentials, or commit cookies/tokens. The user may authorize creating dedicated acceptance projects in that account. Preserve all other accounts, projects, documents and runs.

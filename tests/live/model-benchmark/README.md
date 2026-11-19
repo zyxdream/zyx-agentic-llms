@@ -2,7 +2,8 @@
 
 This pack tests independent review and revision of original pleadings through the
 normal signed-in Workspace browser. It changes evaluation prompts and inputs,
-not the application, model settings or infrastructure.
+not the application, model settings or infrastructure. Suites, recorded baselines
+and comparison rules are indexed in [the live registry](../README.md).
 
 ## Workflows
 
@@ -86,11 +87,28 @@ a quotation or its application; an unsuccessful search does not prove invalidity
 Explicit unresolved outcomes are correct disclosure but incomplete substantive
 review. Use the held-out checks as selected examples, not an exhaustive answer.
 
-Version 2 changes both prompts and agent inputs. It needs a new OpenAI baseline
-before comparison with another model. Version 1 remains historical evidence,
-not a matched timing/accuracy comparison. Its frozen prompts and eight-input
-design remain in `artifacts/model-benchmark-openai-20261115-152018/` and later
-replay directories; do not rewrite those results with the new expectations.
+Version 2 changes both prompts and agent inputs. Its current OpenAI baseline is
+`artifacts/model-benchmark-openai-budget-recovery-r2-20261118-202204`, run on
+application commit `4d42f56` with `gpt-6-luna` at medium effort: 10/10 turns,
+3180.594 agent seconds, 275 LLM calls, 26,926,920 tokens, 12 tool errors, zero
+whole-run retries and 10/10 verified downloads. The run's `code-identity.json`
+records the pre-rewrite head `4a15ebe` (now `e9da487`) because it started before
+the change was committed; its application source hash is identical to `4d42f56`.
+
+That run followed the fatal Sullivan drafting-budget failure in
+`artifacts/model-benchmark-openai-condition-strength-20261118-131407` (7/8 turns).
+The S1 `create_draft` that previously exceeded the budget completed with 19
+requested materials resolved to 14. Compare later runs against the r2 baseline,
+not against v1. Version 1 remains historical evidence, not a matched
+timing/accuracy comparison. Its frozen prompts and eight-input design remain in
+`artifacts/model-benchmark-openai-20261115-152018/` and later replay directories;
+do not rewrite those results with the new expectations.
+
+The browser runner scopes its conversation locator to the active project's
+conversation list. Earlier runs could collide when two projects both contained a
+conversation named `Benchmark waymo`; keep the project-scoped locator. The failed
+preparation attempt from that collision is retained at
+`artifacts/model-benchmark-openai-budget-recovery-20261118-202106`.
 
 Hold pack version, input hashes, application source, tool availability and the
 model mix constant when comparing providers. Record controller, writer,

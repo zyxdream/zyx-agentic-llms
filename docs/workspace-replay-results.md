@@ -1,10 +1,18 @@
 # Workspace mock-live verification
 
+## Current baseline (2026-11-18)
+
+At commit `4d42f56`, the offline backend suite recorded **968 passed, 20 skipped,
+4 known pre-existing failures**; the four failures are unrelated to the current
+work and are named in the [runbook](runbook.md#10-verification). Re-run the
+commands rather than assuming these counts. The sections below record earlier
+replay and isolation passes and their counts at the time.
+
 The former Case Assistant browser suite was archived during the slim-down. It has now been adapted into the current Workspace API and shell, with a persistent test-only runner. Production authentication has no test-mode bypass.
 
 ## Latest isolation follow-up
 
-After giving Workspace independent services, credentials and local authentication, the full matrix passed again: **469 backend tests, zero skipped; 86 frontend component tests; 54 browser workflows; production build passed**. A real frontend/backend first-run and reload smoke check also passed, and restarting Workspace left LexIntel running with unchanged listener PIDs. See [local isolation verification](local-isolation.md). The matched performance measurements below describe the earlier slim-down comparison; they were not rerun for the authentication/service-isolation change.
+After giving Workspace independent services, credentials and local authentication, the full matrix passed again: **469 backend tests, zero skipped; 86 frontend component tests; 54 browser workflows; production build passed**. A real frontend/backend first-run and reload smoke check also passed, and restarting Workspace left the other application running with unchanged listener PIDs. See [local isolation verification](local-isolation.md). The matched performance measurements below describe the earlier slim-down comparison; they were not rerun for the authentication/service-isolation change.
 
 ## Initial replay results
 
@@ -62,7 +70,7 @@ These deterministic checks cannot evaluate the reasoning quality of a real model
 
 ## Performance comparison
 
-Baseline: independent initial commit `4d2463a`, copied to a temporary checkout. Five alternating before/after repetitions each ran the same twelve parametrized controller checks with model and broker doubles. Median timing:
+Baseline: independent initial commit `d8e334c`, copied to a temporary checkout. Five alternating before/after repetitions each ran the same twelve parametrized controller checks with model and broker doubles. Median timing:
 
 | Measure | Before slim-down | After slim-down | Change |
 | --- | ---: | ---: | ---: |
@@ -73,7 +81,7 @@ No slowdown was detected in this controlled sample. This comparison excludes mod
 
 The saved benchmark command was also verified with three additional before/after pairs; all twelve checks passed in every run, with 8.4% lower median whole-process time. Raw samples for that runner check are in `artifacts/workspace-replay/benchmark-runner-check/`.
 
-The original five-pair benchmark samples are saved under `artifacts/workspace-replay/performance/`. Reproduce them with `python tests/e2e/benchmark.py --baseline 4d2463a --repeat 5` in the project Python environment.
+The original five-pair benchmark samples are saved under `artifacts/workspace-replay/performance/`. Reproduce them with `python tests/e2e/benchmark.py --baseline d8e334c --repeat 5` in the project Python environment.
 
 ## Runtime and scope notes
 

@@ -1,5 +1,24 @@
 # Refactoring scope and remaining work
 
+## Current status (2026-11-18)
+
+Application commit `4d42f56` is the current fixed-code baseline. The live
+three-workflow legal benchmark completed 10/10 turns with zero context-budget
+errors and zero whole-run retries; the S1 drafting request that previously
+aborted now resolves duplicate research snapshots before dispatch. Recorded
+suites and baselines are in [the live registry](../tests/live/README.md); setup
+and operation are in the [runbook](runbook.md); the agent design is in
+[agent harness](agent-harness.md).
+
+The sections below are the historical refactor record. Their test counts and
+"not yet run" statements describe the state at the time of that pass, not the
+current tree.
+
+Local Git history was rewritten on 2026-11-18, before the first push, to remove
+private case documents and legacy branded assets. Commit hashes in older notes
+were remapped to the rewritten history. An ignored backup bundle of the
+pre-rewrite history is kept under `instance/backups/`; do not push it.
+
 ## Included in this implementation
 
 | Area | Result |
@@ -45,7 +64,7 @@ At that stage, Docker, cloud OCR, a live model session and remote CI had not bee
 
 ## Local isolation follow-up
 
-The previous shared-service development instructions have been replaced. Workspace uses frontend 3010, backend 5010, dedicated Redis 6390 and its own account database; LexIntel remains unchanged. The complete matrix now passes 469 backend, 86 frontend component and 54 browser tests, plus a real first-run/reload smoke check. Local authentication and isolation regressions are included. See [local isolation details and verification](local-isolation.md).
+The previous shared-service development instructions have been replaced. Workspace uses frontend 3010, backend 5010, dedicated Redis 6390 and its own account database; the original application remains unchanged. The complete matrix now passes 469 backend, 86 frontend component and 54 browser tests, plus a real first-run/reload smoke check. Local authentication and isolation regressions are included. See [local isolation details and verification](local-isolation.md).
 
 ## Draft continuity (4A)
 
