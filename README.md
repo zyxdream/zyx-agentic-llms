@@ -138,7 +138,7 @@ worker, document worker, reconciler and frontend. Logs and PID records are under
 `instance/dev/`. Occupied ports fail startup rather than attaching to another
 service.
 
-A fresh checkout needs Python 3.10, Node 22, `redis-server`, `antiword`, optional
+A fresh checkout needs Python 3.11, Node 22, `redis-server`, `antiword`, optional
 Tesseract, and Docker for Python/PDF tools. The complete macOS setup, database,
 Docker, verification and troubleshooting steps are in the
 [runbook](docs/runbook.md).
@@ -199,6 +199,7 @@ The mock-live workflow is documented in [tests/e2e/README.md](tests/e2e/README.m
 | Document | Contents |
 | --- | --- |
 | [Runbook](docs/runbook.md) | macOS install, SQLite, Docker, start/stop, tests, troubleshooting |
+| [Dependency updates](docs/dependency-updates.md) | Quarterly update policy, compatibility groups, gate commands |
 | [Agent harness](docs/agent-harness.md) | Decision loop, state, context, failure and publication design |
 | [Architecture](docs/architecture.md) | Service topology, code map, request lifecycle |
 | [General drafting](docs/general-drafting.md) | Material purposes, resolution, drafting and verification behavior |

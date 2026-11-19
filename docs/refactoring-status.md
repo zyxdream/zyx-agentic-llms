@@ -2,13 +2,15 @@
 
 ## Current status (2026-11-18)
 
-Application commit `4d42f56` is the current fixed-code baseline. The live
-three-workflow legal benchmark completed 10/10 turns with zero context-budget
-errors and zero whole-run retries; the S1 drafting request that previously
-aborted now resolves duplicate research snapshots before dispatch. Recorded
-suites and baselines are in [the live registry](../tests/live/README.md); setup
-and operation are in the [runbook](runbook.md); the agent design is in
-[agent harness](agent-harness.md).
+Application commit `4d42f56` is the current fixed-code baseline. The host runtime
+is Python 3.11. Automatic dependency version PRs are disabled; updates follow the
+quarterly batches and compatibility gate in
+[dependency updates](dependency-updates.md). The live three-workflow legal
+benchmark completed 10/10 turns with zero context-budget errors and zero
+whole-run retries; the S1 drafting request that previously aborted now resolves
+duplicate research snapshots before dispatch. Recorded suites and baselines are in
+[the live registry](../tests/live/README.md); setup and operation are in the
+[runbook](runbook.md); the agent design is in [agent harness](agent-harness.md).
 
 The sections below are the historical refactor record. Their test counts and
 "not yet run" statements describe the state at the time of that pass, not the

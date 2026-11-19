@@ -42,14 +42,14 @@ xcode-select --install
 Install the host tools:
 
 ```sh
-brew install python@3.10 node@22 redis antiword
+brew install python@3.11 node@22 redis antiword
 brew install --cask docker
 ```
 
-- `python@3.10` — the project virtual environment. Homebrew keeps it keg-only, so
-  `python3.10` may not be on `PATH`; use the prefix path shown below. If Homebrew
-  no longer offers 3.10, create a 3.10 environment with Miniforge/conda and use
-  that interpreter instead. Do not build the project environment with Python 3.11
+- `python@3.11` — the project virtual environment. Homebrew keeps it keg-only, so
+  `python3.11` may not be on `PATH`; use the prefix path shown below. If Homebrew
+  no longer offers 3.11, create a 3.11 environment with Miniforge/conda and use
+  that interpreter instead. Do not build the project environment with Python 3.12
   or newer unless the dependency set has been revalidated.
 - `node@22` — React build and Playwright. Homebrew may keep it keg-only; if `node`
   is not found, run `brew link --overwrite node@22` or add
@@ -62,7 +62,7 @@ brew install --cask docker
 Verify:
 
 ```sh
-"$(brew --prefix python@3.10)/bin/python3.10" --version
+"$(brew --prefix python@3.11)/bin/python3.11" --version
 node --version
 npm --version
 redis-server --version
@@ -80,7 +80,7 @@ From the repository root, create a project-local environment. Do not reuse anoth
 project's virtual environment.
 
 ```sh
-"$(brew --prefix python@3.10)/bin/python3.10" -m venv .venv
+"$(brew --prefix python@3.11)/bin/python3.11" -m venv .venv
 .venv/bin/python -m pip install --upgrade 'pip<24.1'
 .venv/bin/python -m pip install -r requirements.txt
 ```
@@ -270,7 +270,7 @@ npm run build
 npm run test:e2e
 ```
 
-Recorded baseline at commit `4d42f56` (2026-11-18):
+Recorded baseline at commit `4d42f56` (2026-11-18), Python 3.11.18:
 
 | Check | Result |
 | --- | --- |
