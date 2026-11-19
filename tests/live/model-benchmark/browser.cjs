@@ -17,7 +17,7 @@ const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
  if(!page)throw Error('Open Workspace in the signed-in evaluation browser.');
  page.setDefaultTimeout(25000);
  async function expand(){const b=page.getByRole('button',{name:'Expand sidebar',exact:true});if(await b.isVisible())await b.click();}
- async function open(c){await expand();await page.getByRole('button',{name:'Open project '+c.project_name,exact:true}).click();await page.getByRole('button',{name:c.chat_name,exact:true}).click();await page.getByRole('textbox',{name:'Message',exact:true}).waitFor();}
+ async function open(c){await expand();await page.getByRole('button',{name:'Open project '+c.project_name,exact:true}).click();await page.getByRole('list',{name:'Conversations in '+c.project_name}).getByRole('button',{name:c.chat_name,exact:true}).click();await page.getByRole('textbox',{name:'Message',exact:true}).waitFor();}
  async function upload(keys,scope){
   if(!keys.length)return;
   const entries=keys.map(k=>CFG.files[k]);

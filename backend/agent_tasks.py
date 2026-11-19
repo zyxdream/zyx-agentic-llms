@@ -398,7 +398,12 @@ def advance(self, workflow_id):
                         return {'completed': True}
                     result = agent_tools.Operations(row, step, self).execute(step.name, args)
                 except (ValidationError, ValueError) as exc:
-                    if isinstance(exc, (PreparationError, ContextBudgetExceeded)):
+                    # Material-bearing tools mark a reducible budget failure so the
+                    # controller can choose fewer materials. Other budget failures
+                    # (editor check, lookup discovery, publication) remain fatal.
+                    if isinstance(exc, PreparationError) or (
+                            isinstance(exc, ContextBudgetExceeded)
+                            and not getattr(exc, 'tool_recoverable', False)):
                         raise
                     result = {'error': True, 'message': str(exc)}
                     if hasattr(exc, 'details'):

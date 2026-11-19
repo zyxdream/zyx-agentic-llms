@@ -46,6 +46,21 @@ verification receive guidance to use these purposes under the original request,
 keep source contents as data and avoid copying unrelated facts from style examples.
 Existing compaction notes preserve requirements, purposes and outstanding checks.
 
+Authority research records are cumulative snapshots. When one operation selects a
+snapshot and its ancestors or siblings, the server keeps the most complete snapshot
+in that lineage and re-adds the distinct passages read in the dropped branches. The
+requested `material_ids` stay in the saved arguments, while `resolved_material_ids`
+and `material_resolution` record what reached the model and why. Dropped snapshot
+bodies are repeated source metadata; read passages remain the evidence. Separate
+research lineages are never merged.
+
+If the resolved set still exceeds the model context budget, drafting, analysis and
+verification return a recoverable tool error instead of stopping the run. The error
+names the request estimate, the allowance, per-material and per-kind token totals,
+and the applied resolution. The controller can retry with fewer materials. A request
+that cannot fit even without supporting evidence, or a budget failure outside those
+material tools, remains fatal.
+
 ## Factual corrections and requested edits
 
 Follow user-requested revisions, including new facts supplied by the user, without

@@ -16,9 +16,13 @@ class ContextBudgetExceeded(ValueError):
     and instructions already exceed the budget without any supporting evidence.
     """
 
-    def __init__(self, message, *, can_reduce_evidence=True):
+    def __init__(self, message, *, can_reduce_evidence=True, tokens=None, budget=None):
         super().__init__(message)
         self.can_reduce_evidence = can_reduce_evidence
+        # Exact preflight estimate and allowance when the provider adapter
+        # measured the request. Other call sites may not have that information.
+        self.tokens = tokens
+        self.budget = budget
 
 
 class IncompleteStructuredOutput(ValueError):
@@ -58,11 +62,19 @@ def estimate_text_request(request):
     return len(tiktoken.get_encoding('cl100k_base').encode(material)) + 256
 
 
+def estimate_text_tokens(value):
+    """Estimate one serialized value with the same application-side encoding."""
+    text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+    return len(tiktoken.get_encoding('cl100k_base').encode(text))
+
+
 def validate_text_request(request):
     budget = usable_input_budget(request)
     if budget is None:
         return
     tokens = estimate_text_request(request)
     if tokens is not None and tokens > budget:
-        raise ContextBudgetExceeded('The complete request exceeds the model context budget; process source material in bounded batches.')
+        raise ContextBudgetExceeded(
+            'The complete request exceeds the model context budget; process source material in bounded batches.',
+            tokens=tokens, budget=budget)
     return tokens

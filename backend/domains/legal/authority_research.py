@@ -32,7 +32,7 @@ from backend.database import db
 from backend.domains.legal.instructions import AUTHORITY_LOCATION_NOTE
 from backend.models import AgentArtifact, ChatThread
 from backend.util import workspace_service as service
-from backend.util.document_preparation import validate_snapshot
+from backend.util.document_preparation import PreparationError, validate_snapshot
 
 
 # Excerpt size and leading context control reading volume, not page verification.
@@ -235,6 +235,77 @@ def _new_record(purpose):
         'targets': [], 'authorities': [], 'sources': [], 'queries': [], 'assessments': [],
         'coverage': {'targets': [], 'completed_chunks': [], 'failed_chunks': [],
                      'limitations': [], 'complete': False}, 'operations': []}
+
+
+def completeness(record):
+    """Rank cumulative snapshots by evidence read, then retained coverage.
+
+    Reads are the material actually supplied to the agent; sources and
+    authorities keep the navigation record. A later snapshot can be smaller
+    when it descends from a different branch, so recency alone is not a
+    useful measure of which record continues more work.
+    """
+    sources = record.get('sources') or []
+    reads = sum(len(source.get('reads') or []) for source in sources)
+    return (reads, len(sources), len(record.get('authorities') or []))
+
+
+def _research_children(ops, research_id):
+    """Return authorized snapshots that directly extend one research record."""
+    records = (AgentArtifact.query.join(service.Workflow, AgentArtifact.run_id == service.Workflow.id)
+        .filter(service.Workflow.user_id == ops.row.user_id,
+                service.Workflow.chat_thread_id == ops.row.chat_thread_id,
+                # Continue within the active run. Earlier snapshots remain valid
+                # inputs, but their document scope may since have changed.
+                AgentArtifact.run_id == ops.row.id,
+                AgentArtifact.kind == RESEARCH_KIND,
+                AgentArtifact.content_json.contains(f'"{research_id}"'))
+        .order_by(AgentArtifact.created_at.desc(), AgentArtifact.id.desc()).all())
+    result = []
+    for record in records:
+        try:
+            value = json.loads(record.content_json)
+        except (TypeError, ValueError):
+            continue
+        if value.get('parent_research_id') == research_id:
+            result.append((record, value))
+    return result
+
+
+def lineage_head(ops, research_id, *, source_id=None, authority_ids=(), identity_key=None):
+    """Continue the most complete descendant that still contains selected evidence.
+
+    A research record is cumulative: every extension copies the prior record and
+    appends findings. Continuing the richest descendant avoids sibling snapshots
+    that each carry the whole corpus. The requested snapshot still defines
+    membership, so a source or authority it does not contain is never taken
+    from another branch.
+    """
+    if not research_id:
+        return research_id
+    required = set(authority_ids or ())
+    best_id, best_score = research_id, None
+    seen = {research_id}
+    pending = [research_id]
+    while pending:
+        current = pending.pop()
+        for record, value in _research_children(ops, current):
+            if record.id in seen:
+                continue
+            seen.add(record.id)
+            if source_id is not None and not any(
+                    item.get('id') == source_id
+                    and (identity_key is None or item.get('identity_key') == identity_key)
+                    for item in value.get('sources') or []):
+                continue
+            if required and not required.issubset(
+                    {item.get('id') for item in value.get('authorities') or []}):
+                continue
+            score = (*completeness(value), record.created_at.isoformat() if record.created_at else '')
+            if best_score is None or score > best_score:
+                best_id, best_score = record.id, score
+            pending.append(record.id)
+    return best_id
 
 
 def _observation(uid, record, **extra):
@@ -622,7 +693,7 @@ def lookup(ops, args):
     signature = _digest(request)
     parent, record = _resume(ops, signature)
     if record is None:
-        parent = args.research_id
+        parent = lineage_head(ops, args.research_id) if args.research_id else None
         record = copy.deepcopy(resolve_artifact(ops, parent, RESEARCH_KIND)) if parent else _new_record(args.purpose)
         record['operation_signature'] = signature
     record['purpose'] = args.purpose
@@ -750,8 +821,14 @@ def search(ops, args):
     the agent can choose sources without repeating the search.
     """
     from backend.domains.legal import authority_sources
-    record = copy.deepcopy(resolve_artifact(ops, args.research_id, RESEARCH_KIND))
+    parent = args.research_id
+    record = copy.deepcopy(resolve_artifact(ops, parent, RESEARCH_KIND))
     selected = _selected(record, args.authority_ids)
+    head = lineage_head(ops, parent, authority_ids=args.authority_ids)
+    if head != parent:
+        parent = head
+        record = copy.deepcopy(resolve_artifact(ops, parent, RESEARCH_KIND))
+        selected = _selected(record, args.authority_ids)
     _check(ops)
     result = authority_sources.search_sources(args.query, args.provider, model=ops.model,
         reasoning_effort=ops.effort, check_execution=lambda: _check(ops))
@@ -779,7 +856,7 @@ def search(ops, args):
     record['queries'].append({'provider': args.provider, 'query': args.query,
         'authority_ids': args.authority_ids, 'source_ids': [item['id'] for item in found],
         'error': result.get('error'), **copy.deepcopy(findings)})
-    uid = _persist(ops, record, args.research_id)
+    uid = _persist(ops, record, parent)
     previews = [_source_reference(value) for value in found[:5]]
     return _observation(uid, record, **findings, sources=previews, source_count=len(found),
         sources_truncated=len(found) > 5, search_error=result.get('error'), error=bool(result.get('error')))
@@ -827,12 +904,9 @@ def _find_source_phrase(body, query, start):
     return start + positions[match], start + positions[match + len(phrase) - 1] + 1
 
 
-def _cache_from_other_snapshot(ops, source, opinion):
-    """Find an authorized exact-source cache without merging research findings."""
-    from backend.domains.legal.authority_sources import opinion_choices, reject_blocked_source
-    from backend.util.document_preparation import PreparationError
-    if not source.get('identity_key'):
-        return None
+def _cache_opinion(source, opinion):
+    """Resolve which opinion a cache must contain, or None when it cannot be used."""
+    from backend.domains.legal.authority_sources import opinion_choices
     selected = opinion
     if source.get('type') == 'courtlistener':
         choices = [item['id'] for item in opinion_choices(source.get('opinions'))]
@@ -841,7 +915,58 @@ def _cache_from_other_snapshot(ops, source, opinion):
         # Null with multiple/unknown opinions still follows normal opinion selection.
         if type(selected) is not int or selected <= 0 or (choices and selected not in choices):
             return None
-    elif source.get('type') != 'web' or opinion is not None:
+        return selected
+    if source.get('type') != 'web' or opinion is not None:
+        return None
+    return None
+
+
+def _cached_body(ops, cache, source, opinion):
+    """Return a usable cached body, or None when the pointer no longer matches."""
+    from backend.domains.legal.authority_sources import reject_blocked_source
+    from backend.util.document_preparation import PreparationError
+    if not cache:
+        return None
+    selected = cache.get('opinion_id')
+    if selected is None and cache.get('requested_opinion_id') is not None:
+        selected = cache.get('requested_opinion_id')
+    if source.get('type') == 'courtlistener' and selected is None:
+        selected = _cache_opinion(source, opinion)
+    if source.get('type') == 'courtlistener' and selected is None:
+        return None
+    if source.get('type') == 'web' and opinion is not None:
+        return None
+    try:
+        value = resolve_artifact(ops, cache['artifact_id'], SOURCE_KIND)
+    except (ValueError, PreparationError):
+        return None
+    if (value.get('role') != 'source_cache'
+            or (value.get('source_id') and value.get('source_id') != source['id'])
+            or value.get('opinion_id') != selected
+            or (source.get('type') == 'courtlistener'
+                and value.get('cluster_id') != source.get('cluster_id'))):
+        return None
+    value = reject_blocked_source(value)
+    if value.get('error_code') == 'source_blocked':
+        # A recorded challenge page stays replayable: report it rather than
+        # silently refetching while pretending no saved evidence existed.
+        return value
+    if (value.get('status') != 'read' or not isinstance(value.get('text'), str)
+            or not value['text'].strip()):
+        return None
+    return value
+
+
+def _cache_from_other_snapshot(ops, source, opinion):
+    """Find an authorized exact-source cache without merging research findings."""
+    from backend.domains.legal.authority_sources import reject_blocked_source
+    if not source.get('identity_key'):
+        return None
+    selected = _cache_opinion(source, opinion)
+    if source.get('type') == 'courtlistener' and selected is None:
+        return None
+    if source.get('type') not in {'courtlistener', 'web'} or (
+            source.get('type') == 'web' and opinion is not None):
         return None
     records = (AgentArtifact.query.join(service.Workflow, AgentArtifact.run_id == service.Workflow.id)
         .filter(service.Workflow.user_id == ops.row.user_id,
@@ -889,10 +1014,23 @@ def read(ops, args):
     alternatives = getattr(args, 'alternative_queries', [])
     if args.query is None and alternatives:
         raise ValueError('alternative_queries must be [] when query=null.')
-    record = copy.deepcopy(resolve_artifact(ops, args.research_id, RESEARCH_KIND))
+    parent = args.research_id
+    record = copy.deepcopy(resolve_artifact(ops, parent, RESEARCH_KIND))
     source = next((value for value in record['sources'] if value['id'] == args.source_id), None)
     if source is None:
         raise ValueError('Source ID must come from this research record.')
+    requested_source = source
+    # Continue the richest descendant of the requested snapshot. The requested
+    # snapshot still defines membership, so this never mixes in a source from
+    # an unrelated branch.
+    head = lineage_head(ops, parent, source_id=args.source_id,
+                        identity_key=source.get('identity_key'))
+    if head != parent:
+        parent = head
+        record = copy.deepcopy(resolve_artifact(ops, parent, RESEARCH_KIND))
+        source = next((value for value in record['sources'] if value['id'] == args.source_id), None)
+        if source is None:
+            raise ValueError('Source ID must come from this research record.')
     _check(ops)
     match_info = {'query': args.query, 'original_query_found': None, 'matched_query': None,
                   'match_start': None, 'match_end': None,
@@ -901,24 +1039,44 @@ def read(ops, args):
                 (*CASE_IDENTIFICATION_FIELDS, 'viewer_url', 'observations') if key in source}
     opinion = args.opinion_id
     caches = source.setdefault('cached_sources', [])
-    cache = next((value for value in caches if value.get('requested_opinion_id') == opinion
+    # The requested snapshot owns the cache decision. A chained descendant may
+    # have its own pointer, but choosing it here would let an out-of-band change
+    # to that record silently replace the caller's recorded evidence.
+    cache = next((value for value in requested_source.get('cached_sources') or []
+                  if value.get('requested_opinion_id') == opinion
                   or (opinion is not None and value.get('opinion_id') == opinion)), None)
-    if cache is None:
-        cache = _cache_from_other_snapshot(ops, source, opinion)
-        if cache:
-            # record/source are copies; historical snapshots and cache bodies stay immutable.
-            caches.append(cache)
+    fetched = _cached_body(ops, cache, source, opinion)
+    if fetched is None and cache:
+        # A pointer can outlive authorization, or later enrichments can be
+        # rejected. Ignore this copy in the new snapshot and fetch instead.
+        caches[:] = [entry for entry in caches
+                     if entry.get('artifact_id') != cache['artifact_id']]
+        if source.get('cache_artifact_id') == cache['artifact_id']:
+            source.pop('cache_artifact_id', None)
+        cache = None
+    if cache and not any(entry.get('artifact_id') == cache['artifact_id'] for entry in caches):
+        # Keep the cumulative snapshot's source pointing at the same evidence.
+        caches.append(copy.deepcopy(cache))
+        source['cache_artifact_id'] = cache['artifact_id']
+    if fetched is None:
+        found = _cache_from_other_snapshot(ops, source, opinion)
+        # record/source are copies; historical snapshots and cache bodies stay immutable.
+        body = _cached_body(ops, found, source, opinion) if found else None
+        if body is not None:
+            cache, fetched = found, body
+            if not any(entry.get('artifact_id') == cache['artifact_id'] for entry in caches):
+                caches.append(cache)
             source['cache_artifact_id'] = cache['artifact_id']
-    if cache:
-        fetched = resolve_artifact(ops, cache['artifact_id'], SOURCE_KIND)
+    if fetched is not None:
         cache_id = cache['artifact_id']
     else:
+        cache = None
         fetched = authority_sources.fetch_source(source, opinion_id=opinion,
                                                   check_execution=lambda: _check(ops))
         if fetched.get('status') in {'metadata', 'invalid_selection'}:
             source['opinions'] = (authority_sources.opinion_choices(fetched.get('opinions'))
                                   if source.get('type') == 'courtlistener' else fetched.get('opinions') or [])
-            uid = _persist(ops, record, args.research_id)
+            uid = _persist(ops, record, parent)
             if fetched['status'] == 'invalid_selection':
                 return _observation(uid, record, **match_info, **identity, source_id=source['id'],
                     error=True, error_code='invalid_opinion_id',
@@ -933,7 +1091,7 @@ def read(ops, args):
             'error_code', 'http_status', 'requested_url', 'url', 'title', 'retrieved_at')}
         source.setdefault('read_errors', []).append({**details,
             'error': fetched.get('error') or 'Source text is unavailable.', 'opinion_id': opinion})
-        uid = _persist(ops, record, args.research_id)
+        uid = _persist(ops, record, parent)
         return _observation(uid, record, **match_info, **identity, **details, source_id=source['id'], error=True,
             next_start=None, read_error=fetched.get('error') or 'Source text is unavailable.',
             message='Source text was not read. Use another relevant readable source or disclose the coverage gap; '
@@ -970,7 +1128,7 @@ def read(ops, args):
         raise ValueError('Source text offset is outside the saved text.')
     if args.start == len(body):
         save_cache(fetched)
-        uid = _persist(ops, record, args.research_id)
+        uid = _persist(ops, record, parent)
         return _observation(uid, record, **match_info, **identity, source_id=source['id'], text='', start=args.start,
             end=args.start, total_characters=len(body), next_start=None, end_of_source=True,
             message='There are no source characters at this offset; no passage was marked read.')
@@ -986,7 +1144,7 @@ def read(ops, args):
                 break
         if match is None:
             save_cache(fetched)
-            uid = _persist(ops, record, args.research_id)
+            uid = _persist(ops, record, parent)
             return _observation(uid, record, **match_info, **identity, source_id=source['id'], total_characters=len(body),
                 match_found=False, message='No supplied phrase was found at or after start, allowing for capitalization, whitespace, quotes, dashes and soft hyphens. This does not establish that the discussion or proposition is absent. Other phrases or paginated reading remain available.')
         match_info.update(match_start=match[0], match_end=match[1])
@@ -999,7 +1157,7 @@ def read(ops, args):
     match_info.update(published_pages.for_passage(
         fetched, lo, hi, match_info['match_start'], match_info['match_end']))
     passage = {'kind': SOURCE_KIND, 'role': 'passage', 'source_id': source['id'], **match_info,
-        'research_id': args.research_id,
+        'research_id': parent,
         'source_artifact_id': cache_id, 'text': body[lo:hi], 'url': fetched.get('url') or source.get('url'),
         **identity,
         'title': fetched.get('title') or source.get('title'), 'start': lo, 'end': hi,
@@ -1029,7 +1187,7 @@ def read(ops, args):
         if source['id'] in authority['source_ids']:
             authority['checking']['opinion_read'] = bool(passage.get('opinion_id')) or authority['checking'].get('opinion_read', False)
             authority['checking']['source_read'] = True
-    uid = _persist(ops, record, args.research_id)
+    uid = _persist(ops, record, parent)
     # Give the controller the same passage-to-cache provenance supplied to analysis.
     # The cache identity does not extend the returned passage's reading scope.
     return _observation(uid, record, **match_info, **identity, source_id=source['id'], passage_artifact_id=passage_id,
@@ -1051,9 +1209,10 @@ def attach_assessment(ops, research_ids, assessment_id, text):
     """
     result = []
     for uid in dict.fromkeys(research_ids):
-        record = copy.deepcopy(resolve_artifact(ops, uid, RESEARCH_KIND))
+        parent = lineage_head(ops, uid)
+        record = copy.deepcopy(resolve_artifact(ops, parent, RESEARCH_KIND))
         record['assessments'].append({'artifact_id': assessment_id, 'text': text,
             'label': 'Generated assessment; inspect its cited source evidence.',
-            'target_research_id': uid})
-        result.append(_persist(ops, record, uid))
+            'target_research_id': parent})
+        result.append(_persist(ops, record, parent))
     return result
