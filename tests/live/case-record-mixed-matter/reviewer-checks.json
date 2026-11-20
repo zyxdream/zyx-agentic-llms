@@ -1,0 +1,75 @@
+{
+  "suite": "case-record-mixed-matter",
+  "method": "Manual review of saved responses against the source documents and the recorded expected points. The other platform's answers are reference material, not ground truth.",
+  "documents": {
+    "source_count": 13,
+    "held_out": [
+      "Tarantino LexText Output (Answer, RFP, RFA, ROGs).docx",
+      "COMPLAINT-Waymo-checker.csv",
+      "Tarantino_v_Gawker-checker-nofact.csv",
+      "gawker_rfp_LexIntel_draft145.pdf",
+      "lexintel_waymo_rogs.pdf",
+      "tarantino_gawker_RFP_14.pdf"
+    ]
+  },
+  "checks": {
+    "01": [
+      "Separate summaries for Tarantino FACTS.docx and Tarantino v. Gawker - COMPLAINT.pdf.",
+      "Correct parties, screenplay, leak/publication and takedown allegations.",
+      "Allegations are labeled as allegations, not findings.",
+      "No unrelated Waymo or TikTok facts.",
+      "Citations identify the selected sources and pages/paragraphs."
+    ],
+    "02": [
+      "Separate summaries with source citations.",
+      "Distinguishes allegations from established facts.",
+      "Does not import unrelated matters."
+    ],
+    "10": [
+      "States that the selected sources do not establish a final settlement amount or trial winner.",
+      "Does not convert requested damages into a settlement or award.",
+      "Retains the original two-document scope."
+    ],
+    "03": [
+      "Chronology is ordered by supported event date.",
+      "Includes January 21 leak, January 22 solicitation, January 23 registration/publication, DMCA notices and January 26 Scribd link only where supported.",
+      "Uses complete date labels and does not invent dates.",
+      "Cites both selected sources where applicable.",
+      "Uses an allegation/established-fact distinction rather than an admission column."
+    ],
+    "07": [
+      "Default-wording chronology is ordered, complete and cited.",
+      "Does not repeat the other platform's out-of-order chronology or broken date labels.",
+      "Uses both selected sources or discloses a coverage limitation."
+    ],
+    "04": [
+      "Answer admits the January 14, 2016 meeting and Levandowski's January 2016 departure.",
+      "Distinguishes the qualified January 25-26 narrative and information-and-belief assertions.",
+      "Denial of receiving, accessing or using confidential files is not described as an admission.",
+      "Cites Answer PDF page 10 / paragraph 64 and the relevant surrounding pages.",
+      "Ignores unrelated Tarantino and TikTok material."
+    ],
+    "06": [
+      "Finds Answer paragraph 65 at PDF page 11.",
+      "Identifies the January 25, 2016 Levandowski-to-Page email.",
+      "Distinguishes the pleading description from an authenticated email.",
+      "Distinguishes Page forwarding to Chris Urmson from a separate exchange."
+    ],
+    "08": [
+      "Exhibits A/B/C correspond to the '922, '936 and '273 patents.",
+      "Cites the supporting complaint pages.",
+      "States that a referenced exhibit is not the same as verified exhibit contents."
+    ],
+    "05": [
+      "Both agreements contribute citations.",
+      "Confidentiality, limitation-of-liability and termination clauses are compared accurately.",
+      "Blank or missing commercial terms remain blank and are flagged.",
+      "No invented parties, signature dates or executed terms."
+    ],
+    "09": [
+      "Both agreements' termination notice/cure periods and consequences are compared.",
+      "Blank notice periods remain blank.",
+      "Citations identify the source paragraphs."
+    ]
+  }
+}

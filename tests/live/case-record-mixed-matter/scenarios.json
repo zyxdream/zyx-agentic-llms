@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "suite": "case-record-mixed-matter",
+  "input_root": "instance/evaluation-inputs/case-record-mixed-matter/source-documents",
+  "projects": [
+    {
+      "id": "tarantino",
+      "title": "Tarantino v. Gawker selected documents",
+      "documents": [
+        "Tarantino FACTS.docx",
+        "Tarantino v. Gawker - COMPLAINT.pdf"
+      ],
+      "turns": [
+        {
+          "id": "01",
+          "conversation": "summary-detailed",
+          "prompt_file": "prompts/01-detailed-summary.txt",
+          "prompt_sha256": "53f3b5ce59d3fb2d32933bb2c5b563c4b2a8bca5514cbee146b2440f81d11246"
+        },
+        {
+          "id": "02",
+          "conversation": "summary",
+          "prompt_file": "prompts/02-summary.txt",
+          "prompt_sha256": "68734761d45c90240557af5d9e2985fa4b501d04a37412b0ae7a5109401b9427"
+        },
+        {
+          "id": "10",
+          "conversation": "summary",
+          "prompt_file": "prompts/10-summary-follow-up.txt",
+          "prompt_sha256": "5aed772a45109bc39ef957d7ae065042d8622b29a81e2ba547cc747bb20a9862"
+        },
+        {
+          "id": "03",
+          "conversation": "chronology-detailed",
+          "prompt_file": "prompts/03-detailed-chronology.txt",
+          "prompt_sha256": "7c7d72f28a1e820ad9e5e4037b48fe12e9182a1e024655c91c15ea1699d403d3"
+        },
+        {
+          "id": "07",
+          "conversation": "chronology-default",
+          "prompt_file": "prompts/07-chronology-retry.txt",
+          "prompt_sha256": "9a3460b7c8c0ac1856cdedb0a99caef44d7827c867264ffd3daeb72d498eca3f"
+        }
+      ]
+    },
+    {
+      "id": "all-documents",
+      "title": "Mixed matter - all source documents",
+      "documents": [
+        "Tarantino FACTS.docx",
+        "Tarantino v. Gawker - COMPLAINT.pdf",
+        "COMPLAINT-Waymo.pdf",
+        "Waymo v. Uber - FAC.pdf",
+        "Waymo v. Uber - ANSWER.pdf",
+        "Waymo Objections to Interrogatories.pdf",
+        "Griffith_v_Tiktok.pdf",
+        "JC.v.Catholic.Health.Systems.pdf",
+        "JL_Complaint_-_State_Court_Ferguson.pdf",
+        "McLaughlin COMPLAINT.pdf",
+        "Common-Paper-Cloud-Service-Agreement-v2-8d1165d2819dc660cf5f4d40c9d082ea3d552826d6b8411c8d56d7fd937d1f88.docx",
+        "YC_Form_SaaS_Agreement-b4e85442423b0ad8a2f8a2e25dafc3f70d75273e39742c23724b18321daefa05.doc",
+        "Gawker display my screen script on their website copy.docx"
+      ],
+      "turns": [
+        {
+          "id": "04",
+          "conversation": "waymo-admissions",
+          "prompt_file": "prompts/04-waymo-admissions.txt",
+          "prompt_sha256": "ef1722e501f664eff669bfb6abe3a43e5c2e2e17aa33047f131f2e148569fd74"
+        },
+        {
+          "id": "06",
+          "conversation": "witness-communications",
+          "prompt_file": "prompts/06-witness-communications.txt",
+          "prompt_sha256": "5e77070ef2ca2edbfe92040f25b142ca67d5e14dccf122cfa7bc14744a9f4cbe"
+        },
+        {
+          "id": "08",
+          "conversation": "referenced-exhibits",
+          "prompt_file": "prompts/08-referenced-exhibits.txt",
+          "prompt_sha256": "0e22c6f309a6780afbd91fb3fc0ed7054bcb034f9134516abfb1ce6335a145bd"
+        }
+      ]
+    },
+    {
+      "id": "contracts",
+      "title": "Selected SaaS agreements",
+      "documents": [
+        "Common-Paper-Cloud-Service-Agreement-v2-8d1165d2819dc660cf5f4d40c9d082ea3d552826d6b8411c8d56d7fd937d1f88.docx",
+        "YC_Form_SaaS_Agreement-b4e85442423b0ad8a2f8a2e25dafc3f70d75273e39742c23724b18321daefa05.doc"
+      ],
+      "turns": [
+        {
+          "id": "05",
+          "conversation": "contract-comparison",
+          "prompt_file": "prompts/05-contract-comparison.txt",
+          "prompt_sha256": "7f2c9e7b0f5d9aba77f5d3b2249884da46b366e454cd9c6abe3beb01ac26fb16"
+        },
+        {
+          "id": "09",
+          "conversation": "termination-comparison",
+          "prompt_file": "prompts/09-termination-comparison.txt",
+          "prompt_sha256": "a731ea502133ba2d5c244a5a4c4930baf71621db326b4bb02d4dee9e836b5e89"
+        }
+      ]
+    }
+  ]
+}

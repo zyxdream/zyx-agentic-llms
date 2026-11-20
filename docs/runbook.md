@@ -328,6 +328,7 @@ export cookies or credentials.
 | PDF export fails | The Docker image or LibreOffice is missing; rebuild `backend/python_runtime`. |
 | Preparation stays `summarizing` or `failed` | Check `instance/dev/documents.log`. Re-upload the file. Encrypted or image-only PDFs may need OCR. |
 | A run stays `running` with no progress | Check `instance/dev/agent.log` and `scripts/dev.py status`. Use the UI Retry to resume saved steps; do not edit the database. |
+| Worker exits with `SIGABRT` / `objc[...] fork()` | macOS Objective-C fork-safety crash. `scripts/dev.py` sets `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`; restart services and retry the preparation. |
 | `context_budget` tool error | The selected material set is too large. Keep one research snapshot per topic plus the passages actually needed, or shorten the draft/instructions. Repeating the same selection fails again. |
 | `database is locked` | More than one backend/worker set is writing, or a CLI write transaction is open. Stop stray processes and use `sqlite3 -readonly` for inspection. |
 | Signed out or CSRF error after restart | Reload the page and sign in again. The signing key must stay stable in `.env`. |

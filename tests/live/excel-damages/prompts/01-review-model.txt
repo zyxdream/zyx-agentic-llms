@@ -1,0 +1,1 @@
+Review the attached damages workbook, payments CSV, client email, and expert notes. Inventory the sheets and formulas, explain the damages methodology, and flag hard-coded values, broken links, or assumptions that require confirmation. Do not recalculate the final damages yet.

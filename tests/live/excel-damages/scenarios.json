@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "suite": "excel-damages",
+  "input_root": "tests/live/excel-damages/fixtures",
+  "projects": [
+    {
+      "id": "excel-damages",
+      "title": "Synthetic damages model review",
+      "documents": [
+        "Damages Model.xlsx",
+        "payments.csv",
+        "client-email.txt",
+        "expert-notes.txt"
+      ],
+      "turns": [
+        {
+          "id": "E1",
+          "conversation": "damages-review",
+          "prompt_file": "prompts/01-review-model.txt",
+          "prompt_sha256": "c25f2a1a04e8875be0857d1e977474cbeabe0f7e2b7d4ffca8fcb3f4a78a3d08"
+        },
+        {
+          "id": "E2",
+          "conversation": "damages-review",
+          "prompt_file": "prompts/02-recalculate.txt",
+          "prompt_sha256": "ca9963606bb6dcf4e51acd7a03a28581e0004d7c6a636d6a1c7f4f3677df8793"
+        },
+        {
+          "id": "E3",
+          "conversation": "damages-review",
+          "prompt_file": "prompts/03-explain-variance.txt",
+          "prompt_sha256": "2da15d7f7e252d85dce9f514c435e8e0f0de41d955f65b234f6dd07dd302f954"
+        }
+      ]
+    }
+  ]
+}

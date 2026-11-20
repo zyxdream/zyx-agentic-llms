@@ -1,0 +1,1 @@
+Update the model using the client email's revised assumptions: use an 8% discount rate, a three-year projection, and exclude the disputed revenue line. Recalculate the damages, preserve the original workbook, and save a revised XLSX plus a CSV summary. Show the old and new totals by component.

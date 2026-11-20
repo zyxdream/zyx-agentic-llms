@@ -45,6 +45,9 @@ def environment():
         PATH=os.pathsep.join([str(ROOT/'.venv/bin'),*host_path]),PYTHONUNBUFFERED='1',PYTHONNOUSERSITE='1',
         AWS_EC2_METADATA_DISABLED='true',AWS_SHARED_CREDENTIALS_FILE=str(ROOT/'.private/aws/credentials'),
         AWS_CONFIG_FILE=str(ROOT/'.private/aws/config'),AWS_PROFILE='workspace',
+        # macOS Objective-C libraries can abort forked Celery children; this is
+        # the documented local-development workaround for prefork workers.
+        OBJC_DISABLE_INITIALIZE_FORK_SAFETY='YES',
         TIKTOKEN_CACHE_DIR=str(ROOT/'instance/cache/tiktoken'))
     return env
 

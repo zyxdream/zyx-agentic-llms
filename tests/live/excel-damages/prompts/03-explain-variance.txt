@@ -1,0 +1,1 @@
+Explain the variance between the original and revised totals by component and identify the largest drivers. Flag remaining assumptions that require expert confirmation. Update the demand summary without changing the prior workbook version.

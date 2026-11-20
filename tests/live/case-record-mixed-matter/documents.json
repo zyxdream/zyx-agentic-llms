@@ -1,0 +1,80 @@
+[
+  {
+    "filename": "Tarantino FACTS.docx",
+    "bytes": 18069,
+    "sha256": "a9b50b78b8e283e71f8dbd31f4d4be58a5b8e9b7415630aedcc56b0fc642b689",
+    "role": "source"
+  },
+  {
+    "filename": "Tarantino v. Gawker - COMPLAINT.pdf",
+    "bytes": 152820,
+    "sha256": "565b305acf3596c26c1ed005aa8c7bd5e50fc6a1c4cff619fd64fd51a781cea3",
+    "role": "source"
+  },
+  {
+    "filename": "COMPLAINT-Waymo.pdf",
+    "bytes": 199007,
+    "sha256": "b47c810318ca57aa3200f10aed5056f4ab7783ef5d06a085eb3729817b9becb6",
+    "role": "source"
+  },
+  {
+    "filename": "Waymo v. Uber - FAC.pdf",
+    "bytes": 137747,
+    "sha256": "714b3ccfcd01c36b34af942376d3c39aa6ce328c5bc1ff0f72f4b61b0136b51b",
+    "role": "source"
+  },
+  {
+    "filename": "Waymo v. Uber - ANSWER.pdf",
+    "bytes": 71312,
+    "sha256": "31d841a87df4f57970ba51b1af41d9538b48e4a3060c96252269f92332679d3f",
+    "role": "source"
+  },
+  {
+    "filename": "Waymo Objections to Interrogatories.pdf",
+    "bytes": 143912,
+    "sha256": "d4688935dcea7811fb48b4086df72e992a436485707e810d99a8069fbe492686",
+    "role": "source"
+  },
+  {
+    "filename": "Griffith_v_Tiktok.pdf",
+    "bytes": 806953,
+    "sha256": "c703acfb83e76b58ed18454366cc18f375b8922ce8d7f359265beaeb0f6147a3",
+    "role": "source"
+  },
+  {
+    "filename": "JC.v.Catholic.Health.Systems.pdf",
+    "bytes": 2268063,
+    "sha256": "db02c938e18f6937e74f0e4a7eb3abda928bd476491a0f2caaca0abefed2aa76",
+    "role": "source"
+  },
+  {
+    "filename": "JL_Complaint_-_State_Court_Ferguson.pdf",
+    "bytes": 1157219,
+    "sha256": "2f8b6910589801b76da994697d685d6aab89bbb6cd0fee49f385704fb603769f",
+    "role": "source"
+  },
+  {
+    "filename": "McLaughlin COMPLAINT.pdf",
+    "bytes": 94334,
+    "sha256": "c608e34ad33f2c8f0b18d7314508aca54e898a6eeda6f0c75bd458a6ef2a0a10",
+    "role": "source"
+  },
+  {
+    "filename": "Common-Paper-Cloud-Service-Agreement-v2-8d1165d2819dc660cf5f4d40c9d082ea3d552826d6b8411c8d56d7fd937d1f88.docx",
+    "bytes": 133855,
+    "sha256": "2e2bbcc462a58aa86bb77ea7cb606b85ab226dbdbb5fc9fb86ab8cf6b1d32865",
+    "role": "source"
+  },
+  {
+    "filename": "YC_Form_SaaS_Agreement-b4e85442423b0ad8a2f8a2e25dafc3f70d75273e39742c23724b18321daefa05.doc",
+    "bytes": 67584,
+    "sha256": "62b123c47d94430336f38bd76e35aa2d09368e246b33162b1eba6079fce0dc30",
+    "role": "source"
+  },
+  {
+    "filename": "Gawker display my screen script on their website copy.docx",
+    "bytes": 14645,
+    "sha256": "6ad9298651bb1c927f5254178e998b7aa93aeafe676b169c2925610d7cfce854",
+    "role": "source"
+  }
+]

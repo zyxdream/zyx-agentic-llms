@@ -1,0 +1,8 @@
+From: CFO
+To: Litigation team
+Subject: Revised damages assumptions
+
+For the updated model, use an 8% discount rate and a three-year projection.
+Exclude the $50,000 disputed revenue that is currently included in Year 3.
+Keep the mitigation and expert costs unchanged.
+Do not fill in any blank commercial terms; flag them instead.

@@ -1,0 +1,9 @@
+Synthetic expert notes
+
+The model projects lost profits for four years, applies a 25% tax rate, discounts to present value, adds mitigation and expert costs, and subtracts payments received.
+
+Known review flags:
+- Year 4 revenue is a management override, not a documented projection.
+- The Year 3 revenue figure includes a $50,000 disputed line.
+- The payments CSV is the source for cash received; confirm it matches the Payments sheet.
+- This is a synthetic demonstration, not a real damages opinion.

@@ -100,6 +100,46 @@ normally, and start a case. Staging copies only the declared upload inputs and
 prompts; `fixtures/expected.json` stays out of the browser. Remove the generated
 `frontend/public/_live_acceptance_legal/` directory afterwards.
 
+### 4. Case Record mixed-matter
+
+Pack: `tests/live/case-record-mixed-matter/`
+Entry: scripted browser runner against the signed-in browser.
+Inputs: 14 real source documents under the ignored
+`instance/evaluation-inputs/case-record-mixed-matter/source-documents/`.
+
+Nine conversations / ten prompts adapted from the November 19 Case Record
+handoff: Tarantino summaries and chronology, Waymo admissions and exhibit
+references, witness communications, and selected SaaS contract comparisons.
+Six generated/checker files are held out and never uploaded.
+
+```sh
+.venv/bin/python tests/live/suite_prepare.py tests/live/case-record-mixed-matter --label openai --cdp-port 64954
+node tests/live/suite_browser.cjs /absolute/path/to/new-run run
+```
+
+The runner creates separate projects for the Tarantino, all-document and
+selected-contract scopes, uploads only declared source files, submits the
+prompts, and saves final responses under ignored `artifacts/`.
+
+### 5. Excel damages
+
+Pack: `tests/live/excel-damages/`
+Entry: scripted browser runner against the signed-in browser.
+Inputs: synthetic `Damages Model.xlsx`, `payments.csv`, `client-email.txt` and
+`expert-notes.txt` under `tests/live/excel-damages/fixtures/`.
+
+One conversation, three turns: review the model, recalculate with revised
+assumptions and save an XLSX/CSV, then explain the variance. Expected original
+and revised totals are in `reviewer-checks.json`.
+
+```sh
+.venv/bin/python tests/live/suite_prepare.py tests/live/excel-damages --label openai --cdp-port 64954
+node tests/live/suite_browser.cjs /absolute/path/to/new-run run
+```
+
+The current parser supports `.xlsx` and `.csv`, not `.eml`/`.msg` attachment
+extraction. The email is a text file plus separate workbook/CSV attachments.
+
 ## Recorded baselines
 
 Run evidence lives under the gitignored `artifacts/` directory. The paths, run
@@ -111,6 +151,8 @@ compared without keeping the artifacts in Git.
 | Legal workflows v2 | `artifacts/model-benchmark-openai-budget-recovery-r2-20261118-202204` | commit `4d42f56` (source hash matches; `code-identity.json` records the pre-rewrite head `4a15ebe`, now `e9da487`, because the run started before the commit) | openai `gpt-6-luna`, medium effort, fast default | 10/10 turns; 3180.594 s; 275 LLM calls; 26,926,920 tokens; 12 tool errors; 0 run retries; 10/10 downloads verified |
 | Waymo / Uber drafting | `artifacts/live-drafting-waymo-20261114-165411` | `66f6274` plus then-uncommitted changes; source-tree ID `bbdeca3b…` | openai `gpt-6-luna`, medium | 7/7 scenarios, 10/10 turns; one recovered Python tool error; all outputs and DOCX downloads verified |
 | Live legal acceptance | `artifacts/live-legal-20261113` | `f4e933b` plus a then-uncommitted transport fix | openai `gpt-6-luna`, medium | 3 matters plus one revision; 4/4 runs completed after the transport fix; 44 files uploaded |
+| Case Record mixed-matter | `artifacts/case-record-mixed-matter-role-settings-20261120-115952` | `f4422b6` plus then-uncommitted live-suite tooling and macOS worker fix | role settings: Sol medium controller/writer/verifier; luna medium preparation/research/search/utility | 10/10 prompts completed; 0 tool errors; 0 retries; 13 source docs, 6 held out |
+| Excel damages | `artifacts/excel-damages-role-settings-r2-20261120-120433` | `f4422b6` plus then-uncommitted live-suite tooling and macOS worker fix | same role settings | 3/3 turns completed; 0 tool errors; original $543,083.46 → revised $385,657.29; variance −$157,426.17 |
 
 Baseline turn IDs in the r2 run (projects 38, 39 and 40):
 
@@ -127,7 +169,7 @@ The saved conversation IDs and per-turn evidence are in that run's `state.json`
 and `results/evidence.json`. Reusing the same prompts and inputs in a new project
 is the correct comparison; do not append to a frozen conversation.
 
-New runs use the role policy in `config/models.json` (`gpt-6.1-sol` medium for
+New runs use the model settings in `config/models.json` (`gpt-6.1-sol` medium for
 controller, analysis, writer and verifier; `gpt-6-luna` medium for preparation,
 research, search, utility and court formatting). The r2 run above remains the
 recorded all-luna baseline; label a role-policy run separately when comparing.

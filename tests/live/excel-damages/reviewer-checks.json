@@ -1,0 +1,25 @@
+{
+  "suite": "excel-damages",
+  "method": "Manual review of the final responses and generated files. Values are independently computed from the synthetic inputs.",
+  "expected": {
+    "original_lost_profits_pv": 533083.46,
+    "original_total_damages": 543083.46,
+    "revised_lost_profits_pv": 375657.29,
+    "revised_total_damages": 385657.29,
+    "variance": -157426.17,
+    "components": {
+      "lost_profits": -157426.17,
+      "costs": 0,
+      "payments": 0
+    }
+  },
+  "checks": [
+    "The review turn identifies the Assumptions, Lost Profits, Costs, Payments and Summary sheets and explains the methodology.",
+    "The review turn flags the Year 4 revenue override and the disputed Year 3 revenue.",
+    "The recalculation turn applies 8%, three years, and excludes the $50,000 disputed revenue.",
+    "The revised total damages is 385,657.29 and the variance is -157,426.17.",
+    "The agent preserves the original workbook and saves a revised XLSX and CSV summary.",
+    "The explanation attributes the variance to lost profits and does not invent other drivers.",
+    "Remaining assumptions are disclosed rather than silently filled."
+  ]
+}
